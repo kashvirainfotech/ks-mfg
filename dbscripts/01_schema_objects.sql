@@ -1,0 +1,15 @@
+-- ============================================================================
+-- KS-MFG ERP: Master Database Schema Objects
+-- Description: Common master SQL file containing ALL CREATE statements for
+--              Sequences, Tables, and Indexes to be executed manually on a
+--              fresh/new PostgreSQL database.
+-- Rule:
+--   1. ONLY CREATE statements are allowed.
+--   2. All new objects for new screens/features must be appended at the END
+--      of this file with proper date and informational comment headers.
+--   3. All table PKs must be <entity>_id sourced from sequences.
+--   4. All tables must have standard 7 audit columns:
+--      comp_id, branch_id, fyear_id, created_by, created_date, updated_by, updated_date.
+-- ============================================================================
+
+-- (New CREATE statements for tables, sequences, and indexes will be appended below per screen/feature)

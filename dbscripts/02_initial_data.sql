@@ -1,0 +1,13 @@
+-- ============================================================================
+-- KS-MFG ERP: Necessary System Initial Data & Inserts
+-- Description: Single SQL file containing ALL necessary system INSERT
+--              statements required for the application to function (e.g.,
+--              system configurations, default voucher types, system roles,
+--              standard UOMs, system screens, actions, super admin seed).
+-- Rule:
+--   1. All essential setup/seed INSERT statements must reside in this file.
+--   2. New system inserts for newly introduced screens/features must be
+--      appended at the END of this file with proper date and info comments.
+-- ============================================================================
+
+-- (System setup INSERT statements will be appended below per screen/feature)

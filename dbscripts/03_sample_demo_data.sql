@@ -1,0 +1,11 @@
+-- ============================================================================
+-- KS-MFG ERP: Screen/Feature-Wise Sample & Demo Data
+-- Description: Single SQL file containing sample and demo data for testing
+--              and demonstrating each screen and feature.
+-- Rule:
+--   1. For each screen/feature implemented, update this file by appending
+--      realistic sample demo records at the END of this file.
+--   2. Precede each section with proper date and feature information comments.
+-- ============================================================================
+
+-- (Sample and demo data will be appended below per screen/feature)

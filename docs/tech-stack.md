@@ -34,27 +34,14 @@
 ### 2.2 Script Storage & Directory Structure
 ```
 ks-mfg/
-└── backend/
-    └── db/
-        ├── scripts/
-        │   ├── 001_sequences.sql              # Master sequence creation
-        │   ├── 002_core_tenancy.sql           # Companies, Branches, Financial Years
-        │   ├── 003_org_and_users.sql          # Depts, Designations, Employees, Users, Roles
-        │   ├── 004_permissions.sql            # Screens, Action Items, User-Role Mappings
-        │   ├── 005_config_parameters.sql      # Config master, Branch/User overrides
-        │   ├── 006_dynamic_warehouses.sql     # Warehouses, Dynamic Location Tree, Types
-        │   ├── 007_items_and_units.sql        # Items, Units, Multi-Unit Conversions
-        │   ├── 008_parties_and_pricing.sql    # Parties, Addresses, Tiered Price Lists
-        │   ├── 009_voucher_framework.sql      # Voucher Types, Sequence Lock Trackers
-        │   ├── 010_procurement_transactions.sql # PO, GRN, Purchase Invoice tables
-        │   ├── 011_manufacturing_tables.sql   # BOM, Routing, Work Orders, Issue/Receipt
-        │   ├── 012_subcontracting_tables.sql  # Job-Work Delivery Challan, Job-Work Receipt
-        │   ├── 013_inventory_ledger.sql       # Stock balance ledgers, Batch, Serial tracking
-        │   └── 014_indexes_and_triggers.sql   # Performance indexes, updated_date triggers
-        └── seeds/
-            ├── 001_seed_voucher_types.sql     # Standard voucher integer codes
-            ├── 002_seed_default_configs.sql   # Baseline configuration parameters
-            └── 003_seed_super_admin.sql       # Root administrator seed
+└── dbscripts/                                # Root folder for all database scripts
+    ├── 01_schema_objects.sql                 # ALL tables, indexes, sequences (CREATE only, appended at end)
+    ├── 02_initial_data.sql                   # ALL necessary system setup & seed inserts (single file)
+    ├── 03_sample_demo_data.sql               # Single file for sample demo data per screen/feature
+    ├── views/                                # Individual .sql for each view
+    ├── functions/                            # Individual .sql for each function
+    ├── triggers/                             # Individual .sql for each trigger
+    └── procedures/                           # Individual .sql for each stored procedure
 ```
 
 ### 2.3 PostgreSQL Sequences & Primary Key Convention
