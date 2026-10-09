@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light" data-theme-color="indigo">
+<html lang="en" class="dark" data-theme-color="indigo">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,10 +19,21 @@
             brand: {
               50: 'var(--brand-50)',
               100: 'var(--brand-100)',
+              200: 'var(--brand-200)',
+              400: 'var(--brand-400)',
               500: 'var(--brand-500)',
               600: 'var(--brand-600)',
               700: 'var(--brand-700)',
-            }
+              900: 'var(--brand-900)',
+              950: 'var(--brand-950)',
+            },
+            darkcard: '#131d31',
+            darkbody: '#0b1120',
+            darkheader: '#0f172a',
+            darkthead: '#162238',
+            darkgroup: '#1a2942',
+            darkinput: '#0e1626',
+            darkborder: '#1e293b'
           }
         }
       }
@@ -31,63 +42,95 @@
   <style>
     /* Theme color variables */
     :root[data-theme-color="indigo"] {
-      --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-500: #6366f1; --brand-600: #4f46e5; --brand-700: #4338ca;
+      --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-200: #c7d2fe; --brand-400: #818cf8;
+      --brand-500: #6366f1; --brand-600: #4f46e5; --brand-700: #4338ca; --brand-900: #312e81; --brand-950: #1e1b4b;
     }
     :root[data-theme-color="blue"] {
-      --brand-50: #eff6ff; --brand-100: #dbeafe; --brand-500: #3b82f6; --brand-600: #2563eb; --brand-700: #1d4ed8;
+      --brand-50: #eff6ff; --brand-100: #dbeafe; --brand-200: #bfdbfe; --brand-400: #60a5fa;
+      --brand-500: #3b82f6; --brand-600: #2563eb; --brand-700: #1d4ed8; --brand-900: #1e3a8a; --brand-950: #172554;
     }
     :root[data-theme-color="emerald"] {
-      --brand-50: #ecfdf5; --brand-100: #d1fae5; --brand-500: #10b981; --brand-600: #059669; --brand-700: #047857;
+      --brand-50: #ecfdf5; --brand-100: #d1fae5; --brand-200: #a7f3d0; --brand-400: #34d399;
+      --brand-500: #10b981; --brand-600: #059669; --brand-700: #047857; --brand-900: #064e3b; --brand-950: #022c22;
     }
     :root[data-theme-color="violet"] {
-      --brand-50: #f5f3ff; --brand-100: #ede9fe; --brand-500: #8b5cf6; --brand-600: #7c3aed; --brand-700: #6d28d9;
+      --brand-50: #f5f3ff; --brand-100: #ede9fe; --brand-200: #ddd6fe; --brand-400: #a78bfa;
+      --brand-500: #8b5cf6; --brand-600: #7c3aed; --brand-700: #6d28d9; --brand-900: #4c1d95; --brand-950: #2e1065;
     }
     :root[data-theme-color="amber"] {
-      --brand-50: #fffbeb; --brand-100: #fef3c7; --brand-500: #f59e0b; --brand-600: #d97706; --brand-700: #b45309;
+      --brand-50: #fffbeb; --brand-100: #fef3c7; --brand-200: #fde68a; --brand-400: #fbbf24;
+      --brand-500: #f59e0b; --brand-600: #d97706; --brand-700: #b45309; --brand-900: #78350f; --brand-950: #451a03;
     }
     :root[data-theme-color="rose"] {
-      --brand-50: #fff1f2; --brand-100: #ffe4e6; --brand-500: #f43f5e; --brand-600: #e11d48; --brand-700: #be123c;
+      --brand-50: #fff1f2; --brand-100: #ffe4e6; --brand-200: #fecdd3; --brand-400: #fb7185;
+      --brand-500: #f43f5e; --brand-600: #e11d48; --brand-700: #be123c; --brand-900: #881337; --brand-950: #4c0519;
     }
 
     /* Custom scrollbar for high density tables */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; }
   </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased font-sans min-h-screen transition-colors duration-200">
+<body class="bg-slate-50 dark:bg-[#0b1120] text-slate-800 dark:text-slate-100 antialiased font-sans min-h-screen transition-colors duration-200 flex flex-col">
 
   <!-- ========================================================================= -->
-  <!-- TOP FLOATING SCREEN SWITCHER BAR (Mockup Navigation Tool) -->
+  <!-- TOP DEDICATED MOCKUP CONTROLLER BAR (Never Overlaps Header!) -->
   <!-- ========================================================================= -->
-  <div class="fixed top-2 right-4 z-50 flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur shadow-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full text-xs font-medium">
-    <span class="text-slate-400 dark:text-slate-500 mr-1 flex items-center gap-1">
-      <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-600"></i> Mockup View:
-    </span>
-    <button onclick="switchView('login')" id="btn-view-login" class="px-2.5 py-1 rounded-full transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-      1. Login Screen
-    </button>
-    <button onclick="switchView('dashboard')" id="btn-view-dashboard" class="px-2.5 py-1 rounded-full transition-all bg-brand-600 text-white font-semibold shadow-sm">
-      2. Home Dashboard
-    </button>
-    <button onclick="switchView('customer-master')" id="btn-view-customers" class="px-2.5 py-1 rounded-full transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-      3. Customer Master
-    </button>
-    <div class="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-    <!-- Quick Theme Toggle -->
-    <button onclick="toggleTheme()" class="p-1 rounded-full text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100" title="Toggle Light/Dark Theme">
-      <i data-lucide="sun" id="theme-icon-sun" class="w-4 h-4 hidden dark:block"></i>
-      <i data-lucide="moon" id="theme-icon-moon" class="w-4 h-4 block dark:hidden"></i>
-    </button>
-  </div>
+  <header class="w-full bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 z-50 shrink-0">
+    <!-- Left: Studio Branding -->
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded-md bg-brand-600 text-white font-black text-xs flex items-center justify-center shadow-sm">
+        KS
+      </div>
+      <span class="font-bold text-white tracking-wide">KS-MFG ERP</span>
+      <span class="text-[10px] bg-slate-800 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full font-mono">
+        Interactive Prototype
+      </span>
+    </div>
+
+    <!-- Center: Screen View Switcher Buttons -->
+    <div class="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
+      <span class="text-slate-500 text-[11px] px-2 font-medium">Screens:</span>
+      <button onclick="switchView('login')" id="btn-view-login" class="px-3 py-1 rounded-md transition-all text-slate-400 hover:text-white hover:bg-slate-800 font-medium">
+        1. Login Screen
+      </button>
+      <button onclick="switchView('dashboard')" id="btn-view-dashboard" class="px-3 py-1 rounded-md transition-all text-slate-400 hover:text-white hover:bg-slate-800 font-medium">
+        2. Home Dashboard
+      </button>
+      <button onclick="switchView('customer-master')" id="btn-view-customers" class="px-3 py-1 rounded-md transition-all bg-brand-600 text-white font-bold shadow-sm">
+        3. Customer Master
+      </button>
+    </div>
+
+    <!-- Right: Theme Mode & Accent Swatches -->
+    <div class="flex items-center gap-3">
+      <!-- Theme Switcher Pill -->
+      <button onclick="toggleTheme()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="Toggle Light / Dark Mode">
+        <i data-lucide="sun" id="theme-icon-sun" class="w-3.5 h-3.5 text-amber-400 hidden dark:block"></i>
+        <i data-lucide="moon" id="theme-icon-moon" class="w-3.5 h-3.5 text-indigo-400 block dark:hidden"></i>
+        <span id="theme-mode-text" class="text-[11px] font-semibold">Dark Mode</span>
+      </button>
+
+      <!-- Quick Accent Color Swatches -->
+      <div class="flex items-center gap-1 bg-slate-950/60 p-1 rounded-md border border-slate-800" title="Change Theme Accent Color">
+        <button onclick="setThemeColor('indigo')" class="w-4 h-4 rounded-full bg-indigo-500 hover:scale-110 transition ring-1 ring-white/20"></button>
+        <button onclick="setThemeColor('blue')" class="w-4 h-4 rounded-full bg-blue-500 hover:scale-110 transition ring-1 ring-white/20"></button>
+        <button onclick="setThemeColor('emerald')" class="w-4 h-4 rounded-full bg-emerald-500 hover:scale-110 transition ring-1 ring-white/20"></button>
+        <button onclick="setThemeColor('violet')" class="w-4 h-4 rounded-full bg-violet-500 hover:scale-110 transition ring-1 ring-white/20"></button>
+        <button onclick="setThemeColor('amber')" class="w-4 h-4 rounded-full bg-amber-500 hover:scale-110 transition ring-1 ring-white/20"></button>
+        <button onclick="setThemeColor('rose')" class="w-4 h-4 rounded-full bg-rose-500 hover:scale-110 transition ring-1 ring-white/20"></button>
+      </div>
+    </div>
+  </header>
 
   <!-- ========================================================================= -->
   <!-- 1. LOGIN SCREEN MOCKUP -->
   <!-- ========================================================================= -->
-  <div id="view-login" class="hidden min-h-screen w-full flex flex-col lg:flex-row">
+  <div id="view-login" class="hidden flex-1 w-full flex flex-col lg:flex-row">
     <!-- Left Column: Project Info & Industrial Highlights -->
-    <div class="lg:w-1/2 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+    <div class="lg:w-1/2 bg-gradient-to-br from-slate-950 via-[#0e1628] to-slate-950 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden border-r border-slate-800">
       <!-- Background Graphic Accents -->
       <div class="absolute -right-20 -top-20 w-80 h-80 bg-brand-600/20 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -99,12 +142,12 @@
             KS
           </div>
           <div>
-            <h1 class="text-xl font-bold tracking-tight">KS-MFG ERP</h1>
+            <h1 class="text-xl font-bold tracking-tight text-white">KS-MFG ERP</h1>
             <p class="text-xs text-indigo-300 font-medium">Enterprise Manufacturing & Supply Chain</p>
           </div>
         </div>
 
-        <div class="mt-16 lg:mt-24 space-y-6 max-w-lg">
+        <div class="mt-12 lg:mt-20 space-y-6 max-w-lg">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/10 text-xs font-semibold text-indigo-200">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Production Operations v1.0
           </div>
@@ -140,7 +183,7 @@
       </div>
 
       <!-- Footer Info -->
-      <div class="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+      <div class="mt-12 pt-8 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
         <span>&copy; 2026 Kashvira Infotech. All Rights Reserved.</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Role & Action RBAC</span>
@@ -150,7 +193,7 @@
     </div>
 
     <!-- Right Column: Login Form -->
-    <div class="lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-white dark:bg-slate-900">
+    <div class="lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-white dark:bg-[#0b1120]">
       <div class="w-full max-w-md space-y-8">
         <div>
           <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Sign In to Your Workspace</h2>
@@ -158,9 +201,9 @@
         </div>
 
         <!-- User Persona Quick Toggle Mock -->
-        <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex text-xs font-semibold">
-          <button type="button" id="login-persona-emp" onclick="setLoginPersona('emp')" class="flex-1 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5">
-            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-brand-600"></i> Employee / Plant Staff
+        <div class="bg-slate-100 dark:bg-slate-900 p-1 rounded-xl flex text-xs font-semibold border border-transparent dark:border-slate-800">
+          <button type="button" id="login-persona-emp" onclick="setLoginPersona('emp')" class="flex-1 py-2 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5">
+            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i> Employee / Plant Staff
           </button>
           <button type="button" id="login-persona-party" onclick="setLoginPersona('party')" class="flex-1 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5">
             <i data-lucide="users" class="w-3.5 h-3.5"></i> Customer / Vendor Portal
@@ -174,21 +217,21 @@
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                 <i data-lucide="user" class="w-4 h-4"></i>
               </div>
-              <input type="text" id="login-username" value="rajesh.patel" required class="block w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors">
+              <input type="text" id="login-username" value="rajesh.patel" required class="block w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors">
             </div>
           </div>
 
           <div>
             <div class="flex items-center justify-between mb-1.5">
               <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
-              <a href="#" class="text-xs font-medium text-brand-600 dark:text-brand-500 hover:underline">Forgot password?</a>
+              <a href="#" class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">Forgot password?</a>
             </div>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                 <i data-lucide="lock" class="w-4 h-4"></i>
               </div>
-              <input type="password" id="login-password" value="••••••••••••" required class="block w-full pl-9 pr-10 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors">
-              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+              <input type="password" id="login-password" value="••••••••••••" required class="block w-full pl-9 pr-10 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors">
+              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200">
                 <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
             </div>
@@ -196,13 +239,13 @@
 
           <div class="flex items-center justify-between text-xs">
             <label class="flex items-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400">
-              <input type="checkbox" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+              <input type="checkbox" checked class="rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500 dark:bg-slate-900">
               <span>Remember this workstation</span>
             </label>
             <span class="text-slate-400">Secure 256-bit TLS</span>
           </div>
 
-          <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
+          <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
             <span>Sign In to Dashboard</span>
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
@@ -212,15 +255,15 @@
         <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
           <p class="text-xs text-slate-400 mb-2 font-medium">Quick Demo Credentials (1-Click Fill):</p>
           <div class="grid grid-cols-3 gap-2 text-xs">
-            <button onclick="fillDemo('superadmin')" class="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-left hover:border-brand-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+            <button onclick="fillDemo('superadmin')" class="p-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg text-left hover:border-brand-500 transition">
               <div class="font-bold text-slate-700 dark:text-slate-300">Super Admin</div>
               <div class="text-[10px] text-slate-400">Root Access</div>
             </button>
-            <button onclick="fillDemo('branchmanager')" class="p-2 border border-brand-500 bg-brand-50 dark:bg-brand-900/20 rounded-lg text-left transition">
-              <div class="font-bold text-brand-700 dark:text-brand-300">Branch Mgr</div>
+            <button onclick="fillDemo('branchmanager')" class="p-2 border border-brand-500/50 bg-brand-50 dark:bg-brand-950/40 rounded-lg text-left transition">
+              <div class="font-bold text-brand-700 dark:text-brand-400">Branch Mgr</div>
               <div class="text-[10px] text-slate-400">Plant Pune</div>
             </button>
-            <button onclick="fillDemo('customer')" class="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-left hover:border-brand-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+            <button onclick="fillDemo('customer')" class="p-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg text-left hover:border-brand-500 transition">
               <div class="font-bold text-slate-700 dark:text-slate-300">Customer</div>
               <div class="text-[10px] text-slate-400">Tata Motors</div>
             </button>
@@ -231,116 +274,86 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 2 & 3: APP SHELL (Sidebar + Header + Dynamic Screen Container) -->
+  <!-- 2 & 3: APP SHELL (Header + Sidebar + Dynamic Screen Container) -->
   <!-- ========================================================================= -->
-  <div id="view-app-shell" class="min-h-screen flex flex-col">
+  <div id="view-app-shell" class="flex-1 flex flex-col min-h-0">
     
-    <!-- TOP HEADER -->
-    <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-40 px-4 flex items-center justify-between">
-      <!-- Left: Logo & Company/Branch Switcher -->
-      <div class="flex items-center gap-4">
+    <!-- ERP TOP APPLICATION HEADER (Fully Unobstructed!) -->
+    <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] px-4 flex items-center justify-between shrink-0">
+      <!-- Left: Sidebar Toggle, Logo & Company/Branch Switcher -->
+      <div class="flex items-center gap-3">
         <!-- Sidebar Toggle -->
-        <button onclick="toggleSidebar()" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button onclick="toggleSidebar()" class="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
           <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
 
         <!-- ERP Logo -->
         <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('dashboard')">
-          <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          <div class="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
             KS
           </div>
           <div class="hidden sm:block">
-            <div class="text-sm font-bold tracking-tight leading-none text-slate-900 dark:text-white">KS-MFG</div>
-            <div class="text-[10px] text-slate-400 font-medium">Manufacturing ERP</div>
+            <div class="text-xs font-bold tracking-tight leading-none text-slate-900 dark:text-white">KS-MFG</div>
+            <div class="text-[9px] text-slate-400 font-medium">Manufacturing ERP</div>
           </div>
         </div>
 
-        <div class="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+        <div class="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
 
         <!-- Company & Branch Switcher Dropdown (Multi-Tenant Feature) -->
         <div class="relative hidden sm:block">
-          <button onclick="toggleDropdown('dropdown-branch')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-750 transition">
+          <button onclick="toggleDropdown('dropdown-branch')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-[#131d31] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border border-transparent dark:border-slate-700">
             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span id="current-branch-label">Kashvira Steels - Pune Plant</span>
-            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 rounded">FY 26-27</span>
+            <span class="text-[10px] bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded font-mono">FY 26-27</span>
             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
           </button>
           
           <!-- Dropdown Menu -->
-          <div id="dropdown-branch" class="hidden absolute left-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 text-xs">
+          <div id="dropdown-branch" class="hidden absolute left-0 mt-2 w-72 bg-white dark:bg-[#131d31] rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 text-xs">
             <div class="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Active Operating Branch</div>
             <div class="space-y-1 mt-1">
-              <button onclick="setBranch('Kashvira Steels - Pune Plant')" class="w-full flex items-center justify-between p-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-semibold">
+              <button onclick="setBranch('Kashvira Steels - Pune Plant')" class="w-full flex items-center justify-between p-2 rounded-lg bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 font-semibold">
                 <span>Kashvira Steels - Pune Plant</span>
                 <i data-lucide="check" class="w-3.5 h-3.5"></i>
               </button>
-              <button onclick="setBranch('Kashvira Steels - Mumbai HQ')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+              <button onclick="setBranch('Kashvira Steels - Mumbai HQ')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
                 <span>Kashvira Steels - Mumbai HQ</span>
               </button>
-              <button onclick="setBranch('Kashvira Steels - Ahmedabad Depo')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+              <button onclick="setBranch('Kashvira Steels - Ahmedabad Depo')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
                 <span>Kashvira Steels - Ahmedabad Depo</span>
               </button>
             </div>
-            <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 flex items-center justify-between px-1">
+            <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-750 text-[10px] text-slate-400 flex items-center justify-between px-1">
               <span>User Role: <strong>Branch Manager</strong></span>
-              <a href="#" class="text-brand-600 hover:underline">Switch Company</a>
+              <a href="#" class="text-brand-600 dark:text-brand-400 hover:underline">Switch Company</a>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Center: Universal Search -->
+      <!-- Center: Universal Search Bar -->
       <div class="hidden lg:flex items-center flex-1 max-w-md mx-6">
         <div class="relative w-full">
           <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-          <input type="text" placeholder="Search vouchers (PO/GRN), items, customers, or serial no..." class="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-brand-500 focus:outline-none">
-          <span class="absolute right-2.5 top-2 text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded font-mono">Ctrl+K</span>
+          <input type="text" placeholder="Search vouchers (PO/GRN), items, customers, or serial no..." class="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-100 dark:bg-[#0e1626] border border-transparent dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-brand-500 focus:outline-none">
+          <span class="absolute right-2.5 top-2 text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-mono">Ctrl+K</span>
         </div>
       </div>
 
       <!-- Right: Action Icons, Theme & User Profile -->
       <div class="flex items-center gap-2">
         <!-- Quick Action "+ Voucher" -->
-        <button class="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition">
+        <button class="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-sm transition">
           <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
           <span>New Voucher</span>
         </button>
 
         <!-- Notification Bell -->
-        <button class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Notifications">
+        <button class="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Notifications">
           <i data-lucide="bell" class="w-4 h-4"></i>
           <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
         </button>
-
-        <!-- Theme Color Picker Dropdown -->
-        <div class="relative">
-          <button onclick="toggleDropdown('dropdown-colors')" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Change Theme Accent Color">
-            <i data-lucide="palette" class="w-4 h-4 text-brand-600"></i>
-          </button>
-          <div id="dropdown-colors" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-3 z-50 text-xs">
-            <div class="font-bold text-slate-700 dark:text-slate-300 mb-2">Accent Theme Color</div>
-            <div class="grid grid-cols-3 gap-2">
-              <button onclick="setThemeColor('indigo')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span class="w-5 h-5 rounded-full bg-indigo-600"></span><span class="text-[10px]">Indigo</span>
-              </button>
-              <button onclick="setThemeColor('blue')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span class="w-5 h-5 rounded-full bg-blue-600"></span><span class="text-[10px]">Blue</span>
-              </button>
-              <button onclick="setThemeColor('emerald')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span class="w-5 h-5 rounded-full bg-emerald-600"></span><span class="text-[10px]">Emerald</span>
-              </button>
-              <button onclick="setThemeColor('violet')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span class="w-5 h-5 rounded-full bg-violet-600"></span><span class="text-[10px]">Violet</span>
-              </button>
-              <button onclick="setThemeColor('amber')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span class="w-5 h-5 rounded-full bg-amber-500"></span><span class="text-[10px]">Amber</span>
-              </button>
-              <button onclick="setThemeColor('rose')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span class="w-5 h-5 rounded-full bg-rose-600"></span><span class="text-[10px]">Rose</span>
-              </button>
-            </div>
-          </div>
-        </div>
 
         <!-- User Profile Dropdown -->
         <div class="relative ml-1">
@@ -356,27 +369,27 @@
           </button>
 
           <!-- Profile Menu -->
-          <div id="dropdown-profile" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 text-xs">
-            <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
+          <div id="dropdown-profile" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#131d31] rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 text-xs">
+            <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
               <div class="font-bold text-slate-900 dark:text-white">Rajesh Patel</div>
               <div class="text-[11px] text-slate-400">rajesh.patel@kashvira.com</div>
-              <div class="mt-1 inline-block text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
+              <div class="mt-1 inline-block text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded">
                 Employee ID: EMP-1042
               </div>
             </div>
             <div class="py-1">
-              <button onclick="openProfileModal()" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+              <button onclick="openProfileModal()" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200">
                 <i data-lucide="user" class="w-4 h-4 text-slate-400"></i> My Profile & Theme Settings
               </button>
-              <a href="#" class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+              <a href="#" class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200">
                 <i data-lucide="sliders" class="w-4 h-4 text-slate-400"></i> Branch Configurations
               </a>
-              <a href="#" class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+              <a href="#" class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200">
                 <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i> Activity & Audit Trail
               </a>
             </div>
-            <div class="pt-1 border-t border-slate-100 dark:border-slate-700">
-              <button onclick="switchView('login')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+            <div class="pt-1 border-t border-slate-100 dark:border-slate-800">
+              <button onclick="switchView('login')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
                 <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
               </button>
             </div>
@@ -389,13 +402,13 @@
     <div class="flex-1 flex overflow-hidden">
       
       <!-- SIDEBAR -->
-      <aside id="app-sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-all duration-300">
+      <aside id="app-sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] flex flex-col justify-between shrink-0 transition-all duration-300">
         <!-- Navigation Links -->
         <nav class="p-3 space-y-1 overflow-y-auto text-xs font-medium">
           <!-- Main -->
           <div class="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overview</div>
           
-          <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 font-semibold transition">
+          <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
             <span>Dashboard</span>
           </button>
@@ -403,12 +416,12 @@
           <!-- Masters Section -->
           <div class="pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Master Data</div>
           
-          <button onclick="switchView('customer-master')" id="nav-customers" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <button onclick="switchView('customer-master')" id="nav-customers" class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition">
             <div class="flex items-center gap-2.5">
-              <i data-lucide="users" class="w-4 h-4"></i>
+              <i data-lucide="users" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i>
               <span>Customer Master</span>
             </div>
-            <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">24</span>
+            <span class="text-[10px] bg-brand-200/50 dark:bg-brand-900 text-brand-800 dark:text-brand-300 px-1.5 py-0.5 rounded font-mono">24</span>
           </button>
 
           <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -456,7 +469,7 @@
         </nav>
 
         <!-- Sidebar Footer Status -->
-        <div class="p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-slate-850">
+        <div class="p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-[#0c1322]">
           <div class="flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
             <span>Branch DB Status</span>
             <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -468,12 +481,12 @@
       </aside>
 
       <!-- VIEW CONTAINER (Swapped via JS) -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900/60">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-[#0b1120]">
         
         <!-- =================================================================== -->
         <!-- 2. HOME PAGE: DASHBOARD VIEW -->
         <!-- =================================================================== -->
-        <div id="subview-dashboard" class="space-y-6 max-w-7xl mx-auto">
+        <div id="subview-dashboard" class="hidden space-y-6 max-w-7xl mx-auto">
           <!-- Page Header -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -482,7 +495,7 @@
             </div>
             <div class="flex items-center gap-2 text-xs">
               <span class="text-slate-400">Last Synced: Just now</span>
-              <button onclick="refreshDashboard()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 flex items-center gap-1.5 font-medium shadow-sm">
+              <button onclick="refreshDashboard()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1.5 font-medium shadow-sm transition">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
               </button>
             </div>
@@ -491,10 +504,10 @@
           <!-- KPI Metric Cards Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Metric 1 -->
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="bg-white dark:bg-[#131d31] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
                 <span>Active Work Orders</span>
-                <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+                <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-brand-600 dark:text-brand-400 flex items-center justify-center border border-transparent dark:border-brand-500/20">
                   <i data-lucide="factory" class="w-4 h-4"></i>
                 </div>
               </div>
@@ -508,10 +521,10 @@
             </div>
 
             <!-- Metric 2 -->
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="bg-white dark:bg-[#131d31] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
                 <span>Today's Inward GRN</span>
-                <div class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <div class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-transparent dark:border-emerald-500/20">
                   <i data-lucide="inbox" class="w-4 h-4"></i>
                 </div>
               </div>
@@ -525,10 +538,10 @@
             </div>
 
             <!-- Metric 3 -->
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="bg-white dark:bg-[#131d31] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
                 <span>Vendor Job-Work Outstanding</span>
-                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-transparent dark:border-amber-500/20">
                   <i data-lucide="repeat" class="w-4 h-4"></i>
                 </div>
               </div>
@@ -542,10 +555,10 @@
             </div>
 
             <!-- Metric 4 -->
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="bg-white dark:bg-[#131d31] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
                 <span>FG Stock Valuation</span>
-                <div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-transparent dark:border-blue-500/20">
                   <i data-lucide="dollar-sign" class="w-4 h-4"></i>
                 </div>
               </div>
@@ -562,15 +575,15 @@
           <!-- Charts Row -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Production Trends (Bar & Line Chart) -->
-            <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="lg:col-span-2 bg-white dark:bg-[#131d31] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div class="flex items-center justify-between mb-4">
                 <div>
                   <h3 class="text-sm font-bold text-slate-900 dark:text-white">Daily Production Output vs Planned Target</h3>
                   <p class="text-[11px] text-slate-400">Current fiscal sprint output measured in Base Unit (Kgs)</p>
                 </div>
-                <div class="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700/60 p-1 rounded-lg">
-                  <button class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 font-semibold shadow-xs">Weekly</button>
-                  <button class="px-2 py-0.5 rounded text-slate-500 hover:text-slate-800">Monthly</button>
+                <div class="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                  <button class="px-2 py-0.5 rounded bg-white dark:bg-slate-700 font-semibold shadow-xs text-slate-800 dark:text-white">Weekly</button>
+                  <button class="px-2 py-0.5 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">Monthly</button>
                 </div>
               </div>
               <div class="h-64">
@@ -579,7 +592,7 @@
             </div>
 
             <!-- Inventory Breakdown (Doughnut Chart) -->
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+            <div class="bg-white dark:bg-[#131d31] p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
               <div>
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white">Warehouse Inventory by Category</h3>
                 <p class="text-[11px] text-slate-400">Live breakdown across dynamic location bins</p>
@@ -587,7 +600,7 @@
                   <canvas id="chartInventory"></canvas>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100 dark:border-slate-700">
+              <div class="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div class="flex items-center gap-2">
                   <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
                   <span class="text-slate-600 dark:text-slate-300">Raw Material: 45%</span>
@@ -611,41 +624,41 @@
           <!-- Bottom Tables Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Recent Production Vouchers -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div class="bg-white dark:bg-[#131d31] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i> Recent Production Work Orders
+                  <i data-lucide="clock" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i> Recent Production Work Orders
                 </h3>
-                <a href="#" class="text-xs text-brand-600 hover:underline font-medium">View All &rarr;</a>
+                <a href="#" class="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium">View All &rarr;</a>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                  <thead class="bg-slate-50 dark:bg-slate-750 text-slate-500 border-b border-slate-100 dark:border-slate-700">
+                  <thead class="bg-slate-50 dark:bg-[#162238] text-slate-500 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">
                     <tr>
-                      <th class="px-4 py-2 font-semibold">Order No</th>
-                      <th class="px-4 py-2 font-semibold">FG Item</th>
-                      <th class="px-4 py-2 font-semibold">Qty</th>
-                      <th class="px-4 py-2 font-semibold">Status</th>
+                      <th class="px-4 py-2.5 font-semibold">Order No</th>
+                      <th class="px-4 py-2.5 font-semibold">FG Item</th>
+                      <th class="px-4 py-2.5 font-semibold">Qty</th>
+                      <th class="px-4 py-2.5 font-semibold">Status</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
-                      <td class="px-4 py-2.5 font-mono text-brand-600 font-semibold">PWO/PUN/26/0142</td>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-[#1c2942]/50 text-slate-800 dark:text-slate-200">
+                      <td class="px-4 py-2.5 font-mono text-brand-600 dark:text-brand-400 font-semibold">PWO/PUN/26/0142</td>
                       <td class="px-4 py-2.5 font-medium">Precision Flange 150mm</td>
                       <td class="px-4 py-2.5">500 Nos</td>
-                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">Machining</span></td>
+                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">Machining</span></td>
                     </tr>
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
-                      <td class="px-4 py-2.5 font-mono text-brand-600 font-semibold">PWO/PUN/26/0141</td>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-[#1c2942]/50 text-slate-800 dark:text-slate-200">
+                      <td class="px-4 py-2.5 font-mono text-brand-600 dark:text-brand-400 font-semibold">PWO/PUN/26/0141</td>
                       <td class="px-4 py-2.5 font-medium">High Tensile Stud M24</td>
                       <td class="px-4 py-2.5">2,400 Nos</td>
-                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">QC Inspection</span></td>
+                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-500/20">QC Inspection</span></td>
                     </tr>
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
-                      <td class="px-4 py-2.5 font-mono text-brand-600 font-semibold">PWO/PUN/26/0140</td>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-[#1c2942]/50 text-slate-800 dark:text-slate-200">
+                      <td class="px-4 py-2.5 font-mono text-brand-600 dark:text-brand-400 font-semibold">PWO/PUN/26/0140</td>
                       <td class="px-4 py-2.5 font-medium">Hydraulic Valve Block</td>
                       <td class="px-4 py-2.5">85 Nos</td>
-                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">Completed</span></td>
+                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">Completed</span></td>
                     </tr>
                   </tbody>
                 </table>
@@ -653,8 +666,8 @@
             </div>
 
             <!-- Low Stock / Reorder Alerts -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div class="bg-white dark:bg-[#131d31] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i> Stock Threshold & Reorder Triggers
                 </h3>
@@ -662,32 +675,32 @@
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                  <thead class="bg-slate-50 dark:bg-slate-750 text-slate-500 border-b border-slate-100 dark:border-slate-700">
+                  <thead class="bg-slate-50 dark:bg-[#162238] text-slate-500 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">
                     <tr>
-                      <th class="px-4 py-2 font-semibold">Item Description</th>
-                      <th class="px-4 py-2 font-semibold">Location</th>
-                      <th class="px-4 py-2 font-semibold">Current Stock</th>
-                      <th class="px-4 py-2 font-semibold">Reorder Level</th>
+                      <th class="px-4 py-2.5 font-semibold">Item Description</th>
+                      <th class="px-4 py-2.5 font-semibold">Location</th>
+                      <th class="px-4 py-2.5 font-semibold">Current Stock</th>
+                      <th class="px-4 py-2.5 font-semibold">Reorder Level</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
-                      <td class="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">SS 316L Round Bar 50mm</td>
-                      <td class="px-4 py-2.5 text-slate-500">Chamber 1 &rarr; Rack A-02</td>
-                      <td class="px-4 py-2.5 font-bold text-rose-600">450 Kgs</td>
-                      <td class="px-4 py-2.5 text-slate-500">1,200 Kgs</td>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-[#1c2942]/50 text-slate-800 dark:text-slate-200">
+                      <td class="px-4 py-2.5 font-medium">SS 316L Round Bar 50mm</td>
+                      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">Chamber 1 &rarr; Rack A-02</td>
+                      <td class="px-4 py-2.5 font-bold text-rose-600 dark:text-rose-400">450 Kgs</td>
+                      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">1,200 Kgs</td>
                     </tr>
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
-                      <td class="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">CNC Carbide Cutting Inserts</td>
-                      <td class="px-4 py-2.5 text-slate-500">Tool Room &rarr; Bin T-08</td>
-                      <td class="px-4 py-2.5 font-bold text-rose-600">12 Pcs</td>
-                      <td class="px-4 py-2.5 text-slate-500">50 Pcs</td>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-[#1c2942]/50 text-slate-800 dark:text-slate-200">
+                      <td class="px-4 py-2.5 font-medium">CNC Carbide Cutting Inserts</td>
+                      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">Tool Room &rarr; Bin T-08</td>
+                      <td class="px-4 py-2.5 font-bold text-rose-600 dark:text-rose-400">12 Pcs</td>
+                      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">50 Pcs</td>
                     </tr>
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
-                      <td class="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">Industrial Coolant Synthetic</td>
-                      <td class="px-4 py-2.5 text-slate-500">Chem Bay &rarr; Drum D-01</td>
-                      <td class="px-4 py-2.5 font-bold text-amber-600">200 Ltrs</td>
-                      <td class="px-4 py-2.5 text-slate-500">500 Ltrs</td>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-[#1c2942]/50 text-slate-800 dark:text-slate-200">
+                      <td class="px-4 py-2.5 font-medium">Industrial Coolant Synthetic</td>
+                      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">Chem Bay &rarr; Drum D-01</td>
+                      <td class="px-4 py-2.5 font-bold text-amber-600 dark:text-amber-400">200 Ltrs</td>
+                      <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">500 Ltrs</td>
                     </tr>
                   </tbody>
                 </table>
@@ -699,16 +712,16 @@
         <!-- =================================================================== -->
         <!-- 3. CUSTOMER MASTER LISTING SCREEN -->
         <!-- =================================================================== -->
-        <div id="subview-customers" class="hidden space-y-5 max-w-7xl mx-auto">
+        <div id="subview-customers" class="space-y-5 max-w-7xl mx-auto">
           <!-- Breadcrumb & Header -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div class="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+              <div class="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 mb-1">
                 <span>Masters</span>
                 <i data-lucide="chevron-right" class="w-3 h-3"></i>
                 <span>Party Master</span>
                 <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                <span class="text-brand-600 font-medium">Customer Master</span>
+                <span class="text-brand-600 dark:text-brand-400 font-semibold">Customer Master</span>
               </div>
               <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Customer Master Directory</h1>
               <p class="text-xs text-slate-500 dark:text-slate-400">Manage customer accounts, statutory GSTIN credentials, credit limits, and region price lists</p>
@@ -716,15 +729,15 @@
             
             <!-- Primary Action Items with RBAC Button Badges -->
             <div class="flex items-center gap-2">
-              <button onclick="handleExportExcel()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
-                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-500"></i>
+              <button onclick="handleExportExcel()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>Export Excel</span>
               </button>
-              <button onclick="handlePrintDirectory()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-500"></i>
+              <button onclick="handlePrintDirectory()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>Print</span>
               </button>
-              <button onclick="openCustomerModal('add')" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition">
+              <button onclick="openCustomerModal('add')" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/25 transition">
                 <i data-lucide="plus" class="w-4 h-4"></i>
                 <span>+ Add Customer</span>
               </button>
@@ -732,18 +745,18 @@
           </div>
 
           <!-- Filter, Search, Group, Sort Toolbar -->
-          <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+          <div class="bg-white dark:bg-[#131d31] p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
               <!-- Search Input -->
               <div class="relative flex-1 max-w-md">
                 <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                <input type="text" id="cust-search" oninput="handleCustomerFilter()" placeholder="Search by customer code, legal name, GSTIN, city..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <input type="text" id="cust-search" oninput="handleCustomerFilter()" placeholder="Search by customer code, legal name, GSTIN, city..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-[#0e1626] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               </div>
 
               <!-- Filter Dropdowns -->
               <div class="flex flex-wrap items-center gap-2 text-xs">
                 <!-- Group Filter -->
-                <select id="cust-filter-group" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
+                <select id="cust-filter-group" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-[#0e1626] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
                   <option value="ALL">All Customer Groups</option>
                   <option value="Automotive OEM">Automotive OEM</option>
                   <option value="Heavy Engineering">Heavy Engineering</option>
@@ -752,14 +765,14 @@
                 </select>
 
                 <!-- Status Filter -->
-                <select id="cust-filter-status" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
+                <select id="cust-filter-status" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-[#0e1626] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
                   <option value="ALL">All Status</option>
                   <option value="ACTIVE">Active Only</option>
                   <option value="INACTIVE">Inactive Only</option>
                 </select>
 
                 <!-- Sort By -->
-                <select id="cust-sort" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
+                <select id="cust-sort" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-[#0e1626] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
                   <option value="name_asc">Sort: Name (A-Z)</option>
                   <option value="name_desc">Sort: Name (Z-A)</option>
                   <option value="limit_desc">Sort: Highest Credit Limit</option>
@@ -767,8 +780,8 @@
                 </select>
 
                 <!-- Group By Toggle -->
-                <button onclick="toggleGroupBy()" id="btn-group-by" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1.5">
-                  <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                <button onclick="toggleGroupBy()" id="btn-group-by" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0e1626] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5 transition">
+                  <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-500"></i>
                   <span id="label-group-by">Group By: None</span>
                 </button>
               </div>
@@ -776,36 +789,37 @@
           </div>
 
           <!-- Customer Data Table Container -->
-          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div class="bg-white dark:bg-[#131d31] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 dark:bg-slate-750 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 select-none">
+                <!-- Rich Dark Thead Header -->
+                <thead class="bg-slate-100 dark:bg-[#162238] text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 select-none">
                   <tr>
-                    <th class="px-4 py-3 font-semibold w-24">Cust Code</th>
-                    <th class="px-4 py-3 font-semibold">Customer / Legal Name</th>
-                    <th class="px-4 py-3 font-semibold">Group & Region</th>
-                    <th class="px-4 py-3 font-semibold">Contact Person & Phone</th>
-                    <th class="px-4 py-3 font-semibold">GSTIN & PAN</th>
-                    <th class="px-4 py-3 font-semibold text-right">Credit Limit (&#8377;)</th>
-                    <th class="px-4 py-3 font-semibold text-center w-20">Terms</th>
-                    <th class="px-4 py-3 font-semibold text-center w-20">Status</th>
-                    <th class="px-4 py-3 font-semibold text-right w-24">Actions</th>
+                    <th class="px-4 py-3 font-bold w-24">Cust Code</th>
+                    <th class="px-4 py-3 font-bold">Customer / Legal Name</th>
+                    <th class="px-4 py-3 font-bold">Group & Region</th>
+                    <th class="px-4 py-3 font-bold">Contact Person & Phone</th>
+                    <th class="px-4 py-3 font-bold">GSTIN & PAN</th>
+                    <th class="px-4 py-3 font-bold text-right">Credit Limit (&#8377;)</th>
+                    <th class="px-4 py-3 font-bold text-center w-20">Terms</th>
+                    <th class="px-4 py-3 font-bold text-center w-20">Status</th>
+                    <th class="px-4 py-3 font-bold text-right w-24">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="customer-table-body" class="divide-y divide-slate-100 dark:divide-slate-700">
+                <tbody id="customer-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
                   <!-- Populated dynamically by JS -->
                 </tbody>
               </table>
             </div>
 
             <!-- Pagination Bar -->
-            <div class="p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-850 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <div class="p-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0f172a] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
               <div class="flex items-center gap-2">
                 <span>Showing <strong id="page-start" class="text-slate-800 dark:text-slate-200">1</strong> to <strong id="page-end" class="text-slate-800 dark:text-slate-200">5</strong> of <strong id="total-records" class="text-slate-800 dark:text-slate-200">24</strong> entries</span>
-                <span class="text-slate-300 dark:text-slate-600">|</span>
+                <span class="text-slate-300 dark:text-slate-700">|</span>
                 <label class="flex items-center gap-1.5">
                   <span>Rows:</span>
-                  <select id="page-size" onchange="changePageSize(this.value)" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs focus:outline-none">
+                  <select id="page-size" onchange="changePageSize(this.value)" class="bg-white dark:bg-[#131d31] border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none">
                     <option value="5">5</option>
                     <option value="10" selected>10</option>
                     <option value="25">25</option>
@@ -815,13 +829,13 @@
 
               <!-- Page navigation buttons -->
               <div class="flex items-center gap-1">
-                <button onclick="prevPage()" id="btn-prev-page" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 disabled:opacity-50">
+                <button onclick="prevPage()" id="btn-prev-page" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition">
                   Previous
                 </button>
                 <div id="pagination-numbers" class="flex items-center gap-1">
                   <!-- Dynamic page pills -->
                 </div>
-                <button onclick="nextPage()" id="btn-next-page" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 disabled:opacity-50">
+                <button onclick="nextPage()" id="btn-next-page" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition">
                   Next
                 </button>
               </div>
@@ -836,16 +850,16 @@
   <!-- ========================================================================= -->
   <!-- 4. ADD / EDIT CUSTOMER POPUP (MODAL) -->
   <!-- ========================================================================= -->
-  <div id="modal-customer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+  <div id="modal-customer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#131d31] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       
       <!-- Modal Header -->
-      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#162238]">
         <div>
           <h3 id="modal-cust-title" class="text-base font-bold text-slate-900 dark:text-white">Add New Customer</h3>
-          <p class="text-xs text-slate-500">Party Master &bull; Party Type: Customer (is_customer = true)</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Party Master &bull; Party Type: Customer (is_customer = true)</p>
         </div>
-        <button onclick="closeCustomerModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700">
+        <button onclick="closeCustomerModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -857,20 +871,20 @@
         <!-- Section 1: Basic Identifiers -->
         <div>
           <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
-            <i data-lucide="info" class="w-3.5 h-3.5 text-brand-600"></i> General Information
+            <i data-lucide="info" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i> General Information
           </h4>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Customer Code *</label>
-              <input type="text" id="cust-code" required placeholder="e.g. CUST-1025" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-code" required placeholder="e.g. CUST-1025" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div class="sm:col-span-2">
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Legal Company / Trade Name *</label>
-              <input type="text" id="cust-name" required placeholder="e.g. Tata Motors Engineering Div Ltd" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-name" required placeholder="e.g. Tata Motors Engineering Div Ltd" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Customer Group *</label>
-              <select id="cust-group" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <select id="cust-group" required class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
                 <option value="Automotive OEM">Automotive OEM</option>
                 <option value="Heavy Engineering">Heavy Engineering</option>
                 <option value="Industrial Distributor">Industrial Distributor</option>
@@ -879,7 +893,7 @@
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Sales Region *</label>
-              <select id="cust-region" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <select id="cust-region" required class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
                 <option value="West Zone (MH/GJ)">West Zone (MH/GJ)</option>
                 <option value="North Zone (DL/HR)">North Zone (DL/HR)</option>
                 <option value="South Zone (KA/TN)">South Zone (KA/TN)</option>
@@ -888,7 +902,7 @@
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Default Currency</label>
-              <select id="cust-currency" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <select id="cust-currency" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
                 <option value="INR">INR (&#8377;)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (&euro;)</option>
@@ -898,68 +912,68 @@
         </div>
 
         <!-- Section 2: Statutory Compliance & Tax -->
-        <div class="pt-4 border-t border-slate-100 dark:border-slate-750">
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
           <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
-            <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-600"></i> Statutory & Tax Compliance
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i> Statutory & Tax Compliance
           </h4>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">GSTIN (15 Digits) *</label>
-              <input type="text" id="cust-gstin" required placeholder="e.g. 27AAACT2727Q1ZT" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-gstin" required placeholder="e.g. 27AAACT2727Q1ZT" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg font-mono text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Permanent Account No (PAN) *</label>
-              <input type="text" id="cust-pan" required placeholder="e.g. AAACT2727Q" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-pan" required placeholder="e.g. AAACT2727Q" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg font-mono text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">MSME Registration (If applicable)</label>
-              <input type="text" id="cust-msme" placeholder="e.g. UDYAM-MH-01-002341" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-msme" placeholder="e.g. UDYAM-MH-01-002341" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
           </div>
         </div>
 
         <!-- Section 3: Contact & Financial Credit Policy -->
-        <div class="pt-4 border-t border-slate-100 dark:border-slate-750">
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
           <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
-            <i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-600"></i> Contact & Credit Control Policy
+            <i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i> Contact & Credit Control Policy
           </h4>
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Key Contact Person</label>
-              <input type="text" id="cust-contact-person" placeholder="e.g. Vikram Shinde" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-contact-person" placeholder="e.g. Vikram Shinde" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Official Mobile No *</label>
-              <input type="text" id="cust-mobile" required placeholder="+91 98220 11223" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-mobile" required placeholder="+91 98220 11223" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Credit Limit (&#8377;) *</label>
-              <input type="number" id="cust-credit-limit" required placeholder="5000000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="number" id="cust-credit-limit" required placeholder="5000000" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Credit Days *</label>
-              <input type="number" id="cust-credit-days" required placeholder="45" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="number" id="cust-credit-days" required placeholder="45" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
           </div>
         </div>
 
         <!-- Section 4: Address Details -->
-        <div class="pt-4 border-t border-slate-100 dark:border-slate-750">
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
           <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
-            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-brand-600"></i> Registered Billing & Dispatch Address
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i> Registered Billing & Dispatch Address
           </h4>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="sm:col-span-2">
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Street Address</label>
-              <input type="text" id="cust-address" placeholder="Plot No. B-42, Chakan Industrial Phase II" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-address" placeholder="Plot No. B-42, Chakan Industrial Phase II" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">City / Hub</label>
-              <input type="text" id="cust-city" placeholder="Pune" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="text" id="cust-city" placeholder="Pune" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Assigned Price List</label>
-              <select id="cust-pricelist" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <select id="cust-pricelist" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
                 <option value="OEM Special Contract 2026">OEM Special Contract 2026</option>
                 <option value="Standard Sales Price List">Standard Sales Price List</option>
                 <option value="West Zone Wholesaler Rate">West Zone Wholesaler Rate</option>
@@ -967,7 +981,7 @@
             </div>
             <div>
               <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Account Status</label>
-              <select id="cust-status" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <select id="cust-status" class="w-full px-3 py-2 bg-slate-50 dark:bg-[#0e1626] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white focus:ring-1 focus:ring-brand-500 focus:outline-none">
                 <option value="ACTIVE">Active (Eligible for Orders)</option>
                 <option value="INACTIVE">Inactive (Suspended)</option>
               </select>
@@ -976,11 +990,11 @@
         </div>
 
         <!-- Modal Footer Actions -->
-        <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-3">
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
           <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             Cancel
           </button>
-          <button type="submit" class="px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-md shadow-brand-500/20 transition flex items-center gap-1.5">
+          <button type="submit" class="px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-md shadow-brand-500/25 transition flex items-center gap-1.5">
             <i data-lucide="check" class="w-4 h-4"></i>
             <span id="btn-cust-submit-label">Save Customer Record</span>
           </button>
@@ -992,29 +1006,31 @@
   <!-- ========================================================================= -->
   <!-- 5. REFERENTIAL DEPENDENCY CONFLICT MODAL (Mandated Pre-Deletion Check) -->
   <!-- ========================================================================= -->
-  <div id="modal-dependency-conflict" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-rose-200 dark:border-rose-900/40 w-full max-w-md p-6 space-y-4">
-      <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+  <div id="modal-dependency-conflict" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#131d31] rounded-2xl shadow-2xl border border-rose-200 dark:border-rose-900/60 w-full max-w-md p-6 space-y-4">
+      <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-500/30">
         <i data-lucide="alert-octagon" class="w-6 h-6"></i>
       </div>
       <div class="text-center">
         <h3 class="text-base font-bold text-slate-900 dark:text-white">Deletion Prohibited: Active References Found</h3>
-        <p class="text-xs text-slate-500 mt-1">This record is actively referenced across existing transactions.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">This record is actively referenced across existing transactions.</p>
       </div>
       
       <!-- Dependency Breakdown Box -->
-      <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 rounded-xl p-3 text-xs space-y-2 text-rose-900 dark:text-rose-200">
-        <div class="font-bold">Referential Conflict Summary:</div>
-        <ul id="dependency-conflict-list" class="list-disc pl-5 space-y-1 text-[11px]">
+      <div class="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl p-3 text-xs space-y-2 text-rose-900 dark:text-rose-200">
+        <div class="font-bold flex items-center gap-1.5">
+          <i data-lucide="database" class="w-3.5 h-3.5"></i> Referential Conflict Summary:
+        </div>
+        <ul id="dependency-conflict-list" class="list-disc pl-5 space-y-1 text-[11px] text-rose-800 dark:text-rose-300">
           <!-- Populated dynamically -->
         </ul>
       </div>
 
-      <p class="text-[11px] text-slate-400 text-center">
+      <p class="text-[11px] text-slate-400 dark:text-slate-500 text-center">
         As per system integrity rules, master entities with transactional history cannot be deleted. You may deactivate the customer status instead.
       </p>
 
-      <button onclick="closeDependencyModal()" class="w-full py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold">
+      <button onclick="closeDependencyModal()" class="w-full py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition">
         Understood, Close
       </button>
     </div>
@@ -1023,9 +1039,9 @@
   <!-- ========================================================================= -->
   <!-- 6. USER PROFILE & THEME SETTINGS MODAL -->
   <!-- ========================================================================= -->
-  <div id="modal-profile" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg p-6 space-y-5">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+  <div id="modal-profile" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#131d31] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center">
             RP
@@ -1035,7 +1051,7 @@
             <p class="text-xs text-slate-400">Branch Manager &bull; Employee Mapping: EMP-1042</p>
           </div>
         </div>
-        <button onclick="closeProfileModal()" class="p-1.5 text-slate-400 hover:text-slate-600">
+        <button onclick="closeProfileModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -1045,10 +1061,10 @@
         <div>
           <label class="block font-bold text-slate-700 dark:text-slate-300 mb-2">Display Theme Mode</label>
           <div class="grid grid-cols-2 gap-2">
-            <button onclick="setThemeMode('light')" id="btn-theme-light" class="p-2.5 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center gap-2 font-semibold text-brand-700 dark:text-brand-300">
+            <button onclick="setThemeMode('light')" id="btn-theme-light" class="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-600 dark:text-slate-300">
               <i data-lucide="sun" class="w-4 h-4"></i> Light Mode
             </button>
-            <button onclick="setThemeMode('dark')" id="btn-theme-dark" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-600 dark:text-slate-400">
+            <button onclick="setThemeMode('dark')" id="btn-theme-dark" class="p-2.5 rounded-xl border border-brand-500 bg-brand-950/60 flex items-center justify-center gap-2 font-semibold text-brand-300 border-brand-500/50">
               <i data-lucide="moon" class="w-4 h-4"></i> Dark Mode
             </button>
           </div>
@@ -1057,22 +1073,22 @@
         <div>
           <label class="block font-bold text-slate-700 dark:text-slate-300 mb-2">Primary Accent Theme Color</label>
           <div class="grid grid-cols-3 gap-2">
-            <button onclick="setThemeColor('indigo')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+            <button onclick="setThemeColor('indigo')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 hover:border-brand-500 flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <span class="w-4 h-4 rounded-full bg-indigo-600"></span><span class="font-medium">Indigo</span>
             </button>
-            <button onclick="setThemeColor('blue')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+            <button onclick="setThemeColor('blue')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 hover:border-brand-500 flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <span class="w-4 h-4 rounded-full bg-blue-600"></span><span class="font-medium">Blue</span>
             </button>
-            <button onclick="setThemeColor('emerald')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+            <button onclick="setThemeColor('emerald')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 hover:border-brand-500 flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <span class="w-4 h-4 rounded-full bg-emerald-600"></span><span class="font-medium">Emerald</span>
             </button>
-            <button onclick="setThemeColor('violet')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+            <button onclick="setThemeColor('violet')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 hover:border-brand-500 flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <span class="w-4 h-4 rounded-full bg-violet-600"></span><span class="font-medium">Violet</span>
             </button>
-            <button onclick="setThemeColor('amber')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+            <button onclick="setThemeColor('amber')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 hover:border-brand-500 flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <span class="w-4 h-4 rounded-full bg-amber-500"></span><span class="font-medium">Amber</span>
             </button>
-            <button onclick="setThemeColor('rose')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+            <button onclick="setThemeColor('rose')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 hover:border-brand-500 flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <span class="w-4 h-4 rounded-full bg-rose-600"></span><span class="font-medium">Rose</span>
             </button>
           </div>
@@ -1083,8 +1099,8 @@
         </div>
       </div>
 
-      <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
-        <button onclick="closeProfileModal()" class="px-4 py-1.5 bg-brand-600 text-white rounded-lg font-semibold hover:bg-brand-700">
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+        <button onclick="closeProfileModal()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-semibold transition">
           Done
         </button>
       </div>
@@ -1247,12 +1263,18 @@
       const btnDash = document.getElementById('btn-view-dashboard');
       const btnCust = document.getElementById('btn-view-customers');
 
-      const activeClass = "bg-brand-600 text-white font-semibold shadow-sm";
-      const inactiveClass = "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
+      const activeClass = "px-3 py-1 rounded-md transition-all bg-brand-600 text-white font-bold shadow-sm";
+      const inactiveClass = "px-3 py-1 rounded-md transition-all text-slate-400 hover:text-white hover:bg-slate-800 font-medium";
 
-      btnLogin.className = `px-2.5 py-1 rounded-full transition-all ${viewName === 'login' ? activeClass : inactiveClass}`;
-      btnDash.className = `px-2.5 py-1 rounded-full transition-all ${viewName === 'dashboard' ? activeClass : inactiveClass}`;
-      btnCust.className = `px-2.5 py-1 rounded-full transition-all ${viewName === 'customer-master' ? activeClass : inactiveClass}`;
+      btnLogin.className = viewName === 'login' ? activeClass : inactiveClass;
+      btnDash.className = viewName === 'dashboard' ? activeClass : inactiveClass;
+      btnCust.className = viewName === 'customer-master' ? activeClass : inactiveClass;
+
+      const navDash = document.getElementById('nav-dashboard');
+      const navCust = document.getElementById('nav-customers');
+
+      const navActive = "w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition";
+      const navInactive = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-medium";
 
       if (viewName === 'login') {
         viewLogin.classList.remove('hidden');
@@ -1264,14 +1286,14 @@
         if (viewName === 'dashboard') {
           subDashboard.classList.remove('hidden');
           subCustomers.classList.add('hidden');
-          document.getElementById('nav-dashboard').className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 font-semibold transition";
-          document.getElementById('nav-customers').className = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition";
+          navDash.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition";
+          navCust.className = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-medium";
           initCharts();
         } else if (viewName === 'customer-master') {
           subDashboard.classList.add('hidden');
           subCustomers.classList.remove('hidden');
-          document.getElementById('nav-customers').className = "w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 font-semibold transition";
-          document.getElementById('nav-dashboard').className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition";
+          navCust.className = "w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition";
+          navDash.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-medium";
           renderCustomerTable();
         }
       }
@@ -1318,10 +1340,10 @@
       const btn = document.getElementById('btn-group-by');
       if (isGrouped) {
         label.textContent = "Group By: Customer Group";
-        btn.classList.add("bg-brand-50", "dark:bg-brand-900/30", "text-brand-600", "font-bold");
+        btn.className = "px-2.5 py-1.5 rounded-lg border border-brand-500/40 bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-bold flex items-center gap-1.5 transition";
       } else {
         label.textContent = "Group By: None";
-        btn.classList.remove("bg-brand-50", "dark:bg-brand-900/30", "text-brand-600", "font-bold");
+        btn.className = "px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0e1626] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5 transition";
       }
       renderCustomerTable();
     }
@@ -1333,7 +1355,7 @@
       if (filteredCustomers.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="9" class="px-4 py-8 text-center text-slate-400">
+            <td colspan="9" class="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
               <i data-lucide="folder-search" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
               No customer records match your filter criteria.
             </td>
@@ -1362,43 +1384,43 @@
         if (isGrouped && cust.group !== lastGroup) {
           lastGroup = cust.group;
           tbody.innerHTML += `
-            <tr class="bg-slate-100/70 dark:bg-slate-750 font-bold text-slate-700 dark:text-slate-300">
-              <td colspan="9" class="px-4 py-1.5 text-[11px] uppercase tracking-wider">
-                <i data-lucide="folder" class="w-3.5 h-3.5 inline mr-1 text-brand-600"></i> ${cust.group}
+            <tr class="bg-slate-100 dark:bg-[#1a2942] font-bold text-slate-800 dark:text-brand-300 border-y border-slate-200 dark:border-slate-700">
+              <td colspan="9" class="px-4 py-2 text-[11px] uppercase tracking-wider">
+                <i data-lucide="folder" class="w-3.5 h-3.5 inline mr-1.5 text-brand-600 dark:text-brand-400"></i> ${cust.group}
               </td>
             </tr>
           `;
         }
 
         const statusBadge = cust.status === 'ACTIVE'
-          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">Active</span>`
-          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">Inactive</span>`;
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-transparent dark:border-emerald-800/50">Active</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-transparent dark:border-slate-700">Inactive</span>`;
 
         const row = document.createElement('tr');
-        row.className = "hover:bg-slate-50/80 dark:hover:bg-slate-750/50 transition-colors";
+        row.className = "hover:bg-slate-50 dark:hover:bg-[#1c2942]/60 transition-colors text-slate-800 dark:text-slate-200";
         row.innerHTML = `
           <td class="px-4 py-3 font-mono font-semibold text-brand-600 dark:text-brand-400">${cust.code}</td>
           <td class="px-4 py-3">
-            <div class="font-bold text-slate-800 dark:text-slate-100">${cust.name}</div>
-            <div class="text-[10px] text-slate-400">${cust.city} &bull; ${cust.priceList}</div>
+            <div class="font-bold text-slate-900 dark:text-white">${cust.name}</div>
+            <div class="text-[10px] text-slate-400 dark:text-slate-500">${cust.city} &bull; ${cust.priceList}</div>
           </td>
           <td class="px-4 py-3">
             <div class="font-medium text-slate-700 dark:text-slate-300">${cust.group}</div>
-            <div class="text-[10px] text-slate-400">${cust.region}</div>
+            <div class="text-[10px] text-slate-400 dark:text-slate-500">${cust.region}</div>
           </td>
           <td class="px-4 py-3">
             <div class="text-slate-800 dark:text-slate-200 font-medium">${cust.contactPerson}</div>
-            <div class="text-[10px] text-slate-400 font-mono">${cust.mobile}</div>
+            <div class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">${cust.mobile}</div>
           </td>
           <td class="px-4 py-3 font-mono text-[11px]">
             <div class="text-slate-700 dark:text-slate-300 font-semibold">${cust.gstin}</div>
-            <div class="text-[10px] text-slate-400">${cust.pan}</div>
+            <div class="text-[10px] text-slate-400 dark:text-slate-500">${cust.pan}</div>
           </td>
-          <td class="px-4 py-3 text-right font-semibold font-mono text-slate-800 dark:text-slate-200">
+          <td class="px-4 py-3 text-right font-semibold font-mono text-slate-900 dark:text-slate-100">
             &#8377; ${cust.creditLimit.toLocaleString('en-IN')}
           </td>
           <td class="px-4 py-3 text-center">
-            <span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+            <span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               ${cust.creditDays}d
             </span>
           </td>
@@ -1407,10 +1429,10 @@
           </td>
           <td class="px-4 py-3 text-right">
             <div class="flex items-center justify-end gap-1">
-              <button onclick="openCustomerModal('edit', ${cust.id})" class="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-slate-100 dark:hover:bg-slate-700" title="Edit Customer">
+              <button onclick="openCustomerModal('edit', ${cust.id})" class="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Edit Customer">
                 <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
               </button>
-              <button onclick="handleDeleteCustomer(${cust.id})" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30" title="Delete (Checks Dependencies)">
+              <button onclick="handleDeleteCustomer(${cust.id})" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Delete (Checks Dependencies)">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -1436,8 +1458,8 @@
         btn.textContent = i;
         btn.onclick = () => { currentPage = i; renderCustomerTable(); };
         btn.className = i === currentPage
-          ? "px-2.5 py-1 rounded bg-brand-600 text-white font-bold text-xs"
-          : "px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-300 text-xs";
+          ? "px-2.5 py-1 rounded bg-brand-600 text-white font-bold text-xs shadow-sm"
+          : "px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#131d31] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs transition";
         container.appendChild(btn);
       }
     }
@@ -1604,17 +1626,23 @@
       const html = document.documentElement;
       const btnLight = document.getElementById('btn-theme-light');
       const btnDark = document.getElementById('btn-theme-dark');
+      const modeText = document.getElementById('theme-mode-text');
 
       if (mode === 'dark') {
         html.classList.add('dark');
         html.classList.remove('light');
-        if (btnDark) btnDark.className = "p-2.5 rounded-xl border border-brand-500 bg-brand-900/30 flex items-center justify-center gap-2 font-semibold text-brand-300";
-        if (btnLight) btnLight.className = "p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-400";
+        if (modeText) modeText.textContent = "Dark Mode";
+        if (btnDark) btnDark.className = "p-2.5 rounded-xl border border-brand-500 bg-brand-950/60 flex items-center justify-center gap-2 font-semibold text-brand-300 border-brand-500/50";
+        if (btnLight) btnLight.className = "p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-400";
       } else {
         html.classList.add('light');
         html.classList.remove('dark');
+        if (modeText) modeText.textContent = "Light Mode";
         if (btnLight) btnLight.className = "p-2.5 rounded-xl border border-brand-500 bg-brand-50 flex items-center justify-center gap-2 font-semibold text-brand-700";
         if (btnDark) btnDark.className = "p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-600";
+      }
+      if (document.getElementById('subview-dashboard') && !document.getElementById('subview-dashboard').classList.contains('hidden')) {
+        initCharts();
       }
       lucide.createIcons();
     }
@@ -1640,6 +1668,7 @@
     // -------------------------------------------------------------------------
     function toggleDropdown(id, forceClose = false) {
       const el = document.getElementById(id);
+      if (!el) return;
       if (forceClose || !el.classList.contains('hidden')) {
         el.classList.add('hidden');
       } else {
@@ -1667,10 +1696,10 @@
       const empBtn = document.getElementById('login-persona-emp');
       const partyBtn = document.getElementById('login-persona-party');
       if (type === 'emp') {
-        empBtn.className = "flex-1 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5 font-bold";
+        empBtn.className = "flex-1 py-2 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5 font-bold";
         partyBtn.className = "flex-1 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5";
       } else {
-        partyBtn.className = "flex-1 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5 font-bold";
+        partyBtn.className = "flex-1 py-2 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5 font-bold";
         empBtn.className = "flex-1 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5";
       }
     }
@@ -1699,12 +1728,16 @@
     }
 
     // -------------------------------------------------------------------------
-    // 10. CHART.JS INITIALIZATION
+    // 10. CHART.JS INITIALIZATION (Dark/Light Aware Gridlines)
     // -------------------------------------------------------------------------
     let prodChartInstance = null;
     let invChartInstance = null;
 
     function initCharts() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)';
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+
       // Production Chart
       const ctxProd = document.getElementById('chartProduction');
       if (ctxProd) {
@@ -1735,11 +1768,17 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: textColor } }
             },
             scales: {
-              y: { grid: { color: 'rgba(156, 163, 175, 0.15)' } },
-              x: { grid: { display: false } }
+              y: { 
+                grid: { color: gridColor },
+                ticks: { color: textColor }
+              },
+              x: { 
+                grid: { display: false },
+                ticks: { color: textColor }
+              }
             }
           }
         });
@@ -1756,7 +1795,8 @@
             datasets: [{
               data: [45, 30, 18, 7],
               backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'],
-              borderWidth: 0
+              borderWidth: isDark ? 2 : 0,
+              borderColor: isDark ? '#131d31' : 'transparent'
             }]
           },
           options: {
@@ -1779,7 +1819,8 @@
     // Initialize on window load
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      switchView('dashboard');
+      // Start in customer master view to let user immediately inspect the improved dark table
+      switchView('customer-master');
     });
   </script>
 </body>
