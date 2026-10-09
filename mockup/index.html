@@ -71,6 +71,101 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+    /* Collapsible Sidebar Styles */
+    #app-sidebar {
+      width: 16rem; /* 256px */
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      z-index: 30;
+    }
+    #app-sidebar.collapsed {
+      width: 4.5rem !important; /* 72px mini rail */
+    }
+    #app-sidebar.collapsed .sidebar-label,
+    #app-sidebar.collapsed .sidebar-badge,
+    #app-sidebar.collapsed .sidebar-section-title,
+    #app-sidebar.collapsed .sidebar-footer-full {
+      display: none !important;
+    }
+    #app-sidebar.collapsed .sidebar-footer-mini {
+      display: flex !important;
+    }
+    #app-sidebar.collapsed .sidebar-section-divider {
+      display: block !important;
+    }
+    #app-sidebar.collapsed .sidebar-nav-item {
+      width: 2.75rem !important; /* 44px centered square button */
+      height: 2.75rem !important; /* 44px */
+      padding: 0 !important;
+      margin: 0.25rem auto !important;
+      justify-content: center !important;
+      align-items: center !important;
+      border-radius: 0.625rem !important;
+    }
+    #app-sidebar.collapsed .sidebar-nav-item i {
+      margin: 0 !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* Active Nav Item High Contrast Theme Styling (Never blinding white in dark mode!) */
+    .sidebar-nav-item.active {
+      background-color: var(--brand-50) !important;
+      color: var(--brand-700) !important;
+      font-weight: 700 !important;
+    }
+    .sidebar-nav-item.active i {
+      color: var(--brand-600) !important;
+    }
+    .dark .sidebar-nav-item.active {
+      background-color: rgba(99, 102, 241, 0.18) !important;
+      color: #c7d2fe !important;
+      border: 1px solid rgba(129, 140, 248, 0.35) !important;
+      font-weight: 700 !important;
+    }
+    .dark .sidebar-nav-item.active i {
+      color: #818cf8 !important;
+    }
+    .dark[data-theme-color="blue"] .sidebar-nav-item.active {
+      background-color: rgba(59, 130, 246, 0.18) !important;
+      color: #bfdbfe !important;
+      border-color: rgba(96, 165, 250, 0.35) !important;
+    }
+    .dark[data-theme-color="blue"] .sidebar-nav-item.active i {
+      color: #60a5fa !important;
+    }
+    .dark[data-theme-color="emerald"] .sidebar-nav-item.active {
+      background-color: rgba(16, 185, 129, 0.18) !important;
+      color: #a7f3d0 !important;
+      border-color: rgba(52, 211, 153, 0.35) !important;
+    }
+    .dark[data-theme-color="emerald"] .sidebar-nav-item.active i {
+      color: #34d399 !important;
+    }
+    .dark[data-theme-color="violet"] .sidebar-nav-item.active {
+      background-color: rgba(139, 92, 246, 0.18) !important;
+      color: #ddd6fe !important;
+      border-color: rgba(167, 139, 250, 0.35) !important;
+    }
+    .dark[data-theme-color="violet"] .sidebar-nav-item.active i {
+      color: #a78bfa !important;
+    }
+    .dark[data-theme-color="amber"] .sidebar-nav-item.active {
+      background-color: rgba(245, 158, 11, 0.18) !important;
+      color: #fde68a !important;
+      border-color: rgba(251, 191, 36, 0.35) !important;
+    }
+    .dark[data-theme-color="amber"] .sidebar-nav-item.active i {
+      color: #fbbf24 !important;
+    }
+    .dark[data-theme-color="rose"] .sidebar-nav-item.active {
+      background-color: rgba(244, 63, 94, 0.18) !important;
+      color: #fecdd3 !important;
+      border-color: rgba(251, 113, 133, 0.35) !important;
+    }
+    .dark[data-theme-color="rose"] .sidebar-nav-item.active i {
+      color: #fb7185 !important;
+    }
   </style>
 </head>
 <body class="bg-slate-50 dark:bg-[#0b1120] text-slate-800 dark:text-slate-100 antialiased font-sans min-h-screen transition-colors duration-200 flex flex-col">
@@ -405,78 +500,92 @@
       <aside id="app-sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] flex flex-col justify-between shrink-0 transition-all duration-300">
         <!-- Navigation Links -->
         <nav class="p-3 space-y-1 overflow-y-auto text-xs font-medium">
-          <!-- Main -->
-          <div class="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overview</div>
-          
-          <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-            <span>Dashboard</span>
+          <!-- Overview Section -->
+          <div class="sidebar-section-title px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Overview</div>
+          <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
+
+          <button onclick="switchView('dashboard')" id="nav-dashboard" data-tooltip="Dashboard" title="Dashboard" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Dashboard</span>
           </button>
 
-          <!-- Masters Section -->
-          <div class="pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Master Data</div>
-          
-          <button onclick="switchView('customer-master')" id="nav-customers" class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition">
-            <div class="flex items-center gap-2.5">
-              <i data-lucide="users" class="w-4 h-4 text-brand-600 dark:text-brand-400"></i>
-              <span>Customer Master</span>
-            </div>
-            <span class="text-[10px] bg-brand-200/50 dark:bg-brand-900 text-brand-800 dark:text-brand-300 px-1.5 py-0.5 rounded font-mono">24</span>
+          <!-- Master Data Section -->
+          <div class="sidebar-section-title pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Master Data</div>
+          <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
+
+          <button onclick="switchView('customer-master')" id="nav-customers" data-tooltip="Customer Master" title="Customer Master" class="sidebar-nav-item active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="users" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label flex-1 text-left truncate">Customer Master</span>
+            <span class="sidebar-badge text-[10px] bg-brand-200/50 dark:bg-brand-900 text-brand-800 dark:text-brand-300 px-1.5 py-0.5 rounded font-mono shrink-0">24</span>
           </button>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="truck" class="w-4 h-4"></i>
-            <span>Supplier / Vendor</span>
+          <a href="#" data-tooltip="Supplier / Vendor" title="Supplier / Vendor" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="truck" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Supplier / Vendor</span>
           </a>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="package" class="w-4 h-4"></i>
-            <span>Item & Multi-UOM</span>
+          <a href="#" data-tooltip="Item & Multi-UOM" title="Item & Multi-UOM" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="package" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Item & Multi-UOM</span>
           </a>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="network" class="w-4 h-4"></i>
-            <span>Dynamic Warehouse Bins</span>
+          <a href="#" data-tooltip="Dynamic Warehouse Bins" title="Dynamic Warehouse Bins" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="network" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Dynamic Warehouse Bins</span>
           </a>
 
-          <!-- Operations -->
-          <div class="pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Operations & Vouchers</div>
+          <!-- Operations Section -->
+          <div class="sidebar-section-title pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Operations & Vouchers</div>
+          <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-            <span>Purchase PO & GRN</span>
+          <a href="#" data-tooltip="Purchase PO & GRN" title="Purchase PO & GRN" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="shopping-cart" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Purchase PO & GRN</span>
           </a>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="factory" class="w-4 h-4"></i>
-            <span>Production Orders & WIP</span>
+          <a href="#" data-tooltip="Production Orders & WIP" title="Production Orders & WIP" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="factory" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Production Orders & WIP</span>
           </a>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="repeat" class="w-4 h-4"></i>
-            <span>Job-Work (Subcontracting)</span>
+          <a href="#" data-tooltip="Job-Work (Subcontracting)" title="Job-Work (Subcontracting)" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="repeat" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Job-Work (Subcontracting)</span>
           </a>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="send" class="w-4 h-4"></i>
-            <span>Sales Orders & Dispatch</span>
+          <a href="#" data-tooltip="Sales Orders & Dispatch" title="Sales Orders & Dispatch" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Sales Orders & Dispatch</span>
           </a>
 
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="hash" class="w-4 h-4"></i>
-            <span>Sequence Reset Utility</span>
+          <a href="#" data-tooltip="Sequence Reset Utility" title="Sequence Reset Utility" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="hash" class="w-4 h-4 shrink-0"></i>
+            <span class="sidebar-label truncate">Sequence Reset Utility</span>
           </a>
         </nav>
 
-        <!-- Sidebar Footer Status -->
-        <div class="p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-[#0c1322]">
+        <!-- Sidebar Footer: Full when Expanded, Mini when Collapsed -->
+        <!-- 1. Full Footer -->
+        <div class="sidebar-footer-full p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-[#0c1322]">
           <div class="flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
             <span>Branch DB Status</span>
             <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online
             </span>
           </div>
-          <div class="text-[10px] text-slate-400 mt-0.5">PostgreSQL 16 | Redis Cache Active</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">PostgreSQL 16 | Redis Active</div>
+          <button onclick="toggleSidebar()" class="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700/60 transition">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+            <span>Collapse Sidebar</span>
+          </button>
+        </div>
+
+        <!-- 2. Mini Footer (When Collapsed) -->
+        <div class="sidebar-footer-mini hidden p-2 border-t border-slate-200 dark:border-slate-800 flex-col items-center justify-center gap-2.5 bg-slate-50/50 dark:bg-[#0c1322]">
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Database Online"></div>
+          <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="Expand Sidebar">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
         </div>
       </aside>
 
@@ -1108,6 +1217,11 @@
   </div>
 
   <!-- ========================================================================= -->
+  <!-- FLOATING SIDEBAR TOOLTIP (Fixed Viewport, Never Clipped) -->
+  <!-- ========================================================================= -->
+  <div id="sidebar-floating-tooltip" class="fixed pointer-events-none z-[9999] hidden px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-100 border border-slate-700 shadow-2xl items-center gap-2"></div>
+
+  <!-- ========================================================================= -->
   <!-- JAVASCRIPT: DATA & INTERACTIVITY ENGINE -->
   <!-- ========================================================================= -->
   <script>
@@ -1273,9 +1387,6 @@
       const navDash = document.getElementById('nav-dashboard');
       const navCust = document.getElementById('nav-customers');
 
-      const navActive = "w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition";
-      const navInactive = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-medium";
-
       if (viewName === 'login') {
         viewLogin.classList.remove('hidden');
         viewShell.classList.add('hidden');
@@ -1286,14 +1397,14 @@
         if (viewName === 'dashboard') {
           subDashboard.classList.remove('hidden');
           subCustomers.classList.add('hidden');
-          navDash.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition";
-          navCust.className = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-medium";
+          if (navDash) navDash.classList.add('active');
+          if (navCust) navCust.classList.remove('active');
           initCharts();
         } else if (viewName === 'customer-master') {
           subDashboard.classList.add('hidden');
           subCustomers.classList.remove('hidden');
-          navCust.className = "w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-transparent dark:border-brand-500/30 font-bold transition";
-          navDash.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-medium";
+          if (navCust) navCust.classList.add('active');
+          if (navDash) navDash.classList.remove('active');
           renderCustomerTable();
         }
       }
@@ -1686,7 +1797,48 @@
 
     function toggleSidebar() {
       const sidebar = document.getElementById('app-sidebar');
-      sidebar.classList.toggle('-ml-64');
+      sidebar.classList.toggle('collapsed');
+      const tooltip = document.getElementById('sidebar-floating-tooltip');
+      if (tooltip) {
+        tooltip.classList.add('hidden');
+        tooltip.classList.remove('flex');
+      }
+    }
+
+    function initSidebarTooltips() {
+      const tooltip = document.getElementById('sidebar-floating-tooltip');
+      if (!tooltip) return;
+
+      document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+        item.addEventListener('mouseenter', () => {
+          const sidebar = document.getElementById('app-sidebar');
+          if (!sidebar || !sidebar.classList.contains('collapsed')) return;
+
+          const title = item.getAttribute('data-tooltip') || item.querySelector('.sidebar-label')?.textContent || '';
+          const badge = item.querySelector('.sidebar-badge')?.textContent;
+
+          tooltip.innerHTML = badge 
+            ? `<span>${title}</span><span class="text-[10px] bg-brand-600 text-white px-1.5 py-0.5 rounded font-mono font-bold">${badge}</span>`
+            : `<span>${title}</span>`;
+
+          const rect = item.getBoundingClientRect();
+          tooltip.style.top = `${rect.top + rect.height / 2}px`;
+          tooltip.style.left = `${rect.right + 10}px`;
+          tooltip.style.transform = 'translateY(-50%)';
+          tooltip.classList.remove('hidden');
+          tooltip.classList.add('flex');
+        });
+
+        item.addEventListener('mouseleave', () => {
+          tooltip.classList.add('hidden');
+          tooltip.classList.remove('flex');
+        });
+
+        item.addEventListener('click', () => {
+          tooltip.classList.add('hidden');
+          tooltip.classList.remove('flex');
+        });
+      });
     }
 
     // -------------------------------------------------------------------------
@@ -1819,6 +1971,7 @@
     // Initialize on window load
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      initSidebarTooltips();
       // Start in customer master view to let user immediately inspect the improved dark table
       switchView('customer-master');
     });
