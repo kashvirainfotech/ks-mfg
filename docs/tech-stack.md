@@ -134,6 +134,30 @@ async authorizePurchaseOrder(
 }
 ```
 
+### 3.4 Universal Activity Logger & Field-Level Delta Interceptor
+* **`AuditLogInterceptor`**: NestJS global interceptor that monitors all state mutations (POST, PUT, PATCH, DELETE).
+* **Field-Level Delta Engine:**
+  * For PUT/PATCH updates, the interceptor fetches the existing record snapshot and computes the exact JSON delta:
+    `changed_fields = [{ "field": "unit_rate", "old": 150.00, "new": 165.50 }]`.
+  * Persists to `tbl_sys_audit_log` with `user_id`, `comp_id`, `branch_id`, `screen_code`, `action_type`, `record_id`, `changed_fields` (JSONB), `old_values` (JSONB), `new_values` (JSONB), client IP, and timestamp.
+* **Button Action Interceptor:** Screen action events (`PRINT`, `EXPORT`, `AUTHORIZE`, `CANCEL`, `REOPEN`) trigger audit events asynchronously without impacting main request latency.
+
+### 3.5 Referential Dependency Checker Service
+* **`DependencyCheckService`**: Centralized service invoked prior to deleting any master or transaction record.
+* Queries foreign tables based on an entity relation registry:
+  * Master Item $\rightarrow$ PO Line Items, GRN Line Items, Sales Items, BOM Components, Stock Ledger.
+  * Warehouse Location $\rightarrow$ Child Locations, Stock Ledger entries.
+  * Employee $\rightarrow$ Department HOD, Reporting Manager links, User mappings.
+  * Party $\rightarrow$ Orders, Invoices, Challans, Outstanding ledger balances.
+* If active references exist, throws `DependencyConflictException` returning an HTTP 409 status with a human-readable list of blocking references.
+
+### 3.6 Global Roles & Multi-Tenancy Mapping Architecture
+* **Global Roles (`tbl_sec_role`):** Defined globally, completely independent of company or branch IDs. Roles hold permissions to screens and individual actions.
+* **User Tenancy Mapping:**
+  * `tbl_sec_user_company_role`: Maps a user to one or more companies with a role.
+  * `tbl_sec_user_branch_role`: Maps a user to one or more branches with a role.
+* **Persona Mapping:** Every regular user requires a mandatory foreign key link to either `tbl_mst_employee` or `tbl_mst_party`. Root Super Admin is the sole unmapped exception, seeded directly in `dbscripts/02_initial_data.sql`.
+
 ---
 
 ## 4. Frontend Architecture (React 19, Vite, TypeScript)
@@ -158,9 +182,9 @@ frontend/
 │   │   ├── manufacturing/        # BOM Designer, Work Orders, Material Issue, FG Receipt
 │   │   ├── subcontracting/       # Job-Work Issue Delivery Challan, Job-Work Receipt
 │   │   └── inventory/            # Live Stock Ledger, Batch/Serial Explorer, Sequence Reset Screen
-│   ├── hooks/                    # Reusable hooks (useAuth, usePermission, useConfigParam)
+│   ├── hooks/                    # Reusable hooks (useAuth, usePermission, useConfigParam, useTheme)
 │   ├── lib/                      # Axios/Fetch client, Zod schemas, date formatters, math utilities
-│   ├── stores/                   # Zustand stores (authStore, activeBranchStore, appConfigStore)
+│   ├── stores/                   # Zustand stores (authStore, activeBranchStore, appConfigStore, themeStore)
 │   └── types/                    # Shared TypeScript interfaces & DTOs
 ```
 
@@ -181,6 +205,15 @@ Ensures action buttons (Print, Export, Authorize) are conditionally rendered or 
   * Batch No. column hidden if `ENABLE_BATCH_TRACKING` is OFF.
   * Serial No. column hidden if `ENABLE_SERIAL_TRACKING` is OFF.
   * Alternate UOM column hidden if `ENABLE_DUAL_UNIT` is OFF.
+
+### 4.4 Theme Engine & User Profile Theme Color Personalization
+* **Dual Theme (Light & Dark):** Implemented via CSS variable design tokens mapped in Tailwind CSS (`class` strategy with `next-themes` or custom ThemeProvider).
+* **Dynamic Theme Color Palette:**
+  * Supported palettes: Zinc, Slate, Blue, Indigo, Violet, Emerald, Amber, Rose.
+  * Applied dynamically via data attributes on the root HTML element (`data-theme-color="indigo"`).
+* **User Profile Preference Sync:**
+  * User selects Mode (`Light`/`Dark`/`System`) and Color in Profile Settings.
+  * Persisted to `tbl_sec_user_preference` in the database and cached in `localStorage` for zero-flicker hydration on reload.
 
 ---
 

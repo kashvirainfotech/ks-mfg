@@ -8,26 +8,23 @@
 
 ## Phase 1: Database Foundation, Tenancy Core & Infrastructure
 
-### 1.1 Database Scripts & Schema Setup
-- [ ] Create folder structure `backend/db/scripts/` and `backend/db/seeds/`
-- [ ] Author `001_sequences.sql`
-  - [ ] Create `seq_comp_id` (Start: 1)
-  - [ ] Create `seq_branch_id` (Start: 1)
-  - [ ] Create `seq_fyear_id` (Start: 1)
-  - [ ] Create `seq_user_id` (Start: 1001)
-  - [ ] Create `seq_employee_id` (Start: 1001)
-  - [ ] Create `seq_party_id` (Start: 1001)
-  - [ ] Create `seq_item_id` (Start: 1001)
-  - [ ] Create `seq_warehouse_id` (Start: 101)
-  - [ ] Create `seq_location_id` (Start: 1001)
-  - [ ] Create `seq_voucher_id` (Start: 100001)
-- [ ] Author `002_core_tenancy.sql`
-  - [ ] Create `tbl_mst_company` with standard audit columns (`comp_id`, `branch_id`, `fyear_id`, `created_by`, `created_date`, `updated_by`, `updated_date`)
-  - [ ] Create `tbl_mst_branch` with company foreign key and standard audit columns
+### 1.1 Database Scripts & Schema Setup (`dbscripts/` Root Folder)
+- [ ] Verify root folder structure `dbscripts/`, `dbscripts/views/`, `dbscripts/functions/`, `dbscripts/triggers/`, `dbscripts/procedures/`
+- [ ] In `dbscripts/01_schema_objects.sql`:
+  - [ ] Create core sequences (`seq_comp_id`, `seq_branch_id`, `seq_fyear_id`, `seq_user_id`, `seq_employee_id`, `seq_party_id`, `seq_item_id`, `seq_warehouse_id`, `seq_location_id`, `seq_voucher_id`, `seq_audit_id`)
+  - [ ] Create `tbl_mst_company` (with standard 7 audit columns)
+  - [ ] Create `tbl_mst_branch` (with standard 7 audit columns)
   - [ ] Create `tbl_mst_financial_year` (`fyear_id`, `fyear_code`, `start_date`, `end_date`, `is_locked`)
   - [ ] Create `tbl_mst_branch_fyear` mapping table for branch-level financial year activation and locking
-  - [ ] Create trigger function `fn_set_updated_timestamp()` for automatic `updated_date` stamping
-- [ ] Author database execution runner script (`run_migrations.ps1` / `run_migrations.sh`) for manual DBA execution
+  - [ ] Create `tbl_sec_user_preference` for user theme mode and theme color preferences
+  - [ ] Create `tbl_sys_audit_log` (`audit_id`, `comp_id`, `branch_id`, `user_id`, `screen_code`, `action_type`, `table_name`, `record_id`, `changed_fields` JSONB, `old_values` JSONB, `new_values` JSONB, `ip_address`, `user_agent`, `created_date`)
+- [ ] In `dbscripts/functions/fn_set_updated_timestamp.sql`:
+  - [ ] Create trigger function updating `updated_date` automatically
+- [ ] In `dbscripts/triggers/trg_set_updated_timestamp.sql`:
+  - [ ] Create trigger binding for company and branch tables
+- [ ] In `dbscripts/02_initial_data.sql`:
+  - [ ] Add root Super Admin user seed (`admin` / `superadmin`) unmapped to employee/party
+  - [ ] Add default system parameters and initial screen codes
 
 ### 1.2 Backend Framework Setup (NestJS & Drizzle ORM)
 - [ ] Initialize NestJS project with TypeScript strict mode
@@ -37,42 +34,47 @@
   - [ ] Establish connection pool with `pg` driver
   - [ ] Create schema mapping classes matching reviewed SQL tables
 - [ ] Set up structured logging with `nestjs-pino` and Correlation ID middleware
+- [ ] Set up global `AuditLogInterceptor` for automated activity logging and JSONB field-level change deltas
+- [ ] Set up `DependencyCheckService` to verify foreign references before any master or transaction deletion
 - [ ] Configure Redis client for session tokens and cache management
 - [ ] Set up global ValidationPipe with `class-validator` and `class-transformer`
-- [ ] Set up global HttpExceptionFilter for standardized JSON error responses:
-  ```json
-  { "success": false, "errorCode": "UNAUTHORIZED", "message": "...", "timestamp": "...", "correlationId": "..." }
-  ```
+- [ ] Set up global HttpExceptionFilter for standardized JSON error responses
 
 ### 1.3 Frontend Framework Setup (Vite + React 19 + TypeScript)
 - [ ] Initialize Vite React TypeScript project
-- [ ] Install and configure Tailwind CSS and `tailwind.config.ts`
+- [ ] Install and configure Tailwind CSS and `tailwind.config.ts` with CSS variable design tokens
+- [ ] Configure Theme Engine with Light and Dark mode support (`next-themes` / ThemeProvider)
+- [ ] Configure Dynamic Theme Color system (Zinc, Blue, Indigo, Violet, Emerald, Amber, Rose) via `data-theme-color` attribute
 - [ ] Configure Shadcn UI component library and Radix UI primitives
 - [ ] Set up TanStack Query (React Query) provider with default stale-time policies
-- [ ] Set up Zustand client stores for session, active company, and active branch
+- [ ] Set up Zustand client stores (session, active company, active branch, theme preferences)
 - [ ] Set up React Router (or TanStack Router) with protected layout routes
 - [ ] Configure Axios / Fetch API client with automatic token attachment and refresh interceptors
 
 ---
 
-## Phase 2: Organization Hierarchy, Users Management & Granular RBAC
+## Phase 2: Organization Hierarchy, Users Management, Global Roles & Granular RBAC
 
-### 2.1 Database Scripts
-- [ ] Author `003_org_and_users.sql`
+### 2.1 Database Scripts (`dbscripts/`)
+- [ ] In `dbscripts/01_schema_objects.sql` (appended at end with date & comment header):
   - [ ] Create `tbl_mst_department`
   - [ ] Create `tbl_mst_designation`
   - [ ] Create `tbl_mst_employee` (with self-referencing reporting manager)
-  - [ ] Create `tbl_sec_user` (`user_id`, `username`, `email`, `mobile_no`, `password_hash`, `user_type` ENUM: `EMPLOYEE`/`CUSTOMER`, `ref_id`, `is_active`)
-  - [ ] Create `tbl_sec_role` (`role_id`, `role_code`, `role_name`, `description`)
-  - [ ] Create `tbl_sec_user_session` (for active refresh tokens and device metadata)
-- [ ] Author `004_permissions.sql`
+  - [ ] Create `tbl_sec_user` (`user_id`, `username`, `email`, `mobile_no`, `password_hash`, `user_type` ENUM: `EMPLOYEE`/`PARTY`, `ref_id`, `is_active`)
+  - [ ] Create `tbl_sec_role` (Global definition independent of company/branch)
   - [ ] Create `tbl_sec_screen` (`screen_id`, `screen_code`, `module_name`, `route_path`)
   - [ ] Create `tbl_sec_action_item` (`action_id`, `action_code`, `action_name` e.g., `PRINT`, `EXPORT`, `AUTHORIZE`, `CANCEL`, `REOPEN`)
   - [ ] Create `tbl_sec_screen_action` mapping screen to eligible actions
-  - [ ] Create `tbl_sec_user_branch_role` mapping `(user_id, comp_id, branch_id, role_id)`
   - [ ] Create `tbl_sec_role_screen_permission` (`role_id`, `screen_id`, `can_view`, `can_add`, `can_edit`, `can_delete`)
   - [ ] Create `tbl_sec_role_action_permission` (`role_id`, `screen_id`, `action_id`, `is_allowed`)
-  - [ ] Create `tbl_sec_user_direct_action_permission` (for user-specific overrides)
+  - [ ] Create `tbl_sec_user_company_role` mapping `(user_id, comp_id, role_id)`
+  - [ ] Create `tbl_sec_user_branch_role` mapping `(user_id, comp_id, branch_id, role_id)`
+  - [ ] Create `tbl_sec_user_session` (for active refresh tokens and device metadata)
+- [ ] In `dbscripts/02_initial_data.sql`:
+  - [ ] Append initial global roles ("Super Admin", "Branch Manager", "QC Inspector", "Inventory Operator", "Billing Clerk")
+  - [ ] Append initial screen definitions and standard action items
+- [ ] In `dbscripts/03_sample_demo_data.sql`:
+  - [ ] Append sample company, branches, departments, designations, employees, parties, and demo users
 
 ### 2.2 Backend APIs
 - [ ] Implement Authentication Module:
@@ -80,30 +82,37 @@
   - [ ] `POST /api/v1/auth/refresh` (Rotates refresh token and issues new access token)
   - [ ] `POST /api/v1/auth/logout` (Blacklists session in Redis and clears cookie)
   - [ ] `POST /api/v1/auth/switch-branch` (Validates branch assignment, switches active branch in token)
+- [ ] Implement User Profile & Theme Preferences API:
+  - [ ] `GET /api/v1/users/profile/preferences`
+  - [ ] `PUT /api/v1/users/profile/preferences` (Updates theme mode: Light/Dark/System and theme color)
 - [ ] Implement Organization & Employee Endpoints:
-  - [ ] Department CRUD (`/api/v1/departments`)
-  - [ ] Designation CRUD (`/api/v1/designations`)
-  - [ ] Employee CRUD (`/api/v1/employees`)
+  - [ ] Department CRUD (`/api/v1/departments`) with pre-deletion dependency check
+  - [ ] Designation CRUD (`/api/v1/designations`) with pre-deletion dependency check
+  - [ ] Employee CRUD (`/api/v1/employees`) with pre-deletion dependency check
 - [ ] Implement User Management Endpoints:
-  - [ ] User CRUD (`/api/v1/users`) with `user_type` validation (`EMPLOYEE` vs `CUSTOMER`)
+  - [ ] User CRUD (`/api/v1/users`) enforcing mandatory persona mapping (`EMPLOYEE` vs `PARTY`)
+  - [ ] User Company-Role Assignment endpoint (`POST /api/v1/users/:id/company-roles`)
   - [ ] User Branch-Role Assignment endpoint (`POST /api/v1/users/:id/branch-roles`)
   - [ ] User Effective Permissions endpoint (`GET /api/v1/users/me/permissions`)
+- [ ] Implement Global Role Management Endpoints (`/api/v1/roles`)
 - [ ] Implement RBAC Security Guards:
   - [ ] `AuthGuard` (Verifies JWT access token)
   - [ ] `TenantGuard` (Ensures `comp_id` and `branch_id` context match user claims)
   - [ ] `PermissionsGuard` (Validates screen and action permissions against active branch roles)
 
 ### 2.3 Frontend Screens & Components
+- [ ] Build Theme Switcher & Color Customizer in User Profile screen
 - [ ] Build Login Screen with modern layout and validation
 - [ ] Build Top Navigation Bar with Company & Branch Context Switcher dropdown
 - [ ] Build Department, Designation, and Employee Master Management screens
 - [ ] Build User Management UI:
-  - [ ] User Creation Dialog with Radio Buttons for User Type (`Employee` vs `Customer`)
-  - [ ] Dynamic conditional dropdown: Shows Employee autocomplete if Employee selected; Shows Customer autocomplete if Customer selected
-  - [ ] Multi-Branch Role Assignment Matrix (Select branch $\rightarrow$ multi-select checkboxes for roles)
+  - [ ] User Creation Dialog with Radio Buttons for User Type (`Employee` vs `Party`)
+  - [ ] Dynamic conditional dropdown: Shows Employee autocomplete if Employee selected; Shows Party autocomplete if Party selected
+  - [ ] Company-Role and Multi-Branch Role Assignment Matrix
 - [ ] Build Screen & Action Item Permission Management UI:
-  - [ ] Role-wise screen matrix (View, Add, Edit, Delete checkboxes)
+  - [ ] Global Role editor with screen permission matrix (View, Add, Edit, Delete checkboxes)
   - [ ] Action item permission sub-matrix (Print, Export, Authorize, Cancel checkboxes)
+- [ ] Build Activity Trail & Audit Log viewer dialog/drawer (shows field-level before/after diffs)
 - [ ] Create reusable `<PermissionGate>` component to wrap UI buttons
 
 ---

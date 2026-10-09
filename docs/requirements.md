@@ -54,18 +54,24 @@
    * Reporting Manager (Self-referencing Employee ID).
    * Status: `Active`, `Probation`, `Notice Period`, `Terminated`, `Suspended`.
 
-### 3.2 User Management & Persona Mapping
-* **User Entity:** `user_id`, `username`, `email`, `mobile_no`, `password_hash`, `user_type`, `is_active`, `is_super_admin`.
-* **Dual Persona Creation Mode (Radio Switch):**
-  * When creating a user in the UI, an administrative radio toggle selects `user_type`:
-    * `EMPLOYEE`: The UI dynamically renders an autocompleting dropdown to select an active record from `Employee Master`.
-    * `CUSTOMER`: The UI dynamically renders an autocompleting dropdown to select an active customer record from `Party Master`.
-  * The user record persists `ref_id` linking to `employee_id` or `party_id`.
-* **Branch-Role Mapping Matrix:**
-  * A user assignment table maps `(user_id, comp_id, branch_id, role_id)`.
-  * Supports assigning **multiple roles** to a user within the same branch.
-  * Supports assigning **different roles** across different branches.
-  * Dedicated UI grid to manage: `[User] -> [Select Branch] -> [Check/Assign Roles: Inventory Manager, QC Inspector, Billing Operator]`.
+### 3.2 User Management, Persona Mapping & Global Role Architecture
+* **User Entity:** `user_id`, `username`, `email`, `mobile_no`, `password_hash`, `user_type` (`EMPLOYEE` | `PARTY`), `ref_id`, `is_active`, `is_super_admin`.
+* **Mandatory Persona Mapping:**
+  * Every regular user login must be mapped to either:
+    1. An **Employee** (`tbl_mst_employee`), or
+    2. A **Party** (`tbl_mst_party` e.g., Customer, Supplier, Job-Worker, Transporter).
+  * In the User Creation UI, an administrative radio toggle selects `user_type` (`Employee` vs `Party`), dynamically populating the appropriate autocomplete dropdown.
+* **Super Admin Exception:**
+  * The initial root Super Admin login (`admin` / `superadmin`) is the sole exception and is not mapped to an employee or party.
+  * This account and its credentials must be seeded in `dbscripts/02_initial_data.sql` as essential data required to operate the web application.
+* **Roles are Independent of Company and Branch:**
+  * Role definitions (e.g., "Branch Manager", "QC Inspector", "Inventory Operator", "Billing Clerk", "Store Keeper") are **global master records** and are NOT bound to a specific company or branch.
+  * Roles hold permissions to screens (View, Add, Edit, Delete) and specific action items (Print, Export, Authorize, Cancel, Reopen) within screens.
+* **Users, Companies & Branches Assignment Matrix:**
+  * A user can possess **one or more roles**.
+  * A user can be mapped to **one or more companies with a role** (`tbl_sec_user_company_role`).
+  * A user can be mapped to **one or more branches with a role** (`tbl_sec_user_branch_role`).
+  * A user can have different roles across different branches (e.g., User A is "Branch Manager" in Pune Branch, but "Viewer / Auditor" in Mumbai Branch).
 
 ---
 
@@ -332,3 +338,53 @@ Every voucher header table (e.g., `trn_purchase_order_hdr`, `trn_grn_hdr`, `trn_
 4. **Auditability:**
    * Immutable audit logging of all transactional mutations, approvals, and manual sequence resets.
    * Standard audit fields (`created_by`, `created_date`, `updated_by`, `updated_date`) on every single database table without exception.
+
+---
+
+## 12. Universal Activity Trail & Field-Level Change Tracking
+
+### 12.1 Comprehensive Activity Logging
+* The system shall automatically capture every operational event across all screens and tables:
+  * **Master Operations:** Record creation (ADD), updates (EDIT), and attempted or successful removals (DELETE).
+  * **Transaction Operations:** Draft saves, final submissions, cancellations, voiding, and approvals.
+  * **Action Button Operations:** Any execution of button actions (`PRINT`, `EXPORT`, `AUTHORIZE`, `CANCEL`, `REOPEN`).
+* Each log entry captures:
+  * `comp_id`, `branch_id`, `user_id`, `session_id`, `ip_address`, `user_agent`.
+  * `screen_code` and `action_type`.
+  * Target table name and primary key record ID.
+
+### 12.2 Field-Level Delta Tracking on Record Edits
+* When a record is edited (whether a master entity or a transaction header/line item):
+  * The system must determine the precise diff between pre-update and post-update state.
+  * Captures `field_name`, `old_value`, and `new_value` in JSONB format within `tbl_sys_audit_log`.
+  * Enables plant managers and compliance auditors to inspect exactly what changed, by whom, and at what timestamp.
+
+---
+
+## 13. Mandatory Pre-Deletion Referential Dependency Checking
+
+### 13.1 Strict Deletion Safeguard
+* To maintain database integrity and prevent broken operational histories, **blind deletes are strictly prohibited**.
+* Before deleting any master record (e.g., Item, UOM, Department, Employee, Party, Warehouse, Location) or transactional voucher:
+  1. The system executes a comprehensive dependency check querying all foreign key relationships and operational usages.
+  2. If the record is referenced in any transaction, active inventory balance, BOM recipe, or child hierarchy node, the deletion operation **must be aborted**.
+  3. The API and UI must present a descriptive feedback message detailing the conflict:
+     * *Example:* "Cannot delete Item 'Cold Rolled Steel Coil (CR-01)' because it is referenced in 6 Purchase Orders, 2 Goods Receipt Notes, and 1 active BOM."
+
+---
+
+## 14. UI Theme Engine (Light & Dark) & User Profile Personalization
+
+### 14.1 Dual Theme Support (Light & Dark)
+* The web portal must provide native support for both **Light Mode** and **Dark Mode**.
+* Dark mode must provide low-glare high-contrast readability suitable for factory floor terminals and nighttime dispatch operations.
+* Zero page reload during theme transitions.
+
+### 14.2 Theme Color & User Profile Personalization
+* The application interface must be dynamically styled based on a configurable **Theme Color** palette (e.g., Zinc, Blue, Indigo, Emerald, Amber, Rose, Violet).
+* **User Profile Provision:**
+  * In the **User Profile / Settings Screen**, each user can personalize:
+    1. **Theme Mode:** `Light`, `Dark`, or `System Default`.
+    2. **Theme Color:** Selection of primary accent color for buttons, active navigation pills, badges, and focus rings.
+  * The user's choices are persisted in `tbl_sec_user_preference` in the database, synchronized across logins, and applied dynamically on client startup.
+
