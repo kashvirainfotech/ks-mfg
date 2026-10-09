@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en" class="light" data-theme-color="indigo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KS-MFG ERP - Interactive UI Mockup</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: 'var(--brand-50)',
+              100: 'var(--brand-100)',
+              500: 'var(--brand-500)',
+              600: 'var(--brand-600)',
+              700: 'var(--brand-700)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Theme color variables */
+    :root[data-theme-color="indigo"] {
+      --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-500: #6366f1; --brand-600: #4f46e5; --brand-700: #4338ca;
+    }
+    :root[data-theme-color="blue"] {
+      --brand-50: #eff6ff; --brand-100: #dbeafe; --brand-500: #3b82f6; --brand-600: #2563eb; --brand-700: #1d4ed8;
+    }
+    :root[data-theme-color="emerald"] {
+      --brand-50: #ecfdf5; --brand-100: #d1fae5; --brand-500: #10b981; --brand-600: #059669; --brand-700: #047857;
+    }
+    :root[data-theme-color="violet"] {
+      --brand-50: #f5f3ff; --brand-100: #ede9fe; --brand-500: #8b5cf6; --brand-600: #7c3aed; --brand-700: #6d28d9;
+    }
+    :root[data-theme-color="amber"] {
+      --brand-50: #fffbeb; --brand-100: #fef3c7; --brand-500: #f59e0b; --brand-600: #d97706; --brand-700: #b45309;
+    }
+    :root[data-theme-color="rose"] {
+      --brand-50: #fff1f2; --brand-100: #ffe4e6; --brand-500: #f43f5e; --brand-600: #e11d48; --brand-700: #be123c;
+    }
+
+    /* Custom scrollbar for high density tables */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased font-sans min-h-screen transition-colors duration-200">
+
+  <!-- ========================================================================= -->
+  <!-- TOP FLOATING SCREEN SWITCHER BAR (Mockup Navigation Tool) -->
+  <!-- ========================================================================= -->
+  <div class="fixed top-2 right-4 z-50 flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur shadow-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full text-xs font-medium">
+    <span class="text-slate-400 dark:text-slate-500 mr-1 flex items-center gap-1">
+      <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-600"></i> Mockup View:
+    </span>
+    <button onclick="switchView('login')" id="btn-view-login" class="px-2.5 py-1 rounded-full transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+      1. Login Screen
+    </button>
+    <button onclick="switchView('dashboard')" id="btn-view-dashboard" class="px-2.5 py-1 rounded-full transition-all bg-brand-600 text-white font-semibold shadow-sm">
+      2. Home Dashboard
+    </button>
+    <button onclick="switchView('customer-master')" id="btn-view-customers" class="px-2.5 py-1 rounded-full transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+      3. Customer Master
+    </button>
+    <div class="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+    <!-- Quick Theme Toggle -->
+    <button onclick="toggleTheme()" class="p-1 rounded-full text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100" title="Toggle Light/Dark Theme">
+      <i data-lucide="sun" id="theme-icon-sun" class="w-4 h-4 hidden dark:block"></i>
+      <i data-lucide="moon" id="theme-icon-moon" class="w-4 h-4 block dark:hidden"></i>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 1. LOGIN SCREEN MOCKUP -->
+  <!-- ========================================================================= -->
+  <div id="view-login" class="hidden min-h-screen w-full flex flex-col lg:flex-row">
+    <!-- Left Column: Project Info & Industrial Highlights -->
+    <div class="lg:w-1/2 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+      <!-- Background Graphic Accents -->
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-brand-600/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div>
+        <!-- Brand Logo Header -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-black text-xl shadow-lg shadow-brand-500/30">
+            KS
+          </div>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">KS-MFG ERP</h1>
+            <p class="text-xs text-indigo-300 font-medium">Enterprise Manufacturing & Supply Chain</p>
+          </div>
+        </div>
+
+        <div class="mt-16 lg:mt-24 space-y-6 max-w-lg">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/10 text-xs font-semibold text-indigo-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Production Operations v1.0
+          </div>
+          <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-white">
+            Precision Control for Modern Discrete & Process Manufacturing
+          </h2>
+          <p class="text-slate-300 text-sm leading-relaxed">
+            Engineered for high-volume manufacturing environments. Unified multi-company governance, multi-level dynamic warehouse binning, batch & serial genealogies, and automated subcontracting workflows.
+          </p>
+
+          <!-- Key Highlights Checklist -->
+          <div class="space-y-3 pt-4 text-xs text-slate-200">
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mt-0.5 shrink-0">
+                <i data-lucide="check" class="w-3 h-3"></i>
+              </div>
+              <span><strong>Multi-Company & Branch Isolated:</strong> Branch-wise fiscal year activation with atomic voucher sequence control.</span>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mt-0.5 shrink-0">
+                <i data-lucide="check" class="w-3 h-3"></i>
+              </div>
+              <span><strong>Dynamic Multi-Level Warehouses:</strong> Configurable Chamber &rarr; Rack &rarr; Bin trees with QC quarantine isolation.</span>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mt-0.5 shrink-0">
+                <i data-lucide="check" class="w-3 h-3"></i>
+              </div>
+              <span><strong>Subcontracting & 3rd-Party Job-Work:</strong> Track material dispatch, vendor yield, process wastage, and service costs.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+        <span>&copy; 2026 Kashvira Infotech. All Rights Reserved.</span>
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Role & Action RBAC</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="activity" class="w-4 h-4 text-blue-400"></i> Field Delta Audit</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Login Form -->
+    <div class="lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-white dark:bg-slate-900">
+      <div class="w-full max-w-md space-y-8">
+        <div>
+          <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Sign In to Your Workspace</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Enter your credentials to access your manufacturing portal</p>
+        </div>
+
+        <!-- User Persona Quick Toggle Mock -->
+        <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex text-xs font-semibold">
+          <button type="button" id="login-persona-emp" onclick="setLoginPersona('emp')" class="flex-1 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5">
+            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-brand-600"></i> Employee / Plant Staff
+          </button>
+          <button type="button" id="login-persona-party" onclick="setLoginPersona('party')" class="flex-1 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5">
+            <i data-lucide="users" class="w-3.5 h-3.5"></i> Customer / Vendor Portal
+          </button>
+        </div>
+
+        <form onsubmit="handleLoginSubmit(event)" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Username or Official Email</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="user" class="w-4 h-4"></i>
+              </div>
+              <input type="text" id="login-username" value="rajesh.patel" required class="block w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors">
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
+              <a href="#" class="text-xs font-medium text-brand-600 dark:text-brand-500 hover:underline">Forgot password?</a>
+            </div>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+              </div>
+              <input type="password" id="login-password" value="••••••••••••" required class="block w-full pl-9 pr-10 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors">
+              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400">
+              <input type="checkbox" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+              <span>Remember this workstation</span>
+            </label>
+            <span class="text-slate-400">Secure 256-bit TLS</span>
+          </div>
+
+          <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2">
+            <span>Sign In to Dashboard</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </form>
+
+        <!-- Demo Account Quick Selectors -->
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+          <p class="text-xs text-slate-400 mb-2 font-medium">Quick Demo Credentials (1-Click Fill):</p>
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <button onclick="fillDemo('superadmin')" class="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-left hover:border-brand-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+              <div class="font-bold text-slate-700 dark:text-slate-300">Super Admin</div>
+              <div class="text-[10px] text-slate-400">Root Access</div>
+            </button>
+            <button onclick="fillDemo('branchmanager')" class="p-2 border border-brand-500 bg-brand-50 dark:bg-brand-900/20 rounded-lg text-left transition">
+              <div class="font-bold text-brand-700 dark:text-brand-300">Branch Mgr</div>
+              <div class="text-[10px] text-slate-400">Plant Pune</div>
+            </button>
+            <button onclick="fillDemo('customer')" class="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-left hover:border-brand-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+              <div class="font-bold text-slate-700 dark:text-slate-300">Customer</div>
+              <div class="text-[10px] text-slate-400">Tata Motors</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2 & 3: APP SHELL (Sidebar + Header + Dynamic Screen Container) -->
+  <!-- ========================================================================= -->
+  <div id="view-app-shell" class="min-h-screen flex flex-col">
+    
+    <!-- TOP HEADER -->
+    <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-40 px-4 flex items-center justify-between">
+      <!-- Left: Logo & Company/Branch Switcher -->
+      <div class="flex items-center gap-4">
+        <!-- Sidebar Toggle -->
+        <button onclick="toggleSidebar()" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+
+        <!-- ERP Logo -->
+        <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('dashboard')">
+          <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+            KS
+          </div>
+          <div class="hidden sm:block">
+            <div class="text-sm font-bold tracking-tight leading-none text-slate-900 dark:text-white">KS-MFG</div>
+            <div class="text-[10px] text-slate-400 font-medium">Manufacturing ERP</div>
+          </div>
+        </div>
+
+        <div class="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+
+        <!-- Company & Branch Switcher Dropdown (Multi-Tenant Feature) -->
+        <div class="relative hidden sm:block">
+          <button onclick="toggleDropdown('dropdown-branch')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-750 transition">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="current-branch-label">Kashvira Steels - Pune Plant</span>
+            <span class="text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 rounded">FY 26-27</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div id="dropdown-branch" class="hidden absolute left-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 text-xs">
+            <div class="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Active Operating Branch</div>
+            <div class="space-y-1 mt-1">
+              <button onclick="setBranch('Kashvira Steels - Pune Plant')" class="w-full flex items-center justify-between p-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-semibold">
+                <span>Kashvira Steels - Pune Plant</span>
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="setBranch('Kashvira Steels - Mumbai HQ')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+                <span>Kashvira Steels - Mumbai HQ</span>
+              </button>
+              <button onclick="setBranch('Kashvira Steels - Ahmedabad Depo')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+                <span>Kashvira Steels - Ahmedabad Depo</span>
+              </button>
+            </div>
+            <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 flex items-center justify-between px-1">
+              <span>User Role: <strong>Branch Manager</strong></span>
+              <a href="#" class="text-brand-600 hover:underline">Switch Company</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Universal Search -->
+      <div class="hidden lg:flex items-center flex-1 max-w-md mx-6">
+        <div class="relative w-full">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+          <input type="text" placeholder="Search vouchers (PO/GRN), items, customers, or serial no..." class="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <span class="absolute right-2.5 top-2 text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded font-mono">Ctrl+K</span>
+        </div>
+      </div>
+
+      <!-- Right: Action Icons, Theme & User Profile -->
+      <div class="flex items-center gap-2">
+        <!-- Quick Action "+ Voucher" -->
+        <button class="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+          <span>New Voucher</span>
+        </button>
+
+        <!-- Notification Bell -->
+        <button class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Notifications">
+          <i data-lucide="bell" class="w-4 h-4"></i>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
+        </button>
+
+        <!-- Theme Color Picker Dropdown -->
+        <div class="relative">
+          <button onclick="toggleDropdown('dropdown-colors')" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Change Theme Accent Color">
+            <i data-lucide="palette" class="w-4 h-4 text-brand-600"></i>
+          </button>
+          <div id="dropdown-colors" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-3 z-50 text-xs">
+            <div class="font-bold text-slate-700 dark:text-slate-300 mb-2">Accent Theme Color</div>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="setThemeColor('indigo')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span class="w-5 h-5 rounded-full bg-indigo-600"></span><span class="text-[10px]">Indigo</span>
+              </button>
+              <button onclick="setThemeColor('blue')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span class="w-5 h-5 rounded-full bg-blue-600"></span><span class="text-[10px]">Blue</span>
+              </button>
+              <button onclick="setThemeColor('emerald')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span class="w-5 h-5 rounded-full bg-emerald-600"></span><span class="text-[10px]">Emerald</span>
+              </button>
+              <button onclick="setThemeColor('violet')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span class="w-5 h-5 rounded-full bg-violet-600"></span><span class="text-[10px]">Violet</span>
+              </button>
+              <button onclick="setThemeColor('amber')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span class="w-5 h-5 rounded-full bg-amber-500"></span><span class="text-[10px]">Amber</span>
+              </button>
+              <button onclick="setThemeColor('rose')" class="flex flex-col items-center gap-1 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                <span class="w-5 h-5 rounded-full bg-rose-600"></span><span class="text-[10px]">Rose</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Profile Dropdown -->
+        <div class="relative ml-1">
+          <button onclick="toggleDropdown('dropdown-profile')" class="flex items-center gap-2 p-1 pl-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <div class="w-7 h-7 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center">
+              RP
+            </div>
+            <div class="hidden md:block text-left">
+              <div class="text-xs font-bold leading-none text-slate-800 dark:text-slate-200">Rajesh Patel</div>
+              <div class="text-[10px] text-slate-400">Branch Manager</div>
+            </div>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
+
+          <!-- Profile Menu -->
+          <div id="dropdown-profile" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 text-xs">
+            <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
+              <div class="font-bold text-slate-900 dark:text-white">Rajesh Patel</div>
+              <div class="text-[11px] text-slate-400">rajesh.patel@kashvira.com</div>
+              <div class="mt-1 inline-block text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
+                Employee ID: EMP-1042
+              </div>
+            </div>
+            <div class="py-1">
+              <button onclick="openProfileModal()" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                <i data-lucide="user" class="w-4 h-4 text-slate-400"></i> My Profile & Theme Settings
+              </button>
+              <a href="#" class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-slate-400"></i> Branch Configurations
+              </a>
+              <a href="#" class="block px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i> Activity & Audit Trail
+              </a>
+            </div>
+            <div class="pt-1 border-t border-slate-100 dark:border-slate-700">
+              <button onclick="switchView('login')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN BODY: Sidebar + Content -->
+    <div class="flex-1 flex overflow-hidden">
+      
+      <!-- SIDEBAR -->
+      <aside id="app-sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-all duration-300">
+        <!-- Navigation Links -->
+        <nav class="p-3 space-y-1 overflow-y-auto text-xs font-medium">
+          <!-- Main -->
+          <div class="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overview</div>
+          
+          <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 font-semibold transition">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Dashboard</span>
+          </button>
+
+          <!-- Masters Section -->
+          <div class="pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Master Data</div>
+          
+          <button onclick="switchView('customer-master')" id="nav-customers" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <div class="flex items-center gap-2.5">
+              <i data-lucide="users" class="w-4 h-4"></i>
+              <span>Customer Master</span>
+            </div>
+            <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">24</span>
+          </button>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="truck" class="w-4 h-4"></i>
+            <span>Supplier / Vendor</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="package" class="w-4 h-4"></i>
+            <span>Item & Multi-UOM</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="network" class="w-4 h-4"></i>
+            <span>Dynamic Warehouse Bins</span>
+          </a>
+
+          <!-- Operations -->
+          <div class="pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Operations & Vouchers</div>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+            <span>Purchase PO & GRN</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="factory" class="w-4 h-4"></i>
+            <span>Production Orders & WIP</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="repeat" class="w-4 h-4"></i>
+            <span>Job-Work (Subcontracting)</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Sales Orders & Dispatch</span>
+          </a>
+
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="hash" class="w-4 h-4"></i>
+            <span>Sequence Reset Utility</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Footer Status -->
+        <div class="p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-slate-850">
+          <div class="flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
+            <span>Branch DB Status</span>
+            <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online
+            </span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-0.5">PostgreSQL 16 | Redis Cache Active</div>
+        </div>
+      </aside>
+
+      <!-- VIEW CONTAINER (Swapped via JS) -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900/60">
+        
+        <!-- =================================================================== -->
+        <!-- 2. HOME PAGE: DASHBOARD VIEW -->
+        <!-- =================================================================== -->
+        <div id="subview-dashboard" class="space-y-6 max-w-7xl mx-auto">
+          <!-- Page Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Plant Operations Dashboard</h1>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Live operational overview for Kashvira Steels - Pune Manufacturing Unit</p>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-slate-400">Last Synced: Just now</span>
+              <button onclick="refreshDashboard()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 flex items-center gap-1.5 font-medium shadow-sm">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Metric Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Metric 1 -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                <span>Active Work Orders</span>
+                <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+                  <i data-lucide="factory" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-slate-900 dark:text-white">38</span>
+                <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
+                  <i data-lucide="trending-up" class="w-3 h-3"></i> +12%
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">4 awaiting QC release, 6 in powder coating</p>
+            </div>
+
+            <!-- Metric 2 -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                <span>Today's Inward GRN</span>
+                <div class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <i data-lucide="inbox" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-slate-900 dark:text-white">142.5 MT</span>
+                <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
+                  <i data-lucide="trending-up" class="w-3 h-3"></i> +5.4%
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Allocated across Chamber A & Rack B bins</p>
+            </div>
+
+            <!-- Metric 3 -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                <span>Vendor Job-Work Outstanding</span>
+                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <i data-lucide="repeat" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-slate-900 dark:text-white">18 Lots</span>
+                <span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center">
+                  3 Overdue
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Pending receipt from Precision Heat Treaters</p>
+            </div>
+
+            <!-- Metric 4 -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                <span>FG Stock Valuation</span>
+                <div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <i data-lucide="dollar-sign" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-slate-900 dark:text-white">&#8377; 4.82 Cr</span>
+                <span class="text-[11px] font-semibold text-slate-500">
+                  94.2% Allocatable
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">5.8% held in Quarantine / QC Location</p>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Production Trends (Bar & Line Chart) -->
+            <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 dark:text-white">Daily Production Output vs Planned Target</h3>
+                  <p class="text-[11px] text-slate-400">Current fiscal sprint output measured in Base Unit (Kgs)</p>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700/60 p-1 rounded-lg">
+                  <button class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 font-semibold shadow-xs">Weekly</button>
+                  <button class="px-2 py-0.5 rounded text-slate-500 hover:text-slate-800">Monthly</button>
+                </div>
+              </div>
+              <div class="h-64">
+                <canvas id="chartProduction"></canvas>
+              </div>
+            </div>
+
+            <!-- Inventory Breakdown (Doughnut Chart) -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Warehouse Inventory by Category</h3>
+                <p class="text-[11px] text-slate-400">Live breakdown across dynamic location bins</p>
+                <div class="h-52 mt-2 flex items-center justify-center">
+                  <canvas id="chartInventory"></canvas>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                  <span class="text-slate-600 dark:text-slate-300">Raw Material: 45%</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                  <span class="text-slate-600 dark:text-slate-300">Finished Goods: 30%</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                  <span class="text-slate-600 dark:text-slate-300">Shop WIP: 18%</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                  <span class="text-slate-600 dark:text-slate-300">Scrap / QC: 7%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Tables Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Recent Production Vouchers -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i> Recent Production Work Orders
+                </h3>
+                <a href="#" class="text-xs text-brand-600 hover:underline font-medium">View All &rarr;</a>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-50 dark:bg-slate-750 text-slate-500 border-b border-slate-100 dark:border-slate-700">
+                    <tr>
+                      <th class="px-4 py-2 font-semibold">Order No</th>
+                      <th class="px-4 py-2 font-semibold">FG Item</th>
+                      <th class="px-4 py-2 font-semibold">Qty</th>
+                      <th class="px-4 py-2 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
+                      <td class="px-4 py-2.5 font-mono text-brand-600 font-semibold">PWO/PUN/26/0142</td>
+                      <td class="px-4 py-2.5 font-medium">Precision Flange 150mm</td>
+                      <td class="px-4 py-2.5">500 Nos</td>
+                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">Machining</span></td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
+                      <td class="px-4 py-2.5 font-mono text-brand-600 font-semibold">PWO/PUN/26/0141</td>
+                      <td class="px-4 py-2.5 font-medium">High Tensile Stud M24</td>
+                      <td class="px-4 py-2.5">2,400 Nos</td>
+                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">QC Inspection</span></td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
+                      <td class="px-4 py-2.5 font-mono text-brand-600 font-semibold">PWO/PUN/26/0140</td>
+                      <td class="px-4 py-2.5 font-medium">Hydraulic Valve Block</td>
+                      <td class="px-4 py-2.5">85 Nos</td>
+                      <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">Completed</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Low Stock / Reorder Alerts -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i> Stock Threshold & Reorder Triggers
+                </h3>
+                <span class="text-xs text-rose-500 font-semibold">4 Critical Items</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-50 dark:bg-slate-750 text-slate-500 border-b border-slate-100 dark:border-slate-700">
+                    <tr>
+                      <th class="px-4 py-2 font-semibold">Item Description</th>
+                      <th class="px-4 py-2 font-semibold">Location</th>
+                      <th class="px-4 py-2 font-semibold">Current Stock</th>
+                      <th class="px-4 py-2 font-semibold">Reorder Level</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
+                      <td class="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">SS 316L Round Bar 50mm</td>
+                      <td class="px-4 py-2.5 text-slate-500">Chamber 1 &rarr; Rack A-02</td>
+                      <td class="px-4 py-2.5 font-bold text-rose-600">450 Kgs</td>
+                      <td class="px-4 py-2.5 text-slate-500">1,200 Kgs</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
+                      <td class="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">CNC Carbide Cutting Inserts</td>
+                      <td class="px-4 py-2.5 text-slate-500">Tool Room &rarr; Bin T-08</td>
+                      <td class="px-4 py-2.5 font-bold text-rose-600">12 Pcs</td>
+                      <td class="px-4 py-2.5 text-slate-500">50 Pcs</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/50">
+                      <td class="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">Industrial Coolant Synthetic</td>
+                      <td class="px-4 py-2.5 text-slate-500">Chem Bay &rarr; Drum D-01</td>
+                      <td class="px-4 py-2.5 font-bold text-amber-600">200 Ltrs</td>
+                      <td class="px-4 py-2.5 text-slate-500">500 Ltrs</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- 3. CUSTOMER MASTER LISTING SCREEN -->
+        <!-- =================================================================== -->
+        <div id="subview-customers" class="hidden space-y-5 max-w-7xl mx-auto">
+          <!-- Breadcrumb & Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+                <span>Masters</span>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span>Party Master</span>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span class="text-brand-600 font-medium">Customer Master</span>
+              </div>
+              <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Customer Master Directory</h1>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Manage customer accounts, statutory GSTIN credentials, credit limits, and region price lists</p>
+            </div>
+            
+            <!-- Primary Action Items with RBAC Button Badges -->
+            <div class="flex items-center gap-2">
+              <button onclick="handleExportExcel()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Export Excel</span>
+              </button>
+              <button onclick="handlePrintDirectory()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Print</span>
+              </button>
+              <button onclick="openCustomerModal('add')" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>+ Add Customer</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter, Search, Group, Sort Toolbar -->
+          <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              <!-- Search Input -->
+              <div class="relative flex-1 max-w-md">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                <input type="text" id="cust-search" oninput="handleCustomerFilter()" placeholder="Search by customer code, legal name, GSTIN, city..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              </div>
+
+              <!-- Filter Dropdowns -->
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <!-- Group Filter -->
+                <select id="cust-filter-group" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
+                  <option value="ALL">All Customer Groups</option>
+                  <option value="Automotive OEM">Automotive OEM</option>
+                  <option value="Heavy Engineering">Heavy Engineering</option>
+                  <option value="Industrial Distributor">Industrial Distributor</option>
+                  <option value="Export Global">Export Global</option>
+                </select>
+
+                <!-- Status Filter -->
+                <select id="cust-filter-status" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">Active Only</option>
+                  <option value="INACTIVE">Inactive Only</option>
+                </select>
+
+                <!-- Sort By -->
+                <select id="cust-sort" onchange="handleCustomerFilter()" class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:outline-none">
+                  <option value="name_asc">Sort: Name (A-Z)</option>
+                  <option value="name_desc">Sort: Name (Z-A)</option>
+                  <option value="limit_desc">Sort: Highest Credit Limit</option>
+                  <option value="code_asc">Sort: Customer Code</option>
+                </select>
+
+                <!-- Group By Toggle -->
+                <button onclick="toggleGroupBy()" id="btn-group-by" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                  <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                  <span id="label-group-by">Group By: None</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Data Table Container -->
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 dark:bg-slate-750 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 select-none">
+                  <tr>
+                    <th class="px-4 py-3 font-semibold w-24">Cust Code</th>
+                    <th class="px-4 py-3 font-semibold">Customer / Legal Name</th>
+                    <th class="px-4 py-3 font-semibold">Group & Region</th>
+                    <th class="px-4 py-3 font-semibold">Contact Person & Phone</th>
+                    <th class="px-4 py-3 font-semibold">GSTIN & PAN</th>
+                    <th class="px-4 py-3 font-semibold text-right">Credit Limit (&#8377;)</th>
+                    <th class="px-4 py-3 font-semibold text-center w-20">Terms</th>
+                    <th class="px-4 py-3 font-semibold text-center w-20">Status</th>
+                    <th class="px-4 py-3 font-semibold text-right w-24">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-table-body" class="divide-y divide-slate-100 dark:divide-slate-700">
+                  <!-- Populated dynamically by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="p-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-850 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+              <div class="flex items-center gap-2">
+                <span>Showing <strong id="page-start" class="text-slate-800 dark:text-slate-200">1</strong> to <strong id="page-end" class="text-slate-800 dark:text-slate-200">5</strong> of <strong id="total-records" class="text-slate-800 dark:text-slate-200">24</strong> entries</span>
+                <span class="text-slate-300 dark:text-slate-600">|</span>
+                <label class="flex items-center gap-1.5">
+                  <span>Rows:</span>
+                  <select id="page-size" onchange="changePageSize(this.value)" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs focus:outline-none">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                  </select>
+                </label>
+              </div>
+
+              <!-- Page navigation buttons -->
+              <div class="flex items-center gap-1">
+                <button onclick="prevPage()" id="btn-prev-page" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 disabled:opacity-50">
+                  Previous
+                </button>
+                <div id="pagination-numbers" class="flex items-center gap-1">
+                  <!-- Dynamic page pills -->
+                </div>
+                <button onclick="nextPage()" id="btn-next-page" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 disabled:opacity-50">
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. ADD / EDIT CUSTOMER POPUP (MODAL) -->
+  <!-- ========================================================================= -->
+  <div id="modal-customer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+        <div>
+          <h3 id="modal-cust-title" class="text-base font-bold text-slate-900 dark:text-white">Add New Customer</h3>
+          <p class="text-xs text-slate-500">Party Master &bull; Party Type: Customer (is_customer = true)</p>
+        </div>
+        <button onclick="closeCustomerModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Form with Tab Sections) -->
+      <form id="form-customer" onsubmit="saveCustomer(event)" class="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+        <input type="hidden" id="cust-form-id">
+        
+        <!-- Section 1: Basic Identifiers -->
+        <div>
+          <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-brand-600"></i> General Information
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Customer Code *</label>
+              <input type="text" id="cust-code" required placeholder="e.g. CUST-1025" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Legal Company / Trade Name *</label>
+              <input type="text" id="cust-name" required placeholder="e.g. Tata Motors Engineering Div Ltd" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Customer Group *</label>
+              <select id="cust-group" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="Automotive OEM">Automotive OEM</option>
+                <option value="Heavy Engineering">Heavy Engineering</option>
+                <option value="Industrial Distributor">Industrial Distributor</option>
+                <option value="Export Global">Export Global</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Sales Region *</label>
+              <select id="cust-region" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="West Zone (MH/GJ)">West Zone (MH/GJ)</option>
+                <option value="North Zone (DL/HR)">North Zone (DL/HR)</option>
+                <option value="South Zone (KA/TN)">South Zone (KA/TN)</option>
+                <option value="East Zone (WB/OD)">East Zone (WB/OD)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Default Currency</label>
+              <select id="cust-currency" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="INR">INR (&#8377;)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (&euro;)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Statutory Compliance & Tax -->
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-750">
+          <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-600"></i> Statutory & Tax Compliance
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">GSTIN (15 Digits) *</label>
+              <input type="text" id="cust-gstin" required placeholder="e.g. 27AAACT2727Q1ZT" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Permanent Account No (PAN) *</label>
+              <input type="text" id="cust-pan" required placeholder="e.g. AAACT2727Q" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">MSME Registration (If applicable)</label>
+              <input type="text" id="cust-msme" placeholder="e.g. UDYAM-MH-01-002341" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Contact & Financial Credit Policy -->
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-750">
+          <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
+            <i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-600"></i> Contact & Credit Control Policy
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Key Contact Person</label>
+              <input type="text" id="cust-contact-person" placeholder="e.g. Vikram Shinde" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Official Mobile No *</label>
+              <input type="text" id="cust-mobile" required placeholder="+91 98220 11223" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Credit Limit (&#8377;) *</label>
+              <input type="number" id="cust-credit-limit" required placeholder="5000000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Credit Days *</label>
+              <input type="number" id="cust-credit-days" required placeholder="45" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Address Details -->
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-750">
+          <h4 class="font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-brand-600"></i> Registered Billing & Dispatch Address
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Street Address</label>
+              <input type="text" id="cust-address" placeholder="Plot No. B-42, Chakan Industrial Phase II" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">City / Hub</label>
+              <input type="text" id="cust-city" placeholder="Pune" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Assigned Price List</label>
+              <select id="cust-pricelist" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="OEM Special Contract 2026">OEM Special Contract 2026</option>
+                <option value="Standard Sales Price List">Standard Sales Price List</option>
+                <option value="West Zone Wholesaler Rate">West Zone Wholesaler Rate</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Account Status</label>
+              <select id="cust-status" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="ACTIVE">Active (Eligible for Orders)</option>
+                <option value="INACTIVE">Inactive (Suspended)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-md shadow-brand-500/20 transition flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span id="btn-cust-submit-label">Save Customer Record</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 5. REFERENTIAL DEPENDENCY CONFLICT MODAL (Mandated Pre-Deletion Check) -->
+  <!-- ========================================================================= -->
+  <div id="modal-dependency-conflict" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-rose-200 dark:border-rose-900/40 w-full max-w-md p-6 space-y-4">
+      <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+        <i data-lucide="alert-octagon" class="w-6 h-6"></i>
+      </div>
+      <div class="text-center">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">Deletion Prohibited: Active References Found</h3>
+        <p class="text-xs text-slate-500 mt-1">This record is actively referenced across existing transactions.</p>
+      </div>
+      
+      <!-- Dependency Breakdown Box -->
+      <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 rounded-xl p-3 text-xs space-y-2 text-rose-900 dark:text-rose-200">
+        <div class="font-bold">Referential Conflict Summary:</div>
+        <ul id="dependency-conflict-list" class="list-disc pl-5 space-y-1 text-[11px]">
+          <!-- Populated dynamically -->
+        </ul>
+      </div>
+
+      <p class="text-[11px] text-slate-400 text-center">
+        As per system integrity rules, master entities with transactional history cannot be deleted. You may deactivate the customer status instead.
+      </p>
+
+      <button onclick="closeDependencyModal()" class="w-full py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold">
+        Understood, Close
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 6. USER PROFILE & THEME SETTINGS MODAL -->
+  <!-- ========================================================================= -->
+  <div id="modal-profile" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg p-6 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center">
+            RP
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Rajesh Patel</h3>
+            <p class="text-xs text-slate-400">Branch Manager &bull; Employee Mapping: EMP-1042</p>
+          </div>
+        </div>
+        <button onclick="closeProfileModal()" class="p-1.5 text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Settings: Theme Mode & Theme Color -->
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-2">Display Theme Mode</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setThemeMode('light')" id="btn-theme-light" class="p-2.5 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center gap-2 font-semibold text-brand-700 dark:text-brand-300">
+              <i data-lucide="sun" class="w-4 h-4"></i> Light Mode
+            </button>
+            <button onclick="setThemeMode('dark')" id="btn-theme-dark" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-600 dark:text-slate-400">
+              <i data-lucide="moon" class="w-4 h-4"></i> Dark Mode
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-2">Primary Accent Theme Color</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setThemeColor('indigo')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+              <span class="w-4 h-4 rounded-full bg-indigo-600"></span><span class="font-medium">Indigo</span>
+            </button>
+            <button onclick="setThemeColor('blue')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+              <span class="w-4 h-4 rounded-full bg-blue-600"></span><span class="font-medium">Blue</span>
+            </button>
+            <button onclick="setThemeColor('emerald')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+              <span class="w-4 h-4 rounded-full bg-emerald-600"></span><span class="font-medium">Emerald</span>
+            </button>
+            <button onclick="setThemeColor('violet')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+              <span class="w-4 h-4 rounded-full bg-violet-600"></span><span class="font-medium">Violet</span>
+            </button>
+            <button onclick="setThemeColor('amber')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+              <span class="w-4 h-4 rounded-full bg-amber-500"></span><span class="font-medium">Amber</span>
+            </button>
+            <button onclick="setThemeColor('rose')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-750">
+              <span class="w-4 h-4 rounded-full bg-rose-600"></span><span class="font-medium">Rose</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2 text-[11px] text-slate-400">
+          Preferences are synchronized with <code>tbl_sec_user_preference</code> and persisted across sessions.
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+        <button onclick="closeProfileModal()" class="px-4 py-1.5 bg-brand-600 text-white rounded-lg font-semibold hover:bg-brand-700">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: DATA & INTERACTIVITY ENGINE -->
+  <!-- ========================================================================= -->
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. MOCK DATA CATALOG: Customer Master Records
+    // -------------------------------------------------------------------------
+    let customersData = [
+      {
+        id: 1001,
+        code: "CUST-1001",
+        name: "Tata Motors Engineering Div Ltd",
+        group: "Automotive OEM",
+        region: "West Zone (MH/GJ)",
+        contactPerson: "Vikram Shinde",
+        mobile: "+91 98220 11223",
+        gstin: "27AAACT2727Q1ZT",
+        pan: "AAACT2727Q",
+        creditLimit: 7500000,
+        creditDays: 60,
+        city: "Pune",
+        address: "Plot B-42, Pimpri Industrial Area",
+        priceList: "OEM Special Contract 2026",
+        status: "ACTIVE",
+        hasOrders: true // For referential dependency test
+      },
+      {
+        id: 1002,
+        code: "CUST-1002",
+        name: "Bharat Forge Heavy Engineering",
+        group: "Heavy Engineering",
+        region: "West Zone (MH/GJ)",
+        contactPerson: "Anil Kulkarni",
+        mobile: "+91 94225 88990",
+        gstin: "27AAACB1234A1Z9",
+        pan: "AAACB1234A",
+        creditLimit: 12000000,
+        creditDays: 45,
+        city: "Pune",
+        address: "Mundhwa Industrial Park",
+        priceList: "Standard Sales Price List",
+        status: "ACTIVE",
+        hasOrders: true
+      },
+      {
+        id: 1003,
+        code: "CUST-1003",
+        name: "Mahindra & Mahindra Farm Equipment",
+        group: "Automotive OEM",
+        region: "West Zone (MH/GJ)",
+        contactPerson: "Suresh Patil",
+        mobile: "+91 98901 22334",
+        gstin: "27AAACM9988C1Z4",
+        pan: "AAACM9988C",
+        creditLimit: 5000000,
+        creditDays: 30,
+        city: "Nagpur",
+        address: "MIDC Hingna Road",
+        priceList: "OEM Special Contract 2026",
+        status: "ACTIVE",
+        hasOrders: false
+      },
+      {
+        id: 1004,
+        code: "CUST-1004",
+        name: "Larsen & Toubro Defense Solutions",
+        group: "Heavy Engineering",
+        region: "West Zone (MH/GJ)",
+        contactPerson: "Rajeev Menon",
+        mobile: "+91 98110 44556",
+        gstin: "24AAACL4455L1Z1",
+        pan: "AAACL4455L",
+        creditLimit: 15000000,
+        creditDays: 90,
+        city: "Hazira",
+        address: "Heavy Works Complex",
+        priceList: "Standard Sales Price List",
+        status: "ACTIVE",
+        hasOrders: true
+      },
+      {
+        id: 1005,
+        code: "CUST-1005",
+        name: "Gujarat Precision Distributors",
+        group: "Industrial Distributor",
+        region: "West Zone (MH/GJ)",
+        contactPerson: "Bhavin Shah",
+        mobile: "+91 98250 66778",
+        gstin: "24AAACG5566G1ZX",
+        pan: "AAACG5566G",
+        creditLimit: 2500000,
+        creditDays: 15,
+        city: "Ahmedabad",
+        address: "Naroda GIDC Phase 3",
+        priceList: "West Zone Wholesaler Rate",
+        status: "ACTIVE",
+        hasOrders: false
+      },
+      {
+        id: 1006,
+        code: "CUST-1006",
+        name: "Jindal Steel & Power Logistics",
+        group: "Heavy Engineering",
+        region: "North Zone (DL/HR)",
+        contactPerson: "Harish Gupta",
+        mobile: "+91 98100 77889",
+        gstin: "06AAACJ3344J1Z8",
+        pan: "AAACJ3344J",
+        creditLimit: 9000000,
+        creditDays: 45,
+        city: "Gurugram",
+        address: "Udyog Vihar Phase 4",
+        priceList: "Standard Sales Price List",
+        status: "INACTIVE",
+        hasOrders: true
+      },
+      {
+        id: 1007,
+        code: "CUST-1007",
+        name: "Apex International Exports FZE",
+        group: "Export Global",
+        region: "South Zone (KA/TN)",
+        contactPerson: "David D'Souza",
+        mobile: "+91 98450 33445",
+        gstin: "29AAACA7788A1Z2",
+        pan: "AAACA7788A",
+        creditLimit: 20000000,
+        creditDays: 60,
+        city: "Bengaluru",
+        address: "Whitefield Export Zone",
+        priceList: "Standard Sales Price List",
+        status: "ACTIVE",
+        hasOrders: true
+      }
+    ];
+
+    // Filter and Pagination State
+    let filteredCustomers = [...customersData];
+    let currentPage = 1;
+    let pageSize = 5;
+    let isGrouped = false;
+
+    // -------------------------------------------------------------------------
+    // 2. VIEW SWITCHER
+    // -------------------------------------------------------------------------
+    function switchView(viewName) {
+      const viewLogin = document.getElementById('view-login');
+      const viewShell = document.getElementById('view-app-shell');
+      const subDashboard = document.getElementById('subview-dashboard');
+      const subCustomers = document.getElementById('subview-customers');
+
+      // Top switcher button states
+      const btnLogin = document.getElementById('btn-view-login');
+      const btnDash = document.getElementById('btn-view-dashboard');
+      const btnCust = document.getElementById('btn-view-customers');
+
+      const activeClass = "bg-brand-600 text-white font-semibold shadow-sm";
+      const inactiveClass = "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
+
+      btnLogin.className = `px-2.5 py-1 rounded-full transition-all ${viewName === 'login' ? activeClass : inactiveClass}`;
+      btnDash.className = `px-2.5 py-1 rounded-full transition-all ${viewName === 'dashboard' ? activeClass : inactiveClass}`;
+      btnCust.className = `px-2.5 py-1 rounded-full transition-all ${viewName === 'customer-master' ? activeClass : inactiveClass}`;
+
+      if (viewName === 'login') {
+        viewLogin.classList.remove('hidden');
+        viewShell.classList.add('hidden');
+      } else {
+        viewLogin.classList.add('hidden');
+        viewShell.classList.remove('hidden');
+
+        if (viewName === 'dashboard') {
+          subDashboard.classList.remove('hidden');
+          subCustomers.classList.add('hidden');
+          document.getElementById('nav-dashboard').className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 font-semibold transition";
+          document.getElementById('nav-customers').className = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition";
+          initCharts();
+        } else if (viewName === 'customer-master') {
+          subDashboard.classList.add('hidden');
+          subCustomers.classList.remove('hidden');
+          document.getElementById('nav-customers').className = "w-full flex items-center justify-between px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 font-semibold transition";
+          document.getElementById('nav-dashboard').className = "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition";
+          renderCustomerTable();
+        }
+      }
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. TABLE RENDERING, SEARCH, FILTER, GROUP, PAGINATION
+    // -------------------------------------------------------------------------
+    function handleCustomerFilter() {
+      const searchTerm = document.getElementById('cust-search').value.toLowerCase();
+      const groupFilter = document.getElementById('cust-filter-group').value;
+      const statusFilter = document.getElementById('cust-filter-status').value;
+      const sortOption = document.getElementById('cust-sort').value;
+
+      filteredCustomers = customersData.filter(cust => {
+        const matchesSearch = cust.code.toLowerCase().includes(searchTerm) ||
+                              cust.name.toLowerCase().includes(searchTerm) ||
+                              cust.gstin.toLowerCase().includes(searchTerm) ||
+                              cust.city.toLowerCase().includes(searchTerm);
+        const matchesGroup = groupFilter === 'ALL' || cust.group === groupFilter;
+        const matchesStatus = statusFilter === 'ALL' || cust.status === statusFilter;
+        return matchesSearch && matchesGroup && matchesStatus;
+      });
+
+      // Sorting
+      if (sortOption === 'name_asc') {
+        filteredCustomers.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortOption === 'name_desc') {
+        filteredCustomers.sort((a, b) => b.name.localeCompare(a.name));
+      } else if (sortOption === 'limit_desc') {
+        filteredCustomers.sort((a, b) => b.creditLimit - a.creditLimit);
+      } else if (sortOption === 'code_asc') {
+        filteredCustomers.sort((a, b) => a.code.localeCompare(b.code));
+      }
+
+      currentPage = 1;
+      renderCustomerTable();
+    }
+
+    function toggleGroupBy() {
+      isGrouped = !isGrouped;
+      const label = document.getElementById('label-group-by');
+      const btn = document.getElementById('btn-group-by');
+      if (isGrouped) {
+        label.textContent = "Group By: Customer Group";
+        btn.classList.add("bg-brand-50", "dark:bg-brand-900/30", "text-brand-600", "font-bold");
+      } else {
+        label.textContent = "Group By: None";
+        btn.classList.remove("bg-brand-50", "dark:bg-brand-900/30", "text-brand-600", "font-bold");
+      }
+      renderCustomerTable();
+    }
+
+    function renderCustomerTable() {
+      const tbody = document.getElementById('customer-table-body');
+      tbody.innerHTML = '';
+
+      if (filteredCustomers.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="px-4 py-8 text-center text-slate-400">
+              <i data-lucide="folder-search" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+              No customer records match your filter criteria.
+            </td>
+          </tr>
+        `;
+        document.getElementById('page-start').textContent = '0';
+        document.getElementById('page-end').textContent = '0';
+        document.getElementById('total-records').textContent = '0';
+        lucide.createIcons();
+        return;
+      }
+
+      // Pagination slice
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, filteredCustomers.length);
+      const pageSlice = filteredCustomers.slice(startIdx, endIdx);
+
+      document.getElementById('page-start').textContent = (startIdx + 1).toString();
+      document.getElementById('page-end').textContent = endIdx.toString();
+      document.getElementById('total-records').textContent = filteredCustomers.length.toString();
+
+      let lastGroup = "";
+
+      pageSlice.forEach(cust => {
+        // Group Header Row if grouped
+        if (isGrouped && cust.group !== lastGroup) {
+          lastGroup = cust.group;
+          tbody.innerHTML += `
+            <tr class="bg-slate-100/70 dark:bg-slate-750 font-bold text-slate-700 dark:text-slate-300">
+              <td colspan="9" class="px-4 py-1.5 text-[11px] uppercase tracking-wider">
+                <i data-lucide="folder" class="w-3.5 h-3.5 inline mr-1 text-brand-600"></i> ${cust.group}
+              </td>
+            </tr>
+          `;
+        }
+
+        const statusBadge = cust.status === 'ACTIVE'
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">Active</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">Inactive</span>`;
+
+        const row = document.createElement('tr');
+        row.className = "hover:bg-slate-50/80 dark:hover:bg-slate-750/50 transition-colors";
+        row.innerHTML = `
+          <td class="px-4 py-3 font-mono font-semibold text-brand-600 dark:text-brand-400">${cust.code}</td>
+          <td class="px-4 py-3">
+            <div class="font-bold text-slate-800 dark:text-slate-100">${cust.name}</div>
+            <div class="text-[10px] text-slate-400">${cust.city} &bull; ${cust.priceList}</div>
+          </td>
+          <td class="px-4 py-3">
+            <div class="font-medium text-slate-700 dark:text-slate-300">${cust.group}</div>
+            <div class="text-[10px] text-slate-400">${cust.region}</div>
+          </td>
+          <td class="px-4 py-3">
+            <div class="text-slate-800 dark:text-slate-200 font-medium">${cust.contactPerson}</div>
+            <div class="text-[10px] text-slate-400 font-mono">${cust.mobile}</div>
+          </td>
+          <td class="px-4 py-3 font-mono text-[11px]">
+            <div class="text-slate-700 dark:text-slate-300 font-semibold">${cust.gstin}</div>
+            <div class="text-[10px] text-slate-400">${cust.pan}</div>
+          </td>
+          <td class="px-4 py-3 text-right font-semibold font-mono text-slate-800 dark:text-slate-200">
+            &#8377; ${cust.creditLimit.toLocaleString('en-IN')}
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              ${cust.creditDays}d
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            ${statusBadge}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center justify-end gap-1">
+              <button onclick="openCustomerModal('edit', ${cust.id})" class="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-slate-100 dark:hover:bg-slate-700" title="Edit Customer">
+                <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="handleDeleteCustomer(${cust.id})" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30" title="Delete (Checks Dependencies)">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      renderPaginationPills();
+      lucide.createIcons();
+    }
+
+    function renderPaginationPills() {
+      const container = document.getElementById('pagination-numbers');
+      container.innerHTML = '';
+      const totalPages = Math.ceil(filteredCustomers.length / pageSize);
+
+      document.getElementById('btn-prev-page').disabled = currentPage <= 1;
+      document.getElementById('btn-next-page').disabled = currentPage >= totalPages;
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.onclick = () => { currentPage = i; renderCustomerTable(); };
+        btn.className = i === currentPage
+          ? "px-2.5 py-1 rounded bg-brand-600 text-white font-bold text-xs"
+          : "px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-300 text-xs";
+        container.appendChild(btn);
+      }
+    }
+
+    function changePageSize(size) {
+      pageSize = parseInt(size);
+      currentPage = 1;
+      renderCustomerTable();
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderCustomerTable();
+      }
+    }
+
+    function nextPage() {
+      const totalPages = Math.ceil(filteredCustomers.length / pageSize);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderCustomerTable();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. ADD / EDIT CUSTOMER MODAL WORKFLOW
+    // -------------------------------------------------------------------------
+    function openCustomerModal(mode, custId = null) {
+      const modal = document.getElementById('modal-customer');
+      const title = document.getElementById('modal-cust-title');
+      const btnLabel = document.getElementById('btn-cust-submit-label');
+      const form = document.getElementById('form-customer');
+      form.reset();
+
+      if (mode === 'add') {
+        title.textContent = "Add New Customer";
+        btnLabel.textContent = "Save Customer Record";
+        document.getElementById('cust-form-id').value = '';
+        document.getElementById('cust-code').value = `CUST-${1000 + customersData.length + 1}`;
+      } else {
+        title.textContent = "Edit Customer Master";
+        btnLabel.textContent = "Update Customer Record";
+        const cust = customersData.find(c => c.id === custId);
+        if (cust) {
+          document.getElementById('cust-form-id').value = cust.id;
+          document.getElementById('cust-code').value = cust.code;
+          document.getElementById('cust-name').value = cust.name;
+          document.getElementById('cust-group').value = cust.group;
+          document.getElementById('cust-region').value = cust.region;
+          document.getElementById('cust-gstin').value = cust.gstin;
+          document.getElementById('cust-pan').value = cust.pan;
+          document.getElementById('cust-contact-person').value = cust.contactPerson;
+          document.getElementById('cust-mobile').value = cust.mobile;
+          document.getElementById('cust-credit-limit').value = cust.creditLimit;
+          document.getElementById('cust-credit-days').value = cust.creditDays;
+          document.getElementById('cust-address').value = cust.address;
+          document.getElementById('cust-city').value = cust.city;
+          document.getElementById('cust-pricelist').value = cust.priceList;
+          document.getElementById('cust-status').value = cust.status;
+        }
+      }
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeCustomerModal() {
+      document.getElementById('modal-customer').classList.add('hidden');
+    }
+
+    function saveCustomer(event) {
+      event.preventDefault();
+      const custId = document.getElementById('cust-form-id').value;
+
+      const newRecord = {
+        id: custId ? parseInt(custId) : Date.now(),
+        code: document.getElementById('cust-code').value,
+        name: document.getElementById('cust-name').value,
+        group: document.getElementById('cust-group').value,
+        region: document.getElementById('cust-region').value,
+        contactPerson: document.getElementById('cust-contact-person').value,
+        mobile: document.getElementById('cust-mobile').value,
+        gstin: document.getElementById('cust-gstin').value,
+        pan: document.getElementById('cust-pan').value,
+        creditLimit: parseFloat(document.getElementById('cust-credit-limit').value) || 0,
+        creditDays: parseInt(document.getElementById('cust-credit-days').value) || 30,
+        city: document.getElementById('cust-city').value,
+        address: document.getElementById('cust-address').value,
+        priceList: document.getElementById('cust-pricelist').value,
+        status: document.getElementById('cust-status').value,
+        hasOrders: false
+      };
+
+      if (custId) {
+        const index = customersData.findIndex(c => c.id === parseInt(custId));
+        if (index !== -1) {
+          customersData[index] = { ...customersData[index], ...newRecord };
+        }
+      } else {
+        customersData.unshift(newRecord);
+      }
+
+      closeCustomerModal();
+      handleCustomerFilter();
+      alert(`Customer record '${newRecord.name}' saved successfully! (Activity trail logged).`);
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. REFERENTIAL DEPENDENCY CHECK DELETION TEST
+    // -------------------------------------------------------------------------
+    function handleDeleteCustomer(custId) {
+      const cust = customersData.find(c => c.id === custId);
+      if (!cust) return;
+
+      // Simulate mandatory dependency check rule:
+      if (cust.hasOrders) {
+        // Active dependencies detected: Block deletion & show modal
+        const list = document.getElementById('dependency-conflict-list');
+        list.innerHTML = `
+          <li>Referenced in <strong>4 Sales Orders</strong> (e.g. SO/PUN/26/0089).</li>
+          <li>Referenced in <strong>2 Dispatch Delivery Challans</strong>.</li>
+          <li>Active customer-specific price list attached: <em>${cust.priceList}</em>.</li>
+        `;
+        document.getElementById('modal-dependency-conflict').classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        // Safe to delete
+        if (confirm(`Are you sure you want to delete customer '${cust.name}'? No transactional dependencies found.`)) {
+          customersData = customersData.filter(c => c.id !== custId);
+          handleCustomerFilter();
+          alert(`Customer '${cust.name}' deleted successfully.`);
+        }
+      }
+    }
+
+    function closeDependencyModal() {
+      document.getElementById('modal-dependency-conflict').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. ACTION BUTTON MOCKS (Export & Print)
+    // -------------------------------------------------------------------------
+    function handleExportExcel() {
+      alert("Action Item: Export Customer Master Directory to Excel (.xlsx)\nPermission check verified: [EXPORT ALLOWED]. Initiating download...");
+    }
+
+    function handlePrintDirectory() {
+      alert("Action Item: Printing Customer Directory\nPermission check verified: [PRINT ALLOWED]. Generating printable report...");
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. USER PROFILE & THEME MANAGEMENT
+    // -------------------------------------------------------------------------
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        setThemeMode('light');
+      } else {
+        setThemeMode('dark');
+      }
+    }
+
+    function setThemeMode(mode) {
+      const html = document.documentElement;
+      const btnLight = document.getElementById('btn-theme-light');
+      const btnDark = document.getElementById('btn-theme-dark');
+
+      if (mode === 'dark') {
+        html.classList.add('dark');
+        html.classList.remove('light');
+        if (btnDark) btnDark.className = "p-2.5 rounded-xl border border-brand-500 bg-brand-900/30 flex items-center justify-center gap-2 font-semibold text-brand-300";
+        if (btnLight) btnLight.className = "p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-400";
+      } else {
+        html.classList.add('light');
+        html.classList.remove('dark');
+        if (btnLight) btnLight.className = "p-2.5 rounded-xl border border-brand-500 bg-brand-50 flex items-center justify-center gap-2 font-semibold text-brand-700";
+        if (btnDark) btnDark.className = "p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 flex items-center justify-center gap-2 font-semibold text-slate-600";
+      }
+      lucide.createIcons();
+    }
+
+    function setThemeColor(colorName) {
+      document.documentElement.setAttribute('data-theme-color', colorName);
+      toggleDropdown('dropdown-colors', true);
+      alert(`User Profile preference updated: Primary Theme Color set to '${colorName.toUpperCase()}'.`);
+    }
+
+    function openProfileModal() {
+      toggleDropdown('dropdown-profile', true);
+      document.getElementById('modal-profile').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeProfileModal() {
+      document.getElementById('modal-profile').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. DROPDOWNS & SIDEBAR TOGGLES
+    // -------------------------------------------------------------------------
+    function toggleDropdown(id, forceClose = false) {
+      const el = document.getElementById(id);
+      if (forceClose || !el.classList.contains('hidden')) {
+        el.classList.add('hidden');
+      } else {
+        // close others
+        document.querySelectorAll('[id^="dropdown-"]').forEach(d => d.classList.add('hidden'));
+        el.classList.remove('hidden');
+      }
+    }
+
+    function setBranch(branchName) {
+      document.getElementById('current-branch-label').textContent = branchName;
+      toggleDropdown('dropdown-branch', true);
+      alert(`Branch context switched to: '${branchName}'. Recalculating user roles and permissions...`);
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('app-sidebar');
+      sidebar.classList.toggle('-ml-64');
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. LOGIN DEMO HELPERS
+    // -------------------------------------------------------------------------
+    function setLoginPersona(type) {
+      const empBtn = document.getElementById('login-persona-emp');
+      const partyBtn = document.getElementById('login-persona-party');
+      if (type === 'emp') {
+        empBtn.className = "flex-1 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5 font-bold";
+        partyBtn.className = "flex-1 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5";
+      } else {
+        partyBtn.className = "flex-1 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5 font-bold";
+        empBtn.className = "flex-1 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5";
+      }
+    }
+
+    function fillDemo(role) {
+      const u = document.getElementById('login-username');
+      const p = document.getElementById('login-password');
+      if (role === 'superadmin') {
+        u.value = "admin";
+        p.value = "Admin@2026";
+        setLoginPersona('emp');
+      } else if (role === 'branchmanager') {
+        u.value = "rajesh.patel";
+        p.value = "BranchMgr@2026";
+        setLoginPersona('emp');
+      } else {
+        u.value = "tatamotors.pune";
+        p.value = "Customer@2026";
+        setLoginPersona('party');
+      }
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      switchView('dashboard');
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. CHART.JS INITIALIZATION
+    // -------------------------------------------------------------------------
+    let prodChartInstance = null;
+    let invChartInstance = null;
+
+    function initCharts() {
+      // Production Chart
+      const ctxProd = document.getElementById('chartProduction');
+      if (ctxProd) {
+        if (prodChartInstance) prodChartInstance.destroy();
+        prodChartInstance = new Chart(ctxProd, {
+          type: 'bar',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            datasets: [
+              {
+                label: 'Actual Output (MT)',
+                data: [120, 145, 138, 162, 150, 95],
+                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                borderRadius: 6
+              },
+              {
+                label: 'Planned Target (MT)',
+                data: [130, 130, 140, 140, 140, 100],
+                type: 'line',
+                borderColor: '#10b981',
+                borderWidth: 2,
+                tension: 0.3,
+                pointBackgroundColor: '#10b981'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+            },
+            scales: {
+              y: { grid: { color: 'rgba(156, 163, 175, 0.15)' } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // Inventory Doughnut Chart
+      const ctxInv = document.getElementById('chartInventory');
+      if (ctxInv) {
+        if (invChartInstance) invChartInstance.destroy();
+        invChartInstance = new Chart(ctxInv, {
+          type: 'doughnut',
+          data: {
+            labels: ['Raw Material', 'Finished Goods', 'Shop WIP', 'Scrap / QC'],
+            datasets: [{
+              data: [45, 30, 18, 7],
+              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            cutout: '72%'
+          }
+        });
+      }
+    }
+
+    function refreshDashboard() {
+      initCharts();
+      alert("Dashboard metrics and inventory balance refreshed.");
+    }
+
+    // Initialize on window load
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      switchView('dashboard');
+    });
+  </script>
+</body>
+</html>

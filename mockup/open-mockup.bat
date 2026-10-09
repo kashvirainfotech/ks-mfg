@@ -1,0 +1,3 @@
+@echo off
+echo Opening KS-MFG Frontend Mockup in your default web browser...
+start "" "%~dp0index.html"
