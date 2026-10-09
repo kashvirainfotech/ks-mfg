@@ -27,7 +27,7 @@
   - [ ] Add default system parameters and initial screen codes
 
 ### 1.2 Backend Framework Setup (NestJS & Drizzle ORM)
-- [ ] Initialize NestJS project with TypeScript strict mode
+- [x] Initialize NestJS project with TypeScript strict mode
 - [ ] Configure environment variable management (`@nestjs/config`) with `.env.example`
 - [ ] Configure Drizzle ORM in strict non-sync query builder mode
   - [ ] Verify `drizzle-kit push` and auto-sync are disabled
@@ -41,7 +41,7 @@
 - [ ] Set up global HttpExceptionFilter for standardized JSON error responses
 
 ### 1.3 Frontend Framework Setup (Vite + React 19 + TypeScript)
-- [ ] Initialize Vite React TypeScript project
+- [x] Initialize Vite React TypeScript project
 - [ ] Install and configure Tailwind CSS and `tailwind.config.ts` with CSS variable design tokens
 - [ ] Configure Theme Engine with Light and Dark mode support (`next-themes` / ThemeProvider)
 - [ ] Configure Dynamic Theme Color system (Zinc, Blue, Indigo, Violet, Emerald, Amber, Rose) via `data-theme-color` attribute
