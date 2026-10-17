@@ -20,6 +20,7 @@
               50: 'var(--brand-50)',
               100: 'var(--brand-100)',
               200: 'var(--brand-200)',
+              300: 'var(--brand-300)',
               400: 'var(--brand-400)',
               500: 'var(--brand-500)',
               600: 'var(--brand-600)',
@@ -42,27 +43,27 @@
   <style>
     /* Theme color variables */
     :root[data-theme-color="indigo"] {
-      --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-200: #c7d2fe; --brand-400: #818cf8;
+      --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-200: #c7d2fe; --brand-300: #a5b4fc; --brand-400: #818cf8;
       --brand-500: #6366f1; --brand-600: #4f46e5; --brand-700: #4338ca; --brand-900: #312e81; --brand-950: #1e1b4b;
     }
     :root[data-theme-color="blue"] {
-      --brand-50: #eff6ff; --brand-100: #dbeafe; --brand-200: #bfdbfe; --brand-400: #60a5fa;
+      --brand-50: #eff6ff; --brand-100: #dbeafe; --brand-200: #bfdbfe; --brand-300: #93c5fd; --brand-400: #60a5fa;
       --brand-500: #3b82f6; --brand-600: #2563eb; --brand-700: #1d4ed8; --brand-900: #1e3a8a; --brand-950: #172554;
     }
     :root[data-theme-color="emerald"] {
-      --brand-50: #ecfdf5; --brand-100: #d1fae5; --brand-200: #a7f3d0; --brand-400: #34d399;
+      --brand-50: #ecfdf5; --brand-100: #d1fae5; --brand-200: #a7f3d0; --brand-300: #6ee7b7; --brand-400: #34d399;
       --brand-500: #10b981; --brand-600: #059669; --brand-700: #047857; --brand-900: #064e3b; --brand-950: #022c22;
     }
     :root[data-theme-color="violet"] {
-      --brand-50: #f5f3ff; --brand-100: #ede9fe; --brand-200: #ddd6fe; --brand-400: #a78bfa;
+      --brand-50: #f5f3ff; --brand-100: #ede9fe; --brand-200: #ddd6fe; --brand-300: #c4b5fd; --brand-400: #a78bfa;
       --brand-500: #8b5cf6; --brand-600: #7c3aed; --brand-700: #6d28d9; --brand-900: #4c1d95; --brand-950: #2e1065;
     }
     :root[data-theme-color="amber"] {
-      --brand-50: #fffbeb; --brand-100: #fef3c7; --brand-200: #fde68a; --brand-400: #fbbf24;
+      --brand-50: #fffbeb; --brand-100: #fef3c7; --brand-200: #fde68a; --brand-300: #fcd34d; --brand-400: #fbbf24;
       --brand-500: #f59e0b; --brand-600: #d97706; --brand-700: #b45309; --brand-900: #78350f; --brand-950: #451a03;
     }
     :root[data-theme-color="rose"] {
-      --brand-50: #fff1f2; --brand-100: #ffe4e6; --brand-200: #fecdd3; --brand-400: #fb7185;
+      --brand-50: #fff1f2; --brand-100: #ffe4e6; --brand-200: #fecdd3; --brand-300: #fda4af; --brand-400: #fb7185;
       --brand-500: #f43f5e; --brand-600: #e11d48; --brand-700: #be123c; --brand-900: #881337; --brand-950: #4c0519;
     }
 
@@ -72,29 +73,47 @@
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .dark ::-webkit-scrollbar-thumb { background: #334155; }
 
-    /* Collapsible Sidebar Styles */
-    #app-sidebar {
-      width: 16rem; /* 256px */
+    /* ========================================================================= */
+    /* SIDEBAR EXPAND / COLLAPSE / HOVER-TO-PEEK DRAWER STYLES */
+    /* ========================================================================= */
+    #sidebar-wrapper {
+      width: 16rem; /* 256px when pinned */
       transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #sidebar-wrapper.collapsed {
+      width: 4.5rem !important; /* 72px base layout slot when collapsed */
+    }
+
+    #app-sidebar {
+      width: 16rem;
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s ease;
       position: relative;
       z-index: 30;
+      height: 100%;
     }
+
+    /* Base Collapsed Rail State (72px) */
     #app-sidebar.collapsed {
-      width: 4.5rem !important; /* 72px mini rail */
+      width: 4.5rem !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 40;
     }
-    #app-sidebar.collapsed .sidebar-label,
-    #app-sidebar.collapsed .sidebar-badge,
-    #app-sidebar.collapsed .sidebar-section-title,
-    #app-sidebar.collapsed .sidebar-footer-full {
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-label,
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-badge,
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-section-title,
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-footer-full {
       display: none !important;
     }
-    #app-sidebar.collapsed .sidebar-footer-mini {
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-footer-mini {
       display: flex !important;
     }
-    #app-sidebar.collapsed .sidebar-section-divider {
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-section-divider {
       display: block !important;
     }
-    #app-sidebar.collapsed .sidebar-nav-item {
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-nav-item {
       width: 2.75rem !important; /* 44px centered square button */
       height: 2.75rem !important; /* 44px */
       padding: 0 !important;
@@ -103,9 +122,41 @@
       align-items: center !important;
       border-radius: 0.625rem !important;
     }
-    #app-sidebar.collapsed .sidebar-nav-item i {
+    #app-sidebar.collapsed:not(.hover-expanded) .sidebar-nav-item i {
       margin: 0 !important;
       flex-shrink: 0 !important;
+    }
+
+    /* Hover-Expanded Drawer Flyout (Expands to 256px over content on hover) */
+    #app-sidebar.collapsed.hover-expanded {
+      width: 16rem !important;
+      box-shadow: 12px 0 35px -5px rgba(0, 0, 0, 0.45), 4px 0 10px -3px rgba(0, 0, 0, 0.25);
+    }
+    #app-sidebar.collapsed.hover-expanded .sidebar-label,
+    #app-sidebar.collapsed.hover-expanded .sidebar-badge,
+    #app-sidebar.collapsed.hover-expanded .sidebar-section-title,
+    #app-sidebar.collapsed.hover-expanded .sidebar-footer-full {
+      display: flex !important;
+    }
+    #app-sidebar.collapsed.hover-expanded .sidebar-section-title {
+      display: block !important;
+    }
+    #app-sidebar.collapsed.hover-expanded .sidebar-label {
+      display: inline-block !important;
+    }
+    #app-sidebar.collapsed.hover-expanded .sidebar-footer-mini,
+    #app-sidebar.collapsed.hover-expanded .sidebar-section-divider {
+      display: none !important;
+    }
+    #app-sidebar.collapsed.hover-expanded .sidebar-nav-item {
+      width: 100% !important;
+      height: auto !important;
+      padding: 0.5rem 0.75rem !important;
+      margin: 0.125rem 0 !important;
+      justify-content: flex-start !important;
+      align-items: center !important;
+      border-radius: 0.5rem !important;
+      gap: 0.625rem !important;
     }
 
     /* Active Nav Item High Contrast Theme Styling (Never blinding white in dark mode!) */
@@ -494,100 +545,103 @@
     </header>
 
     <!-- MAIN BODY: Sidebar + Content -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex overflow-hidden relative">
       
-      <!-- SIDEBAR -->
-      <aside id="app-sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] flex flex-col justify-between shrink-0 transition-all duration-300">
-        <!-- Navigation Links -->
-        <nav class="p-3 space-y-1 overflow-y-auto text-xs font-medium">
-          <!-- Overview Section -->
-          <div class="sidebar-section-title px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Overview</div>
-          <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
+      <!-- SIDEBAR WRAPPER (Preserves layout spacing so content never shifts) -->
+      <div id="sidebar-wrapper" class="collapsed shrink-0 transition-all duration-200">
+        <!-- SIDEBAR -->
+        <aside id="app-sidebar" class="collapsed border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] flex flex-col justify-between shrink-0 transition-all duration-200">
+          <!-- Navigation Links -->
+          <nav class="p-3 space-y-1 overflow-y-auto text-xs font-medium">
+            <!-- Overview Section -->
+            <div class="sidebar-section-title px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Overview</div>
+            <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
 
-          <button onclick="switchView('dashboard')" id="nav-dashboard" data-tooltip="Dashboard" title="Dashboard" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Dashboard</span>
-          </button>
+            <button onclick="switchView('dashboard')" id="nav-dashboard" data-tooltip="Dashboard" title="Dashboard" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Dashboard</span>
+            </button>
 
-          <!-- Master Data Section -->
-          <div class="sidebar-section-title pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Master Data</div>
-          <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
+            <!-- Master Data Section -->
+            <div class="sidebar-section-title pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Master Data</div>
+            <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
 
-          <button onclick="switchView('customer-master')" id="nav-customers" data-tooltip="Customer Master" title="Customer Master" class="sidebar-nav-item active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="users" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label flex-1 text-left truncate">Customer Master</span>
-            <span class="sidebar-badge text-[10px] bg-brand-200/50 dark:bg-brand-900 text-brand-800 dark:text-brand-300 px-1.5 py-0.5 rounded font-mono shrink-0">24</span>
-          </button>
+            <button onclick="switchView('customer-master')" id="nav-customers" data-tooltip="Customer Master" title="Customer Master" class="sidebar-nav-item active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="users" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label flex-1 text-left truncate">Customer Master</span>
+              <span class="sidebar-badge text-[10px] bg-brand-200/50 dark:bg-brand-900 text-brand-800 dark:text-brand-300 px-1.5 py-0.5 rounded font-mono shrink-0">24</span>
+            </button>
 
-          <a href="#" data-tooltip="Supplier / Vendor" title="Supplier / Vendor" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="truck" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Supplier / Vendor</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Supplier / Vendor Master')" data-tooltip="Supplier / Vendor" title="Supplier / Vendor" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="truck" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Supplier / Vendor</span>
+            </a>
 
-          <a href="#" data-tooltip="Item & Multi-UOM" title="Item & Multi-UOM" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="package" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Item & Multi-UOM</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Item Master & Multi-UOM')" data-tooltip="Item & Multi-UOM" title="Item & Multi-UOM" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="package" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Item & Multi-UOM</span>
+            </a>
 
-          <a href="#" data-tooltip="Dynamic Warehouse Bins" title="Dynamic Warehouse Bins" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="network" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Dynamic Warehouse Bins</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Dynamic Warehouse Bins')" data-tooltip="Dynamic Warehouse Bins" title="Dynamic Warehouse Bins" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="network" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Dynamic Warehouse Bins</span>
+            </a>
 
-          <!-- Operations Section -->
-          <div class="sidebar-section-title pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Operations & Vouchers</div>
-          <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
+            <!-- Operations Section -->
+            <div class="sidebar-section-title pt-3 px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Operations & Vouchers</div>
+            <div class="sidebar-section-divider hidden my-2 border-t border-slate-200 dark:border-slate-800"></div>
 
-          <a href="#" data-tooltip="Purchase PO & GRN" title="Purchase PO & GRN" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="shopping-cart" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Purchase PO & GRN</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Purchase PO & GRN')" data-tooltip="Purchase PO & GRN" title="Purchase PO & GRN" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="shopping-cart" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Purchase PO & GRN</span>
+            </a>
 
-          <a href="#" data-tooltip="Production Orders & WIP" title="Production Orders & WIP" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="factory" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Production Orders & WIP</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Production Orders & WIP')" data-tooltip="Production Orders & WIP" title="Production Orders & WIP" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="factory" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Production Orders & WIP</span>
+            </a>
 
-          <a href="#" data-tooltip="Job-Work (Subcontracting)" title="Job-Work (Subcontracting)" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="repeat" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Job-Work (Subcontracting)</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Job-Work (Subcontracting)')" data-tooltip="Job-Work (Subcontracting)" title="Job-Work (Subcontracting)" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="repeat" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Job-Work (Subcontracting)</span>
+            </a>
 
-          <a href="#" data-tooltip="Sales Orders & Dispatch" title="Sales Orders & Dispatch" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Sales Orders & Dispatch</span>
-          </a>
+            <a href="#" onclick="handleMockNavClick('Sales Orders & Dispatch')" data-tooltip="Sales Orders & Dispatch" title="Sales Orders & Dispatch" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Sales Orders & Dispatch</span>
+            </a>
 
-          <a href="#" data-tooltip="Sequence Reset Utility" title="Sequence Reset Utility" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <i data-lucide="hash" class="w-4 h-4 shrink-0"></i>
-            <span class="sidebar-label truncate">Sequence Reset Utility</span>
-          </a>
-        </nav>
+            <a href="#" onclick="handleMockNavClick('Sequence Reset Utility')" data-tooltip="Sequence Reset Utility" title="Sequence Reset Utility" class="sidebar-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="hash" class="w-4 h-4 shrink-0"></i>
+              <span class="sidebar-label truncate">Sequence Reset Utility</span>
+            </a>
+          </nav>
 
-        <!-- Sidebar Footer: Full when Expanded, Mini when Collapsed -->
-        <!-- 1. Full Footer -->
-        <div class="sidebar-footer-full p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-[#0c1322]">
-          <div class="flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
-            <span>Branch DB Status</span>
-            <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online
-            </span>
+          <!-- Sidebar Footer: Full when Expanded, Mini when Collapsed -->
+          <!-- 1. Full Footer -->
+          <div class="sidebar-footer-full p-3 border-t border-slate-200 dark:border-slate-800 text-[11px] bg-slate-50/50 dark:bg-[#0c1322]">
+            <div class="flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
+              <span>Branch DB Status</span>
+              <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online
+              </span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5">PostgreSQL 16 | Redis Active</div>
+            <button onclick="toggleSidebar()" id="btn-sidebar-collapse" class="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700/60 transition">
+              <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+              <span id="label-sidebar-collapse">Collapse to Rail</span>
+            </button>
           </div>
-          <div class="text-[10px] text-slate-400 mt-0.5">PostgreSQL 16 | Redis Active</div>
-          <button onclick="toggleSidebar()" class="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700/60 transition">
-            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
-            <span>Collapse Sidebar</span>
-          </button>
-        </div>
 
-        <!-- 2. Mini Footer (When Collapsed) -->
-        <div class="sidebar-footer-mini hidden p-2 border-t border-slate-200 dark:border-slate-800 flex-col items-center justify-center gap-2.5 bg-slate-50/50 dark:bg-[#0c1322]">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Database Online"></div>
-          <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="Expand Sidebar">
-            <i data-lucide="chevron-right" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </aside>
+          <!-- 2. Mini Footer (When Collapsed) -->
+          <div class="sidebar-footer-mini hidden p-2 border-t border-slate-200 dark:border-slate-800 flex-col items-center justify-center gap-2.5 bg-slate-50/50 dark:bg-[#0c1322]">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Database Online"></div>
+            <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="Expand Sidebar">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </aside>
+      </div><!-- end sidebar-wrapper -->
 
       <!-- VIEW CONTAINER (Swapped via JS) -->
       <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-[#0b1120]">
@@ -1394,6 +1448,11 @@
         viewLogin.classList.add('hidden');
         viewShell.classList.remove('hidden');
 
+        const sidebar = document.getElementById('app-sidebar');
+        if (sidebar && sidebar.classList.contains('collapsed')) {
+          sidebar.classList.remove('hover-expanded');
+        }
+
         if (viewName === 'dashboard') {
           subDashboard.classList.remove('hidden');
           subCustomers.classList.add('hidden');
@@ -1494,10 +1553,20 @@
         // Group Header Row if grouped
         if (isGrouped && cust.group !== lastGroup) {
           lastGroup = cust.group;
+          const groupCount = filteredCustomers.filter(c => c.group === cust.group).length;
           tbody.innerHTML += `
-            <tr class="bg-slate-100 dark:bg-[#1a2942] font-bold text-slate-800 dark:text-brand-300 border-y border-slate-200 dark:border-slate-700">
-              <td colspan="9" class="px-4 py-2 text-[11px] uppercase tracking-wider">
-                <i data-lucide="folder" class="w-3.5 h-3.5 inline mr-1.5 text-brand-600 dark:text-brand-400"></i> ${cust.group}
+            <tr class="bg-slate-100/90 dark:bg-[#15233c] border-y border-slate-200 dark:border-slate-700/80">
+              <td colspan="9" class="px-4 py-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-md bg-brand-100 dark:bg-brand-950/80 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 border border-brand-500/20 shadow-sm">
+                    <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+                  </span>
+                  <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Group:</span>
+                  <span class="text-xs font-bold text-slate-900 dark:text-white tracking-wide">${cust.group}</span>
+                  <span class="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 border border-brand-500/30">
+                    ${groupCount} ${groupCount === 1 ? 'Customer' : 'Customers'}
+                  </span>
+                </div>
               </td>
             </tr>
           `;
@@ -1797,46 +1866,52 @@
 
     function toggleSidebar() {
       const sidebar = document.getElementById('app-sidebar');
-      sidebar.classList.toggle('collapsed');
-      const tooltip = document.getElementById('sidebar-floating-tooltip');
-      if (tooltip) {
-        tooltip.classList.add('hidden');
-        tooltip.classList.remove('flex');
+      const wrapper = document.getElementById('sidebar-wrapper');
+      if (!sidebar) return;
+
+      sidebar.classList.remove('hover-expanded');
+      const isNowCollapsed = sidebar.classList.toggle('collapsed');
+      if (wrapper) {
+        wrapper.classList.toggle('collapsed', isNowCollapsed);
       }
+      const label = document.getElementById('label-sidebar-collapse');
+      if (label) {
+        label.textContent = isNowCollapsed ? 'Pin Sidebar Open' : 'Collapse to Rail';
+      }
+      lucide.createIcons();
     }
 
-    function initSidebarTooltips() {
-      const tooltip = document.getElementById('sidebar-floating-tooltip');
-      if (!tooltip) return;
+    function handleMockNavClick(screenName) {
+      const sidebar = document.getElementById('app-sidebar');
+      if (sidebar && sidebar.classList.contains('collapsed')) {
+        sidebar.classList.remove('hover-expanded');
+      }
+      alert(`[Navigation Demo]\nSelected Screen: ${screenName}\n\nNotice that the sidebar automatically collapsed back to the mini rail to give you full screen width!`);
+    }
 
+    function initSidebarHoverBehavior() {
+      const sidebar = document.getElementById('app-sidebar');
+      if (!sidebar) return;
+
+      sidebar.addEventListener('mouseenter', () => {
+        if (sidebar.classList.contains('collapsed')) {
+          sidebar.classList.add('hover-expanded');
+          lucide.createIcons();
+        }
+      });
+
+      sidebar.addEventListener('mouseleave', () => {
+        if (sidebar.classList.contains('collapsed')) {
+          sidebar.classList.remove('hover-expanded');
+        }
+      });
+
+      // Clicking any menu item immediately collapses the hover-expanded sidebar
       document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-        item.addEventListener('mouseenter', () => {
-          const sidebar = document.getElementById('app-sidebar');
-          if (!sidebar || !sidebar.classList.contains('collapsed')) return;
-
-          const title = item.getAttribute('data-tooltip') || item.querySelector('.sidebar-label')?.textContent || '';
-          const badge = item.querySelector('.sidebar-badge')?.textContent;
-
-          tooltip.innerHTML = badge 
-            ? `<span>${title}</span><span class="text-[10px] bg-brand-600 text-white px-1.5 py-0.5 rounded font-mono font-bold">${badge}</span>`
-            : `<span>${title}</span>`;
-
-          const rect = item.getBoundingClientRect();
-          tooltip.style.top = `${rect.top + rect.height / 2}px`;
-          tooltip.style.left = `${rect.right + 10}px`;
-          tooltip.style.transform = 'translateY(-50%)';
-          tooltip.classList.remove('hidden');
-          tooltip.classList.add('flex');
-        });
-
-        item.addEventListener('mouseleave', () => {
-          tooltip.classList.add('hidden');
-          tooltip.classList.remove('flex');
-        });
-
         item.addEventListener('click', () => {
-          tooltip.classList.add('hidden');
-          tooltip.classList.remove('flex');
+          if (sidebar.classList.contains('collapsed')) {
+            sidebar.classList.remove('hover-expanded');
+          }
         });
       });
     }
@@ -1971,7 +2046,7 @@
     // Initialize on window load
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      initSidebarTooltips();
+      initSidebarHoverBehavior();
       // Start in customer master view to let user immediately inspect the improved dark table
       switchView('customer-master');
     });
