@@ -183,3 +183,27 @@ When a new screen is released, this manual provides:
   5. Click the **Key** icon (`Reset User Password`) to set a new 12-round Bcrypt password and automatically clear any failed login lockouts. If an account is locked after 5 failed attempts, click the **Unlock** icon to immediately restore access.
   6. Click **Delete** to remove an unused user account. The Root Super Admin (`admin` / `user_id = 1001`) and the currently logged-in user cannot be deleted, and `DependencyCheckService` blocks deletion (`409 Conflict`) if the user has active Company/Branch role mappings or historical audit trail records (`tbl_sys_audit_log`).
 * **Action Buttons:** `Print` (`USER_MASTER -> PRINT`), `Export CSV` (`USER_MASTER -> EXPORT`), `+ Create User & Assign Roles` (`USER_MASTER -> ADD`), `Roles / Reset Password / Unlock` (`USER_MASTER -> EDIT`), and `Delete` (`USER_MASTER -> DELETE`).
+
+---
+
+### 2.10 Security & Field-Delta Audit Trail Viewer (`/security/audit-logs` — Step 2.5)
+
+* **Purpose:** Provide an immutable, read-only compliance and forensic audit explorer over `tbl_sys_audit_log` so security administrators and auditors can inspect every `LOGIN`, `LOGOUT`, `CREATE`, `UPDATE`, `DELETE`, `PRINT`, `EXPORT`, `APPROVE`, and `LOCK` event across all companies, branches/plants, modules, screens, and database tables, complete with side-by-side field-delta comparisons (`old_value` vs. `new_value`).
+* **Prerequisites:** Users must have `AUDIT_LOG_VIEWER -> VIEW` permission in their active role (`SUPER_ADMIN` or granted via `/security/roles`).
+* **Step-by-Step Usage:**
+  1. Navigate to **Security & RBAC $\rightarrow$ Audit Trail Logs** (`/security/audit-logs`).
+  2. Review the 4 top forensic KPI summary cards:
+     * **Total Audit Events** (matching the active filter set, plus distinct Active Actors count).
+     * **Data Mutations** (`CREATE`, `UPDATE`, `DELETE` count + breakdown).
+     * **Field-Delta Captures** (events containing non-empty `changed_fields` before/after snapshots).
+     * **Auth & Document Actions** (`LOGIN` / `LOGOUT` count vs. `PRINT` / `EXPORT` count).
+  3. Use the **Multi-Dimensional Forensic Filter Bar** to narrow down events by:
+     * **Module** (e.g., `ORGANIZATION`, `SECURITY`, `HR`, `ADMINISTRATION`, `INVENTORY`, `CRM_SRM`)
+     * **Action Type** (`LOGIN`, `LOGOUT`, `CREATE`, `UPDATE`, `DELETE`, `PRINT`, `EXPORT`, `APPROVE`, `LOCK`)
+     * **Screen Code**, **Target DB Table** (e.g., `tbl_org_company`, `tbl_hr_employee`, `tbl_sec_user`), **Actor User**, **Company Scope**, **From Date**, **To Date**, or **Record PK**.
+  4. Use the grid's **Group By** selector to group audit trails by **ERP Module**, **Action Type**, **Screen**, **Target DB Table**, **Actor User**, or **Company Context**.
+  5. Click **Inspect Delta** on any row to open the **Forensic Audit Event & Field-Delta Inspector Modal**:
+     * **Event Metadata Banner:** Displays Timestamp, Actor (`username`, full name, category), IP Address, Client User-Agent, Company & Branch/Plant scope, Module/Screen, Target Table, and Record Primary Key (`record_pk`).
+     * **Tab 1 — Field-by-Field Delta Comparison:** Displays a side-by-side comparison table of every field in `old_value` and `new_value`. Modified fields are highlighted in amber with a `CHANGED` badge; added fields are highlighted in emerald (`ADDED`); removed fields are highlighted in rose (`REMOVED`). Includes a **Modified Fields Only (`N`)** toggle to hide unchanged attributes.
+     * **Tab 2 — Raw JSONB Snapshots (`old_value` / `new_value`):** Displays formatted JSONB payloads for `changed_fields`, `old_value` (Before Snapshot), and `new_value` (After Snapshot).
+* **Action Buttons:** `Print` (`AUDIT_LOG_VIEWER -> PRINT`), `Export CSV` (`AUDIT_LOG_VIEWER -> EXPORT`), and `Inspect Delta` (`AUDIT_LOG_VIEWER -> VIEW`).

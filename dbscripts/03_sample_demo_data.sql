@@ -367,3 +367,38 @@ INSERT INTO tbl_sec_user_branch_role (
 ON CONFLICT (user_id, mapped_branch_id, role_id) DO NOTHING;
 
 SELECT setval('seq_user_branch_role_id', GREATEST((SELECT COALESCE(MAX(user_branch_role_id), 1001) FROM tbl_sec_user_branch_role), 1001));
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.5 - Sample Immutable Field-Delta Audit Trail Entries
+-- ============================================================================
+INSERT INTO tbl_sys_audit_log (
+    audit_id, user_id, username, screen_code, action_type, entity_table, record_id,
+    old_value, new_value, changed_fields, ip_address, user_agent, correlation_id,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 'admin', 'AUTH', 'LOGIN', 'tbl_sec_user', 1001,
+     NULL,
+     '{"username": "admin", "compId": 1001, "branchId": 1001, "fyearId": 1001}'::jsonb,
+     NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'corr-seed-1001',
+     1001, 1001, 1001, 1001),
+    (1002, 1001, 'admin', 'COMPANY_MASTER', 'EDIT', 'tbl_org_company', 1001,
+     '{"compCode": "KSMFG", "compName": "Kashvira Manufacturing", "phone": "+91-79-26540000"}'::jsonb,
+     '{"compCode": "KSMFG", "compName": "Kashvira Manufacturing ERP", "phone": "+91-79-26543210"}'::jsonb,
+     '{"compName": {"old": "Kashvira Manufacturing", "new": "Kashvira Manufacturing ERP"}, "phone": {"old": "+91-79-26540000", "new": "+91-79-26543210"}}'::jsonb,
+     '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'corr-seed-1002',
+     1001, 1001, 1001, 1001),
+    (1003, 1001, 'admin', 'EMPLOYEE_MASTER', 'ADD', 'tbl_hr_employee', 1001,
+     NULL,
+     '{"empCode": "EMP-1001", "fullName": "Arjun Mehta", "deptCode": "PROD-CNC", "desigCode": "PLT-HEAD", "employmentStatus": "ACTIVE"}'::jsonb,
+     NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'corr-seed-1003',
+     1001, 1001, 1001, 1001),
+    (1004, 1001, 'admin', 'ROLE_MASTER', 'EDIT', 'tbl_sec_role_permission', 1002,
+     '{"roleCode": "PLANT_MANAGER", "grantedScreenCount": 6, "grantedActionCount": 2}'::jsonb,
+     '{"roleCode": "PLANT_MANAGER", "grantedScreenCount": 8, "grantedActionCount": 4}'::jsonb,
+     '{"grantedScreenCount": {"old": 6, "new": 8}, "grantedActionCount": {"old": 2, "new": 4}}'::jsonb,
+     '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'corr-seed-1004',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (audit_id) DO NOTHING;
+
+SELECT setval('seq_audit_id', GREATEST((SELECT COALESCE(MAX(audit_id), 1004) FROM tbl_sys_audit_log), 1004));

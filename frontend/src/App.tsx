@@ -19,6 +19,7 @@ import { DepartmentDesignationPage } from './pages/hr/DepartmentDesignationPage'
 import { EmployeeMasterPage } from './pages/hr/EmployeeMasterPage';
 import { RoleMasterPage } from './pages/security/RoleMasterPage';
 import { UserMasterPage } from './pages/security/UserMasterPage';
+import { AuditLogViewerPage } from './pages/security/AuditLogViewerPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -127,6 +128,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <UserMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/security/audit-logs"
+              element={
+                <ProtectedLayout>
+                  <AuditLogViewerPage />
                 </ProtectedLayout>
               }
             />

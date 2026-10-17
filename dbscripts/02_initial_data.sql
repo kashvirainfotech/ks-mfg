@@ -381,3 +381,23 @@ INSERT INTO tbl_sec_role_action_permission (
     (1001, 1008, 1018, TRUE, 1001, 1001, 1001, 1001),
     (1001, 1008, 1019, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.5 - Security & Field-Delta Audit Trail Viewer Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1020, 1009, 'PRINT', 'Print Security & Delta Audit Trail', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1020) FROM tbl_sec_action), 1020));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1009, 1020, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
