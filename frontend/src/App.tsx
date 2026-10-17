@@ -1,0 +1,93 @@
+import React from 'react';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from './components/theme/ThemeProvider';
+import { AppShell } from './components/layout/AppShell';
+import { LoginPage } from './pages/auth/LoginPage';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { CustomerMasterPage } from './pages/parties/CustomerMasterPage';
+import { useAuthStore } from './store/useAuthStore';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const UpcomingModulePlaceholder: React.FC = () => {
+  const location = useLocation();
+  return (
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 text-center space-y-2 shadow-xs">
+      <div className="mx-auto inline-flex rounded-full bg-[var(--brand-50)] dark:bg-[var(--brand-500)]/20 px-3 py-1 text-xs font-bold text-[var(--brand-600)] dark:text-[var(--brand-300)]">
+        Scheduled in Step-by-Step Roadmap
+      </div>
+      <h2 className="text-lg font-extrabold text-[var(--text-primary)]">
+        Screen Route: <code className="font-mono-code">{location.pathname}</code>
+      </h2>
+      <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+        This screen is registered in the sidebar navigation and `tbl_sec_screen`
+        catalogue and will be built end-to-end in its scheduled step.
+      </p>
+    </div>
+  );
+};
+
+const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <AppShell>{children}</AppShell>;
+};
+
+export const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedLayout>
+                  <DashboardPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/parties/customers"
+              element={
+                <ProtectedLayout>
+                  <CustomerMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="*"
+              element={
+                <ProtectedLayout>
+                  <UpcomingModulePlaceholder />
+                </ProtectedLayout>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;

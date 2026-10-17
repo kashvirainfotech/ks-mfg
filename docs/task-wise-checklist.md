@@ -42,14 +42,14 @@
 
 ### 1.3 Frontend Framework Setup (Vite + React 19 + TypeScript)
 - [x] Initialize Vite React TypeScript project
-- [ ] Install and configure Tailwind CSS and `tailwind.config.ts` with CSS variable design tokens
-- [ ] Configure Theme Engine with Light and Dark mode support (`next-themes` / ThemeProvider)
-- [ ] Configure Dynamic Theme Color system (Zinc, Blue, Indigo, Violet, Emerald, Amber, Rose) via `data-theme-color` attribute
-- [ ] Configure Shadcn UI component library and Radix UI primitives
-- [ ] Set up TanStack Query (React Query) provider with default stale-time policies
-- [ ] Set up Zustand client stores (session, active company, active branch, theme preferences)
-- [ ] Set up React Router (or TanStack Router) with protected layout routes
-- [ ] Configure Axios / Fetch API client with automatic token attachment and refresh interceptors
+- [x] Install and configure Tailwind CSS and `src/styles/index.css` with CSS variable design tokens
+- [x] Configure Theme Engine with Light and Dark mode support (`ThemeProvider` & `useThemeStore`)
+- [x] Configure Dynamic Theme Color system (Blue, Indigo, Violet, Emerald, Amber, Rose) via `data-theme-color` attribute
+- [x] Configure core reusable UI components (`AppShell`, `ThemeCustomizerModal`, `PermissionGate`)
+- [x] Set up TanStack Query (React Query) provider with default stale-time policies
+- [x] Set up Zustand client stores (session, active company, active branch, financial year, theme preferences)
+- [x] Set up React Router with protected layout routes (`ProtectedLayout`)
+- [x] Configure Axios API client (`apiClient.ts`) with automatic token attachment, tenant headers (`x-comp-id`, `x-branch-id`, `x-fyear-id`), and refresh interceptors
 
 ---
 
