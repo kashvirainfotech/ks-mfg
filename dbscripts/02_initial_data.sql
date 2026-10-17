@@ -261,3 +261,123 @@ ON CONFLICT (role_id, action_id) DO NOTHING;
 
 
 
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.1 - Department & Designation Master Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1012, 1005, 'EXPORT', 'Export Departments & Designations', TRUE, 1001, 1001, 1001, 1001),
+    (1013, 1005, 'PRINT',  'Print HR Organization Directory',   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1013) FROM tbl_sec_action), 1013));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1005, 1012, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1005, 1013, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.2 - Employee Master Screen Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1014, 1006, 'EXPORT', 'Export Employee Master Directory', TRUE, 1001, 1001, 1001, 1001),
+    (1015, 1006, 'PRINT',  'Print Employee Register',          TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1015) FROM tbl_sec_action), 1015));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1006, 1014, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1006, 1015, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.3 - Global Roles & Granular Screen/Action Permissions Matrix
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1016, 1007, 'EXPORT', 'Export Global Roles & Permission Matrix', TRUE, 1001, 1001, 1001, 1001),
+    (1017, 1007, 'PRINT',  'Print Role Permission Matrix',            TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1017) FROM tbl_sec_action), 1017));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1007, 1016, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1007, 1017, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- Baseline Screen Permissions for System Operational Roles (1002..1005)
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1002: PLANT_MANAGER
+    (1002, 1001, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1003, TRUE, FALSE, TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1004, TRUE, FALSE, TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1005, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1006, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1011, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1012, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1002, 1013, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    -- 1003: STORE_OFFICER
+    (1003, 1001, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1011, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1012, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1013, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    -- 1004: PURCHASE_EXEC
+    (1004, 1001, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1013, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1014, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1015, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    -- 1005: SALES_EXEC
+    (1005, 1001, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1013, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1014, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1015, TRUE, TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+SELECT setval('seq_role_permission_id', GREATEST((SELECT COALESCE(MAX(role_permission_id), 1001) FROM tbl_sec_role_permission), 1001));
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.4 - User Master & Multi-Company / Multi-Branch Role Assignment
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1018, 1008, 'EXPORT', 'Export User Directory & Role Mappings', TRUE, 1001, 1001, 1001, 1001),
+    (1019, 1008, 'PRINT',  'Print User & Role Matrix Register',     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1019) FROM tbl_sec_action), 1019));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1008, 1018, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1008, 1019, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;

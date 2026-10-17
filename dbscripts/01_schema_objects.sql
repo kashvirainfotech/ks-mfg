@@ -378,3 +378,111 @@ CREATE INDEX IF NOT EXISTS idx_sys_audit_log_tenant_time ON tbl_sys_audit_log (c
 CREATE INDEX IF NOT EXISTS idx_sys_audit_log_entity ON tbl_sys_audit_log (entity_table, record_id);
 CREATE INDEX IF NOT EXISTS idx_sys_audit_log_user ON tbl_sys_audit_log (user_id, action_timestamp DESC);
 
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.1 - Department & Designation Master Tables
+--          (tbl_hr_department, tbl_hr_designation)
+-- ============================================================================
+
+CREATE SEQUENCE IF NOT EXISTS seq_dept_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_hr_department (
+    dept_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_dept_id'),
+    dept_code           VARCHAR(30)     NOT NULL,
+    dept_name           VARCHAR(120)    NOT NULL,
+    dept_category       VARCHAR(40)     NOT NULL DEFAULT 'PRODUCTION', -- 'PRODUCTION', 'QUALITY', 'SUPPLY_CHAIN', 'ENGINEERING', 'MAINTENANCE', 'FINANCE_HR', 'SALES_ADMIN'
+    parent_dept_id      BIGINT          REFERENCES tbl_hr_department(dept_id),
+    hod_employee_id     BIGINT,         -- Linked to tbl_hr_employee(employee_id)
+    cost_center_code    VARCHAR(40),
+    description         VARCHAR(300),
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_hr_dept_code UNIQUE (comp_id, dept_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hr_dept_comp_branch ON tbl_hr_department (comp_id, branch_id, is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_desig_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_hr_designation (
+    desig_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_desig_id'),
+    desig_code          VARCHAR(30)     NOT NULL,
+    desig_name          VARCHAR(120)    NOT NULL,
+    dept_id             BIGINT          REFERENCES tbl_hr_department(dept_id),
+    grade_code          VARCHAR(20)     NOT NULL DEFAULT 'L3', -- 'L1', 'L2', 'L3', 'L4', 'L5', 'M1', 'M2', 'E1'
+    hierarchy_level     INT             NOT NULL DEFAULT 3,    -- 1 = Executive/Director ... 8 = Shopfloor Operator
+    description         VARCHAR(300),
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_hr_desig_code UNIQUE (comp_id, desig_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hr_desig_comp_dept ON tbl_hr_designation (comp_id, dept_id, is_active);
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.2 - Employee Master Table (tbl_hr_employee)
+-- ============================================================================
+
+CREATE SEQUENCE IF NOT EXISTS seq_employee_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_hr_employee (
+    employee_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_employee_id'),
+    emp_code                VARCHAR(30)     NOT NULL,
+    first_name              VARCHAR(80)     NOT NULL,
+    last_name               VARCHAR(80)     NOT NULL,
+    full_name               VARCHAR(165)    NOT NULL,
+    gender                  VARCHAR(20)     NOT NULL DEFAULT 'MALE',        -- 'MALE', 'FEMALE', 'OTHER'
+    date_of_birth           DATE,
+    date_of_joining         DATE            NOT NULL,
+    dept_id                 BIGINT          NOT NULL REFERENCES tbl_hr_department(dept_id),
+    desig_id                BIGINT          NOT NULL REFERENCES tbl_hr_designation(desig_id),
+    primary_branch_id       BIGINT          NOT NULL REFERENCES tbl_org_branch(branch_id),
+    reporting_manager_id    BIGINT          REFERENCES tbl_hr_employee(employee_id),
+    employment_type         VARCHAR(30)     NOT NULL DEFAULT 'PERMANENT',   -- 'PERMANENT', 'CONTRACT', 'TRAINEE', 'CONSULTANT'
+    employment_status       VARCHAR(30)     NOT NULL DEFAULT 'ACTIVE',      -- 'ACTIVE', 'PROBATION', 'NOTICE_PERIOD', 'SUSPENDED', 'TERMINATED'
+    official_email          VARCHAR(150),
+    mobile_no               VARCHAR(25)     NOT NULL,
+    emergency_contact_name  VARCHAR(100),
+    emergency_contact_phone VARCHAR(25),
+    pan_no                  VARCHAR(20),
+    aadhaar_no              VARCHAR(20),
+    pf_uan_no               VARCHAR(30),
+    esi_no                  VARCHAR(30),
+    bank_name               VARCHAR(100),
+    bank_account_no         VARCHAR(40),
+    bank_ifsc_code          VARCHAR(20),
+    current_address         VARCHAR(300),
+    city                    VARCHAR(80),
+    state_name              VARCHAR(80),
+    pincode                 VARCHAR(15),
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_hr_emp_code UNIQUE (comp_id, emp_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hr_emp_comp_branch ON tbl_hr_employee (comp_id, primary_branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_hr_emp_dept_desig ON tbl_hr_employee (dept_id, desig_id);
+CREATE INDEX IF NOT EXISTS idx_hr_emp_manager ON tbl_hr_employee (reporting_manager_id);

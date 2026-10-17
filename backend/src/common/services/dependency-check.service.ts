@@ -43,8 +43,20 @@ export class DependencyCheckService {
       }
 
       const query = `SELECT COUNT(1)::int AS cnt FROM ${rel.table} WHERE ${rel.column} = $1`;
-      const result = await this.pool.query<{ cnt: number }>(query, [entityId]);
-      const count = result.rows[0]?.cnt ?? 0;
+      let count = 0;
+      try {
+        const result = await this.pool.query<{ cnt: number }>(query, [
+          entityId,
+        ]);
+        count = result.rows[0]?.cnt ?? 0;
+      } catch (err: any) {
+        if (err?.code === '42P01') {
+          // Table not yet created in current phase; treat as 0 references
+          count = 0;
+        } else {
+          throw err;
+        }
+      }
 
       if (count > 0) {
         matches.push({

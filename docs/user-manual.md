@@ -114,3 +114,72 @@ When a new screen is released, this manual provides:
   5. Click the **Lock / Unlock** icon in the Actions column to toggle **Company-Wide Period Closing (`is_closed`)** across all branches simultaneously.
   6. Click **Delete** to remove an unused Financial Year. If the Financial Year has active Branch-FY mappings (`tbl_org_branch_fyear`) or User Default FY preferences (`tbl_sec_user_preference`), deletion is blocked (`409 Conflict`) with an exact dependency breakdown.
 * **Action Buttons:** `Print` (`FYEAR_MASTER -> PRINT`), `Export CSV` (`FYEAR_MASTER -> EXPORT`), `Branch Period Lock` (`FYEAR_MASTER -> EDIT`), and `+ Add Financial Year` (`FYEAR_MASTER -> ADD`).
+---
+
+### 2.6 Department & Designation Master Screen (`/hr/departments` — Step 2.1)
+
+* **Purpose:** Manage plant functional departments (`tbl_hr_department`), parent-child division hierarchies, cost centers, and job designations with cadre/grade hierarchy levels (`tbl_hr_designation`).
+* **Prerequisites:** At least one active Company (`/org/companies`) must exist.
+* **Step-by-Step Usage:**
+  1. Navigate to **Security & RBAC $\rightarrow$ Depts & Designations** (`/hr/departments`).
+  2. Switch between the two tabs at the top:
+     * **Departments (`tbl_hr_department`):** Manage functional departments (`PRODUCTION`, `QUALITY`, `SUPPLY_CHAIN`, `ENGINEERING`, `MAINTENANCE`, `FINANCE_HR`, `SALES_ADMIN`), parent-child department hierarchy (`parent_dept_id`), and cost center codes.
+     * **Designations & Grades (`tbl_hr_designation`):** Manage job titles, default department bindings (`dept_id`), grade bands (`E1`, `M1`, `M2`, `L1`–`L5`), and organizational hierarchy levels (`1` = Executive/Director down to `8` = Shopfloor Operator).
+  3. Filter records by **Parent Company**, **Functional Category** (or **Department** on the Designations tab), and **Status**, or group records by **Parent Company**, **Functional Category**, **Department**, or **Grade Band**.
+  4. Click **+ Add Department** or **+ Add Designation** to create a record, or click **Edit** on any row to modify it (recording JSONB `old_value` / `new_value` deltas in `tbl_sys_audit_log`).
+  5. Click **Delete** to remove an unused Department or Designation. `DependencyCheckService` blocks deletion (`409 Conflict`) if a Department has child Sub-Departments (`tbl_hr_department.parent_dept_id`), linked Designations (`tbl_hr_designation.dept_id`), or assigned Employees (`tbl_hr_employee.dept_id`), or if a Designation has assigned Employees (`tbl_hr_employee.desig_id`).
+* **Action Buttons:** `Print` (`DEPT_MASTER -> PRINT`), `Export CSV` (`DEPT_MASTER -> EXPORT`), `+ Add Department` / `+ Add Designation` (`DEPT_MASTER -> ADD`).
+---
+
+### 2.7 Employee Master Screen (`/hr/employees` — Step 2.2)
+
+* **Purpose:** Maintain the enterprise manufacturing and corporate workforce registry (`tbl_hr_employee`), linking employees to Companies (`tbl_org_company`), Primary Plants/Branches (`tbl_org_branch`), Functional Departments (`tbl_hr_department`), Job Designations (`tbl_hr_designation`), and self-referencing Reporting Managers (`reporting_manager_id`), along with statutory identifiers (PAN, Masked Aadhaar, PF UAN, ESIC) and payroll banking details.
+* **Prerequisites:** At least one active Company (`/org/companies`), Plant/Branch (`/org/branches`), Department, and Designation (`/hr/departments`) must exist.
+* **Step-by-Step Usage:**
+  1. Navigate to **Security & RBAC $\rightarrow$ Employee Master** (`/hr/employees`).
+  2. Use the top filter bar to filter employees by **Company**, **Primary Plant / Branch**, **Department**, or **Employment Status** (`Active On-Duty`, `Serving Notice`, `Suspended / Hold`, `Relieved / Exited`), or group records inside the table by **Department**, **Primary Plant / Branch**, **Employment Type**, **Employment Status**, or **Company**.
+  3. Click **+ Add Employee** to open the 3-tab Employee Registration Modal:
+     * **1. Organization & Role Assignment:** Select Company, enter Employee Code (e.g., `EMP-1007`), Date of Joining, First/Last Name, Mobile Number, Primary Plant/Branch, Department, Designation, Reporting Manager, Employment Type (`PERMANENT`, `PROBATION`, `CONTRACT`, `TRAINEE`, `CONSULTANT`), and Employment Status.
+     * **2. Contact, Emergency & Address:** Enter Official Work Email, Gender, Date of Birth, Blood Group, Emergency Contact Name & Phone, and Residential Address.
+     * **3. Statutory (PAN/PF/ESI) & Payroll Bank:** Enter PAN, Masked Aadhaar, EPFO PF UAN, ESIC Number, Bank Name, Account Number, IFSC Code, and HR/Shopfloor Skill Remarks.
+  4. Click **Edit** on any employee row to modify details (recording JSONB `old_value` / `new_value` deltas in `tbl_sys_audit_log`).
+  5. Click **Delete** to remove an unused employee record. `DependencyCheckService` blocks deletion (`409 Conflict`) if the employee is assigned as a Reporting Manager for other employees (`tbl_hr_employee.reporting_manager_id`), assigned as a Department HOD (`tbl_hr_department.hod_employee_id`), or linked to an ERP Security User Account (`tbl_sec_user.linked_entity_id`).
+* **Action Buttons:** `Print` (`EMPLOYEE_MASTER -> PRINT`), `Export CSV` (`EMPLOYEE_MASTER -> EXPORT`), and `+ Add Employee` (`EMPLOYEE_MASTER -> ADD`).
+
+---
+
+### 2.8 Global Roles & Granular Screen/Action Permissions Matrix (`/security/roles` — Step 2.3)
+
+* **Purpose:** Define global, reusable security roles (`tbl_sec_role`) independent of Company and Branch/Plant, and configure fine-grained screen permissions (`VIEW`, `ADD`, `EDIT`, `DELETE` in `tbl_sec_role_permission`) and screen-specific action permissions (`PRINT`, `EXPORT`, etc. in `tbl_sec_role_action_permission`).
+* **Prerequisites:** Core screen catalogue (`tbl_sec_screen`) and custom action definitions (`tbl_sec_action`) are seeded in `02_initial_data.sql`.
+* **Step-by-Step Usage:**
+  1. Navigate to **Security & RBAC $\rightarrow$ Global Roles & Matrix** (`/security/roles`).
+  2. **Tab 1 — Global Roles Directory (`tbl_sec_role`):**
+     * Review built-in System Roles (`SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `PURCHASE_EXEC`, `SALES_EXEC`) and custom enterprise roles (`QA_MANAGER`, `HR_EXECUTIVE`, etc.), along with Screen Access Coverage bars (`X / Y Screens`), Allowed Custom Actions count, and Assigned Users count.
+     * Click **+ Create Global Role** to create a new role. Optionally select **Clone Baseline Permissions From Existing Role** to copy all screen and action rights from an existing template role.
+     * Click **Delete** on any custom role to remove it. Built-in system roles (`is_system_role = TRUE`) are protected from deletion, and `DependencyCheckService` blocks deletion (`409 Conflict`) if any user is mapped to the role in `tbl_sec_user_company_role` or `tbl_sec_user_branch_role`.
+  3. **Tab 2 — Screen & Action Permissions Matrix (`tbl_sec_role_permission` & `tbl_sec_role_action_permission`):**
+     * Click the **Matrix** button on any role row (or switch to Tab 2 and pick a role from the **Target Global Role** selector).
+     * Filter screens by **ERP Module** (`DASHBOARD`, `ORGANIZATION`, `SECURITY`, `ADMINISTRATION`, `INVENTORY`, `CRM_SRM`) or search by screen/action name.
+     * Use the quick bulk presets (**Grant View + Export**, **Grant Full Access**, **Revoke All**) or toggle individual checkboxes (`Row All`, `View`, `Add`, `Edit`, `Delete`, and custom action pills like `EXPORT` and `PRINT`).
+     * Enabling `Add`, `Edit`, `Delete`, or any custom action automatically checks `View`; unchecking `View` automatically clears all dependent rights on that screen.
+     * Click **Save Permission Matrix** to atomically persist all screen and action permissions and record a before/after delta in `tbl_sys_audit_log`.
+* **Action Buttons:** `Print` (`ROLE_MASTER -> PRINT`), `Export CSV` (`ROLE_MASTER -> EXPORT`), `+ Create Global Role` (`ROLE_MASTER -> ADD`), and `Save Permission Matrix` (`ROLE_MASTER -> EDIT`).
+
+---
+
+### 2.9 User Master & Multi-Company / Multi-Branch Role Assignment Screen (`/security/users` — Step 2.4)
+
+* **Purpose:** Manage ERP login accounts (`tbl_sec_user`), link accounts to HR Employee records (`tbl_hr_employee`), assign different Global Roles per Company (`tbl_sec_user_company_role`) and per Plant/Branch (`tbl_sec_user_branch_role`), and perform administrative password resets and account lockout unlocks.
+* **Prerequisites:** Active Companies (`/org/companies`), Branches/Plants (`/org/branches`), Employees (`/hr/employees`), and Global Roles (`/security/roles`) must exist.
+* **Step-by-Step Usage:**
+  1. Navigate to **Security & RBAC $\rightarrow$ User & Role Mapping** (`/security/users`).
+  2. Filter accounts by **User Category** (`EMPLOYEE`, `SYSTEM`, `PARTY`) or **Status** (`Active`, `Locked`, `Inactive`), or group records by **User Category** or **Account Status**.
+  3. Click **+ Create User & Assign Roles** to open the 3-tab User & Role Assignment Modal:
+     * **1. User Identity & Employee Link:** Choose User Category (`EMPLOYEE`, `SYSTEM`, `PARTY`). Selecting an Employee from the dropdown automatically populates the user's Full Name, Email, Mobile, and suggested Username. Enter an initial password (hashed with 12-round Bcrypt) and optionally toggle **Grant Global Super Admin Authority**.
+     * **2. Company Role Mappings (`tbl_sec_user_company_role`):** Select a Target Company and a Global Role and click **+ Add Company Role**. Mark one company role as the user's **Default Login Company**.
+     * **3. Plant / Branch Role Mappings (`tbl_sec_user_branch_role`):** Select a Company, Plant/Branch, and Global Role and click **+ Add Branch Role**. Mark one branch role as the user's **Default Plant**.
+  4. Click the **Roles** button on any user row to jump directly to their Multi-Company / Multi-Branch Role Assignment tabs.
+  5. Click the **Key** icon (`Reset User Password`) to set a new 12-round Bcrypt password and automatically clear any failed login lockouts. If an account is locked after 5 failed attempts, click the **Unlock** icon to immediately restore access.
+  6. Click **Delete** to remove an unused user account. The Root Super Admin (`admin` / `user_id = 1001`) and the currently logged-in user cannot be deleted, and `DependencyCheckService` blocks deletion (`409 Conflict`) if the user has active Company/Branch role mappings or historical audit trail records (`tbl_sys_audit_log`).
+* **Action Buttons:** `Print` (`USER_MASTER -> PRINT`), `Export CSV` (`USER_MASTER -> EXPORT`), `+ Create User & Assign Roles` (`USER_MASTER -> ADD`), `Roles / Reset Password / Unlock` (`USER_MASTER -> EDIT`), and `Delete` (`USER_MASTER -> DELETE`).

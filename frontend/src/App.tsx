@@ -15,6 +15,10 @@ import { CustomerMasterPage } from './pages/parties/CustomerMasterPage';
 import { CompanyMasterPage } from './pages/org/CompanyMasterPage';
 import { BranchMasterPage } from './pages/org/BranchMasterPage';
 import { FinancialYearMasterPage } from './pages/org/FinancialYearMasterPage';
+import { DepartmentDesignationPage } from './pages/hr/DepartmentDesignationPage';
+import { EmployeeMasterPage } from './pages/hr/EmployeeMasterPage';
+import { RoleMasterPage } from './pages/security/RoleMasterPage';
+import { UserMasterPage } from './pages/security/UserMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -91,6 +95,38 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <FinancialYearMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/hr/departments"
+              element={
+                <ProtectedLayout>
+                  <DepartmentDesignationPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/hr/employees"
+              element={
+                <ProtectedLayout>
+                  <EmployeeMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/security/roles"
+              element={
+                <ProtectedLayout>
+                  <RoleMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/security/users"
+              element={
+                <ProtectedLayout>
+                  <UserMasterPage />
                 </ProtectedLayout>
               }
             />

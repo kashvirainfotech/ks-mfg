@@ -409,3 +409,111 @@ export const tblSysAuditLog = pgTable('tbl_sys_audit_log', {
     .defaultNow(),
   ...standardAuditColumns,
 });
+
+// ============================================================================
+// 5. HR Organization Hierarchy Tables (Step 2.1 — Departments & Designations)
+// ============================================================================
+
+export const tblHrDepartment = pgTable(
+  'tbl_hr_department',
+  {
+    deptId: bigint('dept_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_dept_id')`),
+    deptCode: varchar('dept_code', { length: 30 }).notNull(),
+    deptName: varchar('dept_name', { length: 120 }).notNull(),
+    deptCategory: varchar('dept_category', { length: 40 })
+      .notNull()
+      .default('PRODUCTION'),
+    parentDeptId: bigint('parent_dept_id', { mode: 'number' }),
+    hodEmployeeId: bigint('hod_employee_id', { mode: 'number' }),
+    costCenterCode: varchar('cost_center_code', { length: 40 }),
+    description: varchar('description', { length: 300 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqDeptCode: unique('uq_hr_dept_code').on(table.compId, table.deptCode),
+  }),
+);
+
+export const tblHrDesignation = pgTable(
+  'tbl_hr_designation',
+  {
+    desigId: bigint('desig_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_desig_id')`),
+    desigCode: varchar('desig_code', { length: 30 }).notNull(),
+    desigName: varchar('desig_name', { length: 120 }).notNull(),
+    deptId: bigint('dept_id', { mode: 'number' }).references(
+      () => tblHrDepartment.deptId,
+    ),
+    gradeCode: varchar('grade_code', { length: 20 }).notNull().default('L3'),
+    hierarchyLevel: integer('hierarchy_level').notNull().default(3),
+    description: varchar('description', { length: 300 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqDesigCode: unique('uq_hr_desig_code').on(table.compId, table.desigCode),
+  }),
+);
+
+// ============================================================================
+// 6. HR Employee Master Table (Step 2.2 — Employee Master)
+// ============================================================================
+
+export const tblHrEmployee = pgTable(
+  'tbl_hr_employee',
+  {
+    employeeId: bigint('employee_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_employee_id')`),
+    empCode: varchar('emp_code', { length: 30 }).notNull(),
+    firstName: varchar('first_name', { length: 80 }).notNull(),
+    lastName: varchar('last_name', { length: 80 }),
+    fullName: varchar('full_name', { length: 165 }).notNull(),
+    gender: varchar('gender', { length: 20 }).notNull().default('MALE'),
+    dateOfBirth: date('date_of_birth'),
+    dateOfJoining: date('date_of_joining').notNull(),
+    deptId: bigint('dept_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblHrDepartment.deptId),
+    desigId: bigint('desig_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblHrDesignation.desigId),
+    primaryBranchId: bigint('primary_branch_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblOrgBranch.branchId),
+    reportingManagerId: bigint('reporting_manager_id', { mode: 'number' }),
+    employmentType: varchar('employment_type', { length: 30 })
+      .notNull()
+      .default('PERMANENT'),
+    employmentStatus: varchar('employment_status', { length: 30 })
+      .notNull()
+      .default('ACTIVE'),
+    workEmail: varchar('work_email', { length: 150 }),
+    mobileNo: varchar('mobile_no', { length: 25 }).notNull(),
+    emergencyContactName: varchar('emergency_contact_name', { length: 120 }),
+    emergencyContactPhone: varchar('emergency_contact_phone', { length: 25 }),
+    bloodGroup: varchar('blood_group', { length: 10 }),
+    panNo: varchar('pan_no', { length: 15 }),
+    aadhaarMasked: varchar('aadhaar_masked', { length: 20 }),
+    pfUanNo: varchar('pf_uan_no', { length: 25 }),
+    esiNo: varchar('esi_no', { length: 25 }),
+    bankName: varchar('bank_name', { length: 120 }),
+    bankAccountNo: varchar('bank_account_no', { length: 40 }),
+    bankIfscCode: varchar('bank_ifsc_code', { length: 20 }),
+    addressLine1: varchar('address_line1', { length: 200 }),
+    city: varchar('city', { length: 80 }),
+    stateName: varchar('state_name', { length: 80 }),
+    pincode: varchar('pincode', { length: 15 }),
+    remarks: varchar('remarks', { length: 300 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqEmpCode: unique('uq_hr_employee_code').on(table.compId, table.empCode),
+  }),
+);
+

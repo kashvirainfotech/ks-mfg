@@ -40,3 +40,26 @@ DROP TRIGGER IF EXISTS trg_sec_user_preference_updated_date ON tbl_sec_user_pref
 CREATE TRIGGER trg_sec_user_preference_updated_date
 BEFORE UPDATE ON tbl_sec_user_preference
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.1 - Triggers for tbl_hr_department and tbl_hr_designation
+-- ============================================================================
+DROP TRIGGER IF EXISTS trg_hr_department_updated_date ON tbl_hr_department;
+CREATE TRIGGER trg_hr_department_updated_date
+BEFORE UPDATE ON tbl_hr_department
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_hr_designation_updated_date ON tbl_hr_designation;
+CREATE TRIGGER trg_hr_designation_updated_date
+BEFORE UPDATE ON tbl_hr_designation
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.2 - Trigger for tbl_hr_employee
+-- ============================================================================
+DROP TRIGGER IF EXISTS trg_hr_employee_updated_date ON tbl_hr_employee;
+CREATE TRIGGER trg_hr_employee_updated_date
+BEFORE UPDATE ON tbl_hr_employee
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
