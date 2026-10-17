@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -190,6 +190,41 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(target)
+      ) {
+        setIsContextMenuOpen(false);
+      }
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(target)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsContextMenuOpen(false);
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const showFullSidebar = !sidebarCollapsed || isHoverExpanded;
 
@@ -434,10 +469,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6">
           {/* Left: Active Company / Branch / Financial Year Switcher */}
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div ref={contextMenuRef} className="relative">
               <button
                 type="button"
-                onClick={() => setIsContextMenuOpen((v) => !v)}
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  setIsContextMenuOpen((v) => !v);
+                }}
                 className="flex items-center gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--brand-500)] transition cursor-pointer"
               >
                 <Building2 className="h-4 w-4 text-[var(--brand-500)]" />
@@ -610,10 +648,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
             </button>
 
             {/* User Profile Dropdown */}
-            <div className="relative">
+            <div ref={profileMenuRef} className="relative">
               <button
                 type="button"
-                onClick={() => setIsProfileMenuOpen((v) => !v)}
+                onClick={() => {
+                  setIsContextMenuOpen(false);
+                  setIsProfileMenuOpen((v) => !v);
+                }}
                 className="flex items-center gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] pl-2 pr-3 py-1.5 hover:border-[var(--brand-500)] transition cursor-pointer"
               >
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--brand-600)] text-xs font-bold text-white">
