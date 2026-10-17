@@ -60,242 +60,6 @@ interface CompanyLookup {
   compName: string;
 }
 
-const FALLBACK_COMPANIES: CompanyLookup[] = [
-  { compId: 1001, compCode: 'KSMFG', compName: 'Kashvira Manufacturing ERP' },
-  { compId: 1002, compCode: 'KSAUTO', compName: 'Kashvira Auto Components' },
-  {
-    compId: 1003,
-    compCode: 'KSVALVE',
-    compName: 'Kashvira Industrial Valves',
-  },
-  {
-    compId: 1004,
-    compCode: 'KSCAST',
-    compName: 'Kashvira Alloy Castings (Subsidiary)',
-  },
-];
-
-const FALLBACK_FYEARS: FinancialYearEntity[] = [
-  {
-    fyearId: 1001,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    fyearCode: '2026-27',
-    fyearName: 'FY 2026-2027',
-    startDate: '2026-04-01',
-    endDate: '2027-03-31',
-    isCurrent: true,
-    isClosed: false,
-    isActive: true,
-    branchLocks: [
-      {
-        branchFyearId: 1001,
-        compId: 1001,
-        branchId: 1001,
-        fyearId: 1001,
-        branchCode: 'PLT-AHM-01',
-        branchName: 'Ahmedabad Main Plant & HO',
-        branchType: 'PLANT',
-        city: 'Ahmedabad',
-        isLocked: false,
-        booksBeginFrom: '2026-04-01',
-        isActive: true,
-      },
-      {
-        branchFyearId: 1002,
-        compId: 1001,
-        branchId: 1002,
-        fyearId: 1001,
-        branchCode: 'PLT-RAJ-02',
-        branchName: 'Rajkot CNC & Foundry Unit',
-        branchType: 'PLANT',
-        city: 'Rajkot',
-        isLocked: false,
-        booksBeginFrom: '2026-04-01',
-        isActive: true,
-      },
-      {
-        branchFyearId: 1005,
-        compId: 1001,
-        branchId: 1004,
-        fyearId: 1001,
-        branchCode: 'WH-SRT-03',
-        branchName: 'Surat Regional Distribution Hub',
-        branchType: 'WAREHOUSE',
-        city: 'Surat',
-        isLocked: false,
-        booksBeginFrom: '2026-04-01',
-        isActive: true,
-      },
-      {
-        branchFyearId: 1006,
-        compId: 1001,
-        branchId: 1006,
-        fyearId: 1001,
-        branchCode: 'SO-MUM-01',
-        branchName: 'Mumbai Western Region Sales Office',
-        branchType: 'SALES_OFFICE',
-        city: 'Mumbai',
-        isLocked: false,
-        booksBeginFrom: '2026-04-01',
-        isActive: true,
-      },
-    ],
-  },
-  {
-    fyearId: 1002,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    fyearCode: '2025-26',
-    fyearName: 'FY 2025-2026',
-    startDate: '2025-04-01',
-    endDate: '2026-03-31',
-    isCurrent: false,
-    isClosed: false,
-    isActive: true,
-    branchLocks: [
-      {
-        branchFyearId: 1003,
-        compId: 1001,
-        branchId: 1001,
-        fyearId: 1002,
-        branchCode: 'PLT-AHM-01',
-        branchName: 'Ahmedabad Main Plant & HO',
-        branchType: 'PLANT',
-        city: 'Ahmedabad',
-        isLocked: true,
-        booksBeginFrom: '2025-04-01',
-        isActive: true,
-      },
-      {
-        branchFyearId: 1007,
-        compId: 1001,
-        branchId: 1002,
-        fyearId: 1002,
-        branchCode: 'PLT-RAJ-02',
-        branchName: 'Rajkot CNC & Foundry Unit',
-        branchType: 'PLANT',
-        city: 'Rajkot',
-        isLocked: true,
-        booksBeginFrom: '2025-04-01',
-        isActive: true,
-      },
-      {
-        branchFyearId: null,
-        compId: 1001,
-        branchId: 1004,
-        fyearId: 1002,
-        branchCode: 'WH-SRT-03',
-        branchName: 'Surat Regional Distribution Hub',
-        branchType: 'WAREHOUSE',
-        city: 'Surat',
-        isLocked: false,
-        booksBeginFrom: '2025-04-01',
-        isActive: true,
-      },
-    ],
-  },
-  {
-    fyearId: 1004,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    fyearCode: '2024-25',
-    fyearName: 'FY 2024-2025 (Audited & Closed)',
-    startDate: '2024-04-01',
-    endDate: '2025-03-31',
-    isCurrent: false,
-    isClosed: true,
-    isActive: true,
-    branchLocks: [
-      {
-        branchFyearId: 1008,
-        compId: 1001,
-        branchId: 1001,
-        fyearId: 1004,
-        branchCode: 'PLT-AHM-01',
-        branchName: 'Ahmedabad Main Plant & HO',
-        branchType: 'PLANT',
-        city: 'Ahmedabad',
-        isLocked: true,
-        booksBeginFrom: '2024-04-01',
-        isActive: true,
-      },
-      {
-        branchFyearId: null,
-        compId: 1001,
-        branchId: 1002,
-        fyearId: 1004,
-        branchCode: 'PLT-RAJ-02',
-        branchName: 'Rajkot CNC & Foundry Unit',
-        branchType: 'PLANT',
-        city: 'Rajkot',
-        isLocked: true,
-        booksBeginFrom: '2024-04-01',
-        isActive: true,
-      },
-    ],
-  },
-  {
-    fyearId: 1003,
-    compId: 1002,
-    compCode: 'KSAUTO',
-    compName: 'Kashvira Auto Components',
-    fyearCode: '2026-27',
-    fyearName: 'FY 2026-2027',
-    startDate: '2026-04-01',
-    endDate: '2027-03-31',
-    isCurrent: true,
-    isClosed: false,
-    isActive: true,
-    branchLocks: [
-      {
-        branchFyearId: 1004,
-        compId: 1002,
-        branchId: 1003,
-        fyearId: 1003,
-        branchCode: 'PLT-PNQ-01',
-        branchName: 'Pune Chakan Assembly Plant',
-        branchType: 'PLANT',
-        city: 'Pune',
-        isLocked: false,
-        booksBeginFrom: '2026-04-01',
-        isActive: true,
-      },
-    ],
-  },
-  {
-    fyearId: 1005,
-    compId: 1003,
-    compCode: 'KSVALVE',
-    compName: 'Kashvira Industrial Valves',
-    fyearCode: '2026-27',
-    fyearName: 'FY 2026-2027',
-    startDate: '2026-04-01',
-    endDate: '2027-03-31',
-    isCurrent: true,
-    isClosed: false,
-    isActive: true,
-    branchLocks: [
-      {
-        branchFyearId: 1009,
-        compId: 1003,
-        branchId: 1005,
-        fyearId: 1005,
-        branchCode: 'PLT-VTV-01',
-        branchName: 'Vatva High-Pressure Valve Unit',
-        branchType: 'PLANT',
-        city: 'Ahmedabad',
-        isLocked: false,
-        booksBeginFrom: '2026-04-01',
-        isActive: true,
-      },
-    ],
-  },
-];
-
 const EMPTY_FORM = {
   compId: 1001,
   fyearCode: '2027-28',
@@ -308,9 +72,8 @@ const EMPTY_FORM = {
 };
 
 export const FinancialYearMasterPage: React.FC = () => {
-  const [fyears, setFyears] = useState<FinancialYearEntity[]>(FALLBACK_FYEARS);
-  const [companies, setCompanies] =
-    useState<CompanyLookup[]>(FALLBACK_COMPANIES);
+  const [fyears, setFyears] = useState<FinancialYearEntity[]>([]);
+  const [companies, setCompanies] = useState<CompanyLookup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [companyFilter, setCompanyFilter] = useState<string>('ALL');
@@ -352,7 +115,7 @@ export const FinancialYearMasterPage: React.FC = () => {
         setCompanies(compRes.data.data);
       }
     } catch {
-      // Retain seeded fallback records if local PostgreSQL is offline
+      setFyears([]);
     } finally {
       setIsLoading(false);
     }
@@ -467,82 +230,9 @@ export const FinancialYearMasterPage: React.FC = () => {
       }
       setIsFormOpen(false);
     } catch (err: any) {
-      if (err?.response?.status) {
-        setFormError(
-          err.response.data?.message || 'Failed to save financial year.',
-        );
-        setIsSaving(false);
-        return;
-      }
-
-      // Local demo mode fallback when backend server is not running
-      const duplicate = fyears.some(
-        (f) =>
-          f.compId === formData.compId &&
-          f.fyearCode.toLowerCase() ===
-            formData.fyearCode.trim().toLowerCase() &&
-          f.fyearId !== editingFy?.fyearId,
+      setFormError(
+        err?.response?.data?.message || 'Failed to save financial year.',
       );
-      if (duplicate) {
-        setFormError(
-          `Financial Year "${formData.fyearCode}" already exists for the selected company.`,
-        );
-        setIsSaving(false);
-        return;
-      }
-
-      const parentComp =
-        companies.find((c) => c.compId === formData.compId) ||
-        FALLBACK_COMPANIES[0];
-
-      if (editingFy) {
-        setFyears((prev) =>
-          prev.map((f) => {
-            if (f.fyearId === editingFy.fyearId) {
-              const updatedLocks = formData.isClosed
-                ? f.branchLocks.map((bl) => ({ ...bl, isLocked: true }))
-                : f.branchLocks;
-              return {
-                ...f,
-                ...formData,
-                compCode: parentComp.compCode,
-                compName: parentComp.compName,
-                branchLocks: updatedLocks,
-              };
-            }
-            if (formData.isCurrent && f.compId === formData.compId) {
-              return { ...f, isCurrent: false };
-            }
-            return f;
-          }),
-        );
-      } else {
-        const nextId = Math.max(...fyears.map((f) => f.fyearId), 1000) + 1;
-        const sampleBranches =
-          fyears.find((f) => f.compId === formData.compId)?.branchLocks || [];
-        const newFy: FinancialYearEntity = {
-          ...formData,
-          fyearId: nextId,
-          compCode: parentComp.compCode,
-          compName: parentComp.compName,
-          branchLocks: sampleBranches.map((bl, idx) => ({
-            ...bl,
-            branchFyearId: 2000 + nextId + idx,
-            fyearId: nextId,
-            isLocked: Boolean(formData.isClosed),
-            booksBeginFrom: formData.startDate,
-          })),
-        };
-        setFyears((prev) => [
-          newFy,
-          ...prev.map((f) =>
-            formData.isCurrent && f.compId === formData.compId
-              ? { ...f, isCurrent: false }
-              : f,
-          ),
-        ]);
-      }
-      setIsFormOpen(false);
     } finally {
       setIsSaving(false);
     }
@@ -573,21 +263,7 @@ export const FinancialYearMasterPage: React.FC = () => {
       }
       syncAuthStoreLockState(fy.fyearId, mapping.branchId, nextLocked);
     } catch {
-      // Offline fallback update
-      setFyears((prev) =>
-        prev.map((f) => {
-          if (f.fyearId !== fy.fyearId) return f;
-          return {
-            ...f,
-            branchLocks: f.branchLocks.map((bl) =>
-              bl.branchId === mapping.branchId
-                ? { ...bl, isLocked: nextLocked }
-                : bl,
-            ),
-          };
-        }),
-      );
-      syncAuthStoreLockState(fy.fyearId, mapping.branchId, nextLocked);
+      // Ignore error or retain current state
     } finally {
       setTogglingBranchId(null);
     }
@@ -615,48 +291,11 @@ export const FinancialYearMasterPage: React.FC = () => {
       if (err?.response?.status === 409) {
         setDeleteError(err.response.data?.message);
         setDeleteDependencies(err.response.data?.details || []);
-        setIsDeleting(false);
-        return;
-      }
-      if (err?.response?.status) {
+      } else {
         setDeleteError(
-          err.response.data?.message || 'Unable to delete financial year.',
+          err?.response?.data?.message || 'Unable to delete financial year.',
         );
-        setIsDeleting(false);
-        return;
       }
-
-      // Offline fallback simulation of DependencyCheckService
-      const mappedCount = deleteTarget.branchLocks.filter(
-        (bl) => bl.branchFyearId !== null,
-      ).length;
-      if (mappedCount > 0 || deleteTarget.fyearId === 1001) {
-        const deps: DependencyConflictItem[] = [
-          {
-            table: 'tbl_org_branch_fyear',
-            label: 'Branch Financial Year Lock Mappings',
-            count: Math.max(mappedCount, 1),
-          },
-        ];
-        if (deleteTarget.fyearId === 1001) {
-          deps.push({
-            table: 'tbl_sec_user_preference',
-            label: 'User Default Financial Year Preferences',
-            count: 1,
-          });
-        }
-        setDeleteError(
-          `Cannot delete FINANCIAL_YEAR #${deleteTarget.fyearId} (${deleteTarget.fyearCode}) because it has active branch period mappings.`,
-        );
-        setDeleteDependencies(deps);
-        setIsDeleting(false);
-        return;
-      }
-
-      setFyears((prev) =>
-        prev.filter((f) => f.fyearId !== deleteTarget.fyearId),
-      );
-      setDeleteTarget(null);
     } finally {
       setIsDeleting(false);
     }

@@ -63,156 +63,6 @@ const INDIAN_STATES: { code: string; name: string }[] = [
   { code: '36', name: 'Telangana' },
 ];
 
-const FALLBACK_COMPANIES: CompanyLookup[] = [
-  {
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    gstin: '24AABCK1234F1Z5',
-  },
-  {
-    compId: 1002,
-    compCode: 'KSAUTO',
-    compName: 'Kashvira Auto Components',
-    gstin: '27AABCK9999K1Z2',
-  },
-  {
-    compId: 1003,
-    compCode: 'KSVALVE',
-    compName: 'Kashvira Industrial Valves',
-    gstin: '24AABCK7788V1Z9',
-  },
-  {
-    compId: 1004,
-    compCode: 'KSCAST',
-    compName: 'Kashvira Alloy Castings (Subsidiary)',
-    gstin: '24AABCK5544C1Z3',
-  },
-];
-
-const FALLBACK_BRANCHES: BranchEntity[] = [
-  {
-    branchId: 1001,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    branchCode: 'PLT-AHM-01',
-    branchName: 'Ahmedabad Main Plant & HO',
-    branchType: 'PLANT',
-    gstin: '24AABCK1234F1Z5',
-    address: 'Plot 42, GIDC Industrial Estate, Sanand',
-    city: 'Ahmedabad',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '382110',
-    country: 'India',
-    phone: '+91-79-26543210',
-    email: 'ahm.plant@ksmfg.com',
-    isHeadOffice: true,
-    isActive: true,
-  },
-  {
-    branchId: 1002,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    branchCode: 'PLT-RAJ-02',
-    branchName: 'Rajkot CNC & Foundry Unit',
-    branchType: 'PLANT',
-    gstin: '24AABCK1234F1Z5',
-    address: 'Survey 88, Metoda GIDC, Kalawad Road',
-    city: 'Rajkot',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '360021',
-    country: 'India',
-    phone: '+91-281-2876543',
-    email: 'rajkot.plant@ksmfg.com',
-    isHeadOffice: false,
-    isActive: true,
-  },
-  {
-    branchId: 1003,
-    compId: 1002,
-    compCode: 'KSAUTO',
-    compName: 'Kashvira Auto Components',
-    branchCode: 'PLT-PNQ-01',
-    branchName: 'Pune Chakan Assembly Plant',
-    branchType: 'PLANT',
-    gstin: '27AABCK9999K1Z2',
-    address: 'Plot B-19, Chakan MIDC Phase II',
-    city: 'Pune',
-    stateName: 'Maharashtra',
-    stateCode: '27',
-    pincode: '410501',
-    country: 'India',
-    phone: '+91-20-67891234',
-    email: 'pune.plant@ksmfg.com',
-    isHeadOffice: true,
-    isActive: true,
-  },
-  {
-    branchId: 1004,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    branchCode: 'WH-SRT-03',
-    branchName: 'Surat Regional Distribution Hub',
-    branchType: 'WAREHOUSE',
-    gstin: '24AABCK1234F1Z5',
-    address: 'Block C-14, Hazira Industrial Logistics Park',
-    city: 'Surat',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '394270',
-    country: 'India',
-    phone: '+91-261-2864500',
-    email: 'surat.wh@ksmfg.com',
-    isHeadOffice: false,
-    isActive: true,
-  },
-  {
-    branchId: 1005,
-    compId: 1003,
-    compCode: 'KSVALVE',
-    compName: 'Kashvira Industrial Valves',
-    branchCode: 'PLT-VTV-01',
-    branchName: 'Vatva High-Pressure Valve Unit',
-    branchType: 'PLANT',
-    gstin: '24AABCK7788V1Z9',
-    address: 'Plot 118, Phase IV, Vatva GIDC',
-    city: 'Ahmedabad',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '382445',
-    country: 'India',
-    phone: '+91-79-25894400',
-    email: 'vatva.plant@ksmfg.com',
-    isHeadOffice: true,
-    isActive: true,
-  },
-  {
-    branchId: 1006,
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    branchCode: 'SO-MUM-01',
-    branchName: 'Mumbai Western Region Sales Office',
-    branchType: 'SALES_OFFICE',
-    gstin: '27AABCK1234F2Z4',
-    address: 'Unit 604, Marathon Futurex, Lower Parel',
-    city: 'Mumbai',
-    stateName: 'Maharashtra',
-    stateCode: '27',
-    pincode: '400013',
-    country: 'India',
-    phone: '+91-22-49876500',
-    email: 'mumbai.sales@ksmfg.com',
-    isHeadOffice: false,
-    isActive: true,
-  },
-];
-
 const BRANCH_TYPE_LABELS: Record<BranchType, string> = {
   PLANT: 'Manufacturing Plant',
   HO: 'Head Office',
@@ -225,7 +75,7 @@ const EMPTY_FORM = {
   branchCode: '',
   branchName: '',
   branchType: 'PLANT' as BranchType,
-  gstin: '24AABCK1234F1Z5',
+  gstin: '',
   address: '',
   city: 'Ahmedabad',
   stateName: 'Gujarat',
@@ -239,9 +89,8 @@ const EMPTY_FORM = {
 };
 
 export const BranchMasterPage: React.FC = () => {
-  const [branches, setBranches] = useState<BranchEntity[]>(FALLBACK_BRANCHES);
-  const [companies, setCompanies] =
-    useState<CompanyLookup[]>(FALLBACK_COMPANIES);
+  const [branches, setBranches] = useState<BranchEntity[]>([]);
+  const [companies, setCompanies] = useState<CompanyLookup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [companyFilter, setCompanyFilter] = useState<string>('ALL');
@@ -279,7 +128,7 @@ export const BranchMasterPage: React.FC = () => {
         setCompanies(compRes.data.data);
       }
     } catch {
-      // Retain seeded fallback records if local PostgreSQL is offline
+      setBranches([]);
     } finally {
       setIsLoading(false);
     }
@@ -321,11 +170,11 @@ export const BranchMasterPage: React.FC = () => {
   const openAddModal = () => {
     setEditingBranch(null);
     setFormError(null);
-    const defaultComp = companies[0] || FALLBACK_COMPANIES[0];
+    const defaultComp = companies[0];
     setFormData({
       ...EMPTY_FORM,
-      compId: defaultComp.compId,
-      gstin: defaultComp.gstin || '',
+      compId: defaultComp?.compId || 1001,
+      gstin: defaultComp?.gstin || '',
     });
     setIsFormOpen(true);
   };
@@ -381,63 +230,9 @@ export const BranchMasterPage: React.FC = () => {
       }
       setIsFormOpen(false);
     } catch (err: any) {
-      if (err?.response?.status) {
-        setFormError(
-          err.response.data?.message || 'Failed to save branch record.',
-        );
-        setIsSaving(false);
-        return;
-      }
-
-      // Local demo mode fallback when backend server is not running
-      const normalizedCode = formData.branchCode.trim().toUpperCase();
-      const duplicate = branches.some(
-        (b) =>
-          b.compId === formData.compId &&
-          b.branchCode.toUpperCase() === normalizedCode &&
-          b.branchId !== editingBranch?.branchId,
+      setFormError(
+        err?.response?.data?.message || 'Failed to save branch record.',
       );
-      if (duplicate) {
-        setFormError(
-          `Branch Code "${normalizedCode}" already exists under the selected Company.`,
-        );
-        setIsSaving(false);
-        return;
-      }
-
-      const parentComp =
-        companies.find((c) => c.compId === formData.compId) ||
-        FALLBACK_COMPANIES[0];
-
-      if (editingBranch) {
-        setBranches((prev) =>
-          prev.map((b) =>
-            b.branchId === editingBranch.branchId
-              ? {
-                  ...b,
-                  ...formData,
-                  branchCode: normalizedCode,
-                  compCode: parentComp.compCode,
-                  compName: parentComp.compName,
-                }
-              : b,
-          ),
-        );
-      } else {
-        const nextId =
-          Math.max(...branches.map((b) => b.branchId), 1000) + 1;
-        setBranches((prev) => [
-          ...prev,
-          {
-            ...formData,
-            branchId: nextId,
-            branchCode: normalizedCode,
-            compCode: parentComp.compCode,
-            compName: parentComp.compName,
-          },
-        ]);
-      }
-      setIsFormOpen(false);
     } finally {
       setIsSaving(false);
     }
@@ -465,55 +260,11 @@ export const BranchMasterPage: React.FC = () => {
       if (err?.response?.status === 409) {
         setDeleteError(err.response.data?.message);
         setDeleteDependencies(err.response.data?.details || []);
-        setIsDeleting(false);
-        return;
-      }
-      if (err?.response?.status) {
+      } else {
         setDeleteError(
-          err.response.data?.message || 'Unable to delete branch.',
+          err?.response?.data?.message || 'Unable to delete branch.',
         );
-        setIsDeleting(false);
-        return;
       }
-
-      // Offline fallback simulation of DependencyCheckService for core branches 1001..1003
-      if (
-        deleteTarget.branchId === 1001 ||
-        deleteTarget.branchId === 1002 ||
-        deleteTarget.branchId === 1003
-      ) {
-        const fyCount = deleteTarget.branchId === 1001 ? 2 : 1;
-        const deps: DependencyConflictItem[] = [
-          {
-            table: 'tbl_org_branch_fyear',
-            label: 'Branch Financial Year Mappings',
-            count: fyCount,
-          },
-          {
-            table: 'tbl_sec_user_branch_role',
-            label: 'User Branch Role Assignments',
-            count: 1,
-          },
-        ];
-        if (deleteTarget.branchId === 1001) {
-          deps.push({
-            table: 'tbl_sec_user_preference',
-            label: 'User Default Branch Preferences',
-            count: 1,
-          });
-        }
-        setDeleteError(
-          `Cannot delete BRANCH #${deleteTarget.branchId} because it is referenced in active financial years and user role assignments.`,
-        );
-        setDeleteDependencies(deps);
-        setIsDeleting(false);
-        return;
-      }
-
-      setBranches((prev) =>
-        prev.filter((b) => b.branchId !== deleteTarget.branchId),
-      );
-      setDeleteTarget(null);
     } finally {
       setIsDeleting(false);
     }

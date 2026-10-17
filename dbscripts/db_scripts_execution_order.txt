@@ -1,0 +1,54 @@
+================================================================================
+KS-MFG ERP — POSTGRESQL DATABASE SCRIPTS EXECUTION ORDER (FRESH / BLANK DB)
+================================================================================
+Target Database : ks_mfg_erp (PostgreSQL 16+)
+Encoding        : UTF8
+================================================================================
+
+Execute the following SQL files in the EXACT numerical order listed below when
+setting up a fresh/blank database:
+
+--------------------------------------------------------------------------------
+STEP 1: Core Schema Objects (Sequences, Tables, Constraints & Indexes)
+--------------------------------------------------------------------------------
+1. dbscripts/01_schema_objects.sql
+
+--------------------------------------------------------------------------------
+STEP 2: Database Functions (Must be created BEFORE triggers/views that call them)
+--------------------------------------------------------------------------------
+2. dbscripts/functions/fn_set_updated_timestamp.sql
+
+--------------------------------------------------------------------------------
+STEP 3: Database Triggers (Binds audit timestamp function to tables)
+--------------------------------------------------------------------------------
+3. dbscripts/triggers/trg_set_updated_timestamp.sql
+
+--------------------------------------------------------------------------------
+STEP 4: Database Views & Stored Procedures (When added in upcoming modules)
+--------------------------------------------------------------------------------
+   - dbscripts/views/*.sql        (Currently none; will be listed here as added)
+   - dbscripts/procedures/*.sql   (Currently none; will be listed here as added)
+
+--------------------------------------------------------------------------------
+STEP 5: Mandatory System Seed Data (Root Tenant, RBAC Screens/Actions, Super Admin)
+--------------------------------------------------------------------------------
+4. dbscripts/02_initial_data.sql
+   * Note: Required for all environments (Development, Staging, Production).
+   * Seeds Default Login: admin / Admin@123
+
+--------------------------------------------------------------------------------
+STEP 6: Sample / Demo Master & Operational Data (Optional — For Dev/Demo/QA)
+--------------------------------------------------------------------------------
+5. dbscripts/03_sample_demo_data.sql
+   * Note: Run only after 02_initial_data.sql has completed.
+
+
+================================================================================
+QUICK CLI EXECUTION COMMANDS (Using psql from project root)
+================================================================================
+psql -U postgres -d ks_mfg_erp -f dbscripts/01_schema_objects.sql
+psql -U postgres -d ks_mfg_erp -f dbscripts/functions/fn_set_updated_timestamp.sql
+psql -U postgres -d ks_mfg_erp -f dbscripts/triggers/trg_set_updated_timestamp.sql
+psql -U postgres -d ks_mfg_erp -f dbscripts/02_initial_data.sql
+psql -U postgres -d ks_mfg_erp -f dbscripts/03_sample_demo_data.sql
+================================================================================

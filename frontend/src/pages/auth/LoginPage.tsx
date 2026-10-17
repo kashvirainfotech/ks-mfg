@@ -16,10 +16,7 @@ import {
   User,
 } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
-import {
-  DEFAULT_DEMO_SESSION,
-  useAuthStore,
-} from '../../store/useAuthStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useThemeStore } from '../../store/useThemeStore';
 
 export const LoginPage: React.FC = () => {
@@ -60,30 +57,9 @@ export const LoginPage: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 401 || status === 403 || status === 400) {
-        setErrorMessage(
-          err?.response?.data?.message ||
-            'Invalid username/email or password.',
-        );
-        setLoading(false);
-        return;
-      }
-
-      // If backend DB is not running locally yet, allow seamless offline demo login with admin/Admin@123
-      if (
-        (usernameOrEmail.toLowerCase() === 'admin' ||
-          usernameOrEmail.toLowerCase() === 'admin@ksmfg.com') &&
-        password === 'Admin@123'
-      ) {
-        setSession(DEFAULT_DEMO_SESSION);
-        navigate('/dashboard');
-        return;
-      }
-
       setErrorMessage(
         err?.response?.data?.message ||
-          'Unable to reach authentication server. Use admin / Admin@123.',
+          'Unable to reach authentication server or invalid credentials.',
       );
     } finally {
       setLoading(false);

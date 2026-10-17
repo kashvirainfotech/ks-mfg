@@ -1,77 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
-  AlertTriangle,
-  ArrowUpRight,
-  Boxes,
+  Building2,
+  CalendarRange,
   CheckCircle2,
-  Clock,
-  Download,
-  Factory,
-  Layers,
-  PackageCheck,
-  Plus,
-  Users,
+  GitBranch,
+  Lock,
+  LockOpen,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
-import { PermissionGate } from '../../components/common/PermissionGate';
-
-const PRODUCTION_ORDERS = [
-  {
-    woNo: 'PLT-AHM/26-27/PWO/00142',
-    itemCode: 'FG-VLV-200',
-    itemName: 'High-Pressure Forged Ball Valve 50mm',
-    stage: 'CNC Machining & Lapping',
-    batchNo: 'LOT-2610-A8',
-    plannedQty: '250 PCS',
-    completedQty: '195 PCS',
-    progress: 78,
-    status: 'IN_PROGRESS',
-  },
-  {
-    woNo: 'PLT-AHM/26-27/PWO/00143',
-    itemCode: 'SFG-SHF-104',
-    itemName: 'SS-316 Precision Actuator Stem Shaft',
-    stage: 'Subcontract Heat Treatment (JWI-0089)',
-    batchNo: 'LOT-2610-B2',
-    plannedQty: '500 PCS',
-    completedQty: '500 PCS',
-    progress: 100,
-    status: 'COMPLETED',
-  },
-  {
-    woNo: 'PLT-AHM/26-27/PWO/00144',
-    itemCode: 'FG-PMP-410',
-    itemName: 'Centrifugal Chemical Process Pump 15HP',
-    stage: 'Dynamic Balancing & Hydro Testing',
-    batchNo: 'LOT-2610-C1',
-    plannedQty: '40 NOS',
-    completedQty: '18 NOS',
-    progress: 45,
-    status: 'QC_HOLD',
-  },
-  {
-    woNo: 'PLT-AHM/26-27/PWO/00145',
-    itemCode: 'FG-FLG-880',
-    itemName: 'ANSI B16.5 Weld-Neck Flange 150#',
-    stage: 'Raw Material Bin Picking (MIS-0211)',
-    batchNo: 'LOT-2610-D4',
-    plannedQty: '1,200 PCS',
-    completedQty: '360 PCS',
-    progress: 30,
-    status: 'IN_PROGRESS',
-  },
-];
-
-const MONTHLY_OUTPUT = [
-  { month: 'May', target: 82, actual: 79 },
-  { month: 'Jun', target: 85, actual: 84 },
-  { month: 'Jul', target: 88, actual: 86 },
-  { month: 'Aug', target: 90, actual: 92 },
-  { month: 'Sep', target: 92, actual: 91 },
-  { month: 'Oct', target: 95, actual: 94 },
-];
+import { apiClient } from '../../lib/apiClient';
+import type { CompanyEntity } from '../org/CompanyMasterPage';
+import type { BranchEntity } from '../org/BranchMasterPage';
+import type { FinancialYearEntity } from '../org/FinancialYearMasterPage';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -83,6 +25,43 @@ export const DashboardPage: React.FC = () => {
     allowedFinancialYears,
   } = useAuthStore();
 
+  const [companies, setCompanies] = useState<CompanyEntity[]>([]);
+  const [branches, setBranches] = useState<BranchEntity[]>([]);
+  const [financialYears, setFinancialYears] = useState<FinancialYearEntity[]>(
+    [],
+  );
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        const [compRes, branchRes, fyRes] = await Promise.all([
+          apiClient.get('/org/companies'),
+          apiClient.get('/org/branches'),
+          apiClient.get('/org/financial-years'),
+        ]);
+        if (Array.isArray(compRes.data?.data)) {
+          setCompanies(compRes.data.data);
+        }
+        if (Array.isArray(branchRes.data?.data)) {
+          setBranches(branchRes.data.data);
+        }
+        if (Array.isArray(fyRes.data?.data)) {
+          setFinancialYears(fyRes.data.data);
+        }
+      } catch {
+        setCompanies([]);
+        setBranches([]);
+        setFinancialYears([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadDashboardData();
+  }, []);
+
   const currentCompany = allowedCompanies.find(
     (c) => c.compId === activeContext.compId,
   );
@@ -93,6 +72,12 @@ export const DashboardPage: React.FC = () => {
     (f) => f.fyearId === activeContext.fyearId,
   );
 
+  const activeCompaniesCount = companies.filter((c) => c.isActive).length;
+  const activeBranchesCount = branches.filter((b) => b.isActive).length;
+  const plantCount = branches.filter((b) => b.branchType === 'PLANT').length;
+  const openFyearsCount = financialYears.filter((f) => !f.isClosed).length;
+  const closedFyearsCount = financialYears.filter((f) => f.isClosed).length;
+
   return (
     <div className="space-y-6">
       {/* Page Title & Action Bar */}
@@ -100,272 +85,160 @@ export const DashboardPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-extrabold tracking-tight text-[var(--text-primary)]">
-              Plant Operations & Inventory Command Center
+              Plant Operations & Organization Command Center
             </h1>
             <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
-              Live Telemetry
+              Live Database
             </span>
           </div>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Active Scope:{' '}
             <strong className="text-[var(--text-secondary)]">
-              {currentCompany?.compName || 'Kashvira Manufacturing ERP'}
+              {currentCompany?.compName || 'No Company Selected'}
             </strong>{' '}
             •{' '}
             <strong className="text-[var(--text-secondary)]">
-              {currentBranch?.branchName || 'Ahmedabad Main Plant & HO'}
+              {currentBranch?.branchName || 'No Branch Selected'}
             </strong>{' '}
-            ({currentFyear?.fyearName || 'FY 2026-2027'})
+            ({currentFyear?.fyearName || 'No FY Selected'})
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <PermissionGate screen="DASHBOARD" action="EXPORT">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:border-[var(--brand-500)] transition cursor-pointer"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span>Export KPIs</span>
-            </button>
-          </PermissionGate>
+          <button
+            type="button"
+            onClick={() => navigate('/org/companies')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:border-[var(--brand-500)] transition cursor-pointer"
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            <span>Company Master</span>
+          </button>
 
           <button
             type="button"
-            onClick={() => navigate('/parties/customers')}
+            onClick={() => navigate('/org/branches')}
             className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition cursor-pointer"
           >
-            <Users className="h-3.5 w-3.5" />
-            <span>Open Customer Master</span>
+            <GitBranch className="h-3.5 w-3.5" />
+            <span>Branch & Plants</span>
           </button>
         </div>
       </div>
 
-      {/* 4 KPI Summary Cards */}
+      {/* 4 Live Database KPI Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs">
+        <div
+          onClick={() => navigate('/org/companies')}
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs hover:border-[var(--brand-500)] transition cursor-pointer"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Active Work Orders
+              Legal Companies (`tbl_org_company`)
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-50)] dark:bg-[var(--brand-500)]/20 text-[var(--brand-600)] dark:text-[var(--brand-300)]">
-              <Factory className="h-5 w-5" />
+              <Building2 className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-extrabold text-[var(--text-primary)]">
-              38
-            </span>
-            <span className="inline-flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              <ArrowUpRight className="h-3.5 w-3.5" /> +12.4%
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            29 Discrete Assembly • 9 Process Batches
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Plant OEE & First-Pass Yield
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
-              <Activity className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-[var(--text-primary)]">
-              94.2%
+              {isLoading ? '...' : companies.length}
             </span>
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-              Target 92.0%
+              {activeCompaniesCount} Active
             </span>
           </div>
           <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            Scrap rate held at 0.84% across 4 CNC cells
+            Live records from PostgreSQL database
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs">
+        <div
+          onClick={() => navigate('/org/branches')}
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs hover:border-[var(--brand-500)] transition cursor-pointer"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Warehouse Bin Utilization
+              Branches & Plants (`tbl_org_branch`)
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+              <GitBranch className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-extrabold text-[var(--text-primary)]">
+              {isLoading ? '...' : branches.length}
+            </span>
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              {plantCount} Plants • {activeBranchesCount} Active
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            Live facilities registered across companies
+          </p>
+        </div>
+
+        <div
+          onClick={() => navigate('/org/financial-years')}
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs hover:border-[var(--brand-500)] transition cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+              Financial Years (`tbl_org_financial_year`)
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300">
-              <Boxes className="h-5 w-5" />
+              <CalendarRange className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-extrabold text-[var(--text-primary)]">
-              1,420
+              {isLoading ? '...' : financialYears.length}
             </span>
             <span className="text-xs font-semibold text-[var(--text-muted)]">
-              / 1,680 Active Bins
+              {openFyearsCount} Open • {closedFyearsCount} Closed
             </span>
           </div>
           <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            14 GRNs pending bin put-away allocation
+            Accounting periods configured in DB
           </p>
         </div>
 
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Subcontracting (Job-Work)
+              Active User Session (`tbl_sec_user`)
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-300">
-              <Layers className="h-5 w-5" />
+              <ShieldCheck className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-[var(--text-primary)]">
-              ₹18.6L
+            <span className="text-lg font-extrabold text-[var(--text-primary)] truncate">
+              {user?.username || 'Authenticated'}
             </span>
-            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-              11 Open Challans
+            <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+              {user?.userCategory || 'SYSTEM'}
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            Material lying with 6 approved Job-Workers
+          <p className="mt-1 text-[11px] text-[var(--text-muted)] font-mono-code">
+            comp_id={activeContext.compId} • branch_id={activeContext.branchId}{' '}
+            • fyear_id={activeContext.fyearId}
           </p>
         </div>
       </div>
 
-      {/* Charts Row: Production Output vs Target & Warehouse Hierarchy Health */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Bar Chart Card */}
-        <div className="lg:col-span-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-bold text-[var(--text-primary)]">
-                Shopfloor Production Attainment (Target vs Actual)
-              </h2>
-              <p className="text-xs text-[var(--text-muted)]">
-                Monthly finished goods receipt (PRN) efficiency across active
-                work centers
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
-                <span className="h-2.5 w-2.5 rounded-xs bg-[var(--brand-600)]" />
-                Actual %
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[var(--text-muted)]">
-                <span className="h-2.5 w-2.5 rounded-xs bg-slate-300 dark:bg-slate-700" />
-                Target %
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-6 gap-4 items-end h-44 pt-4 px-2">
-            {MONTHLY_OUTPUT.map((m) => (
-              <div
-                key={m.month}
-                className="flex flex-col items-center gap-2 h-full justify-end"
-              >
-                <div className="flex items-end gap-1.5 w-full justify-center h-32">
-                  <div
-                    className="w-3.5 rounded-t-md bg-slate-300 dark:bg-slate-700 transition-all"
-                    style={{ height: `${m.target}%` }}
-                    title={`Target: ${m.target}%`}
-                  />
-                  <div
-                    className="w-3.5 rounded-t-md bg-[var(--brand-600)] transition-all"
-                    style={{ height: `${m.actual}%` }}
-                    title={`Actual: ${m.actual}%`}
-                  />
-                </div>
-                <span className="text-[11px] font-bold text-[var(--text-secondary)]">
-                  {m.month}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Multi-Level Warehouse Storage Breakdown */}
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-xs flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-[var(--text-primary)]">
-              Multi-Level Storage Occupancy
-            </h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              Real-time bin capacity by warehouse zone
-            </p>
-
-            <div className="mt-4 space-y-3.5">
-              {[
-                {
-                  zone: 'WH-01 • Raw Material Rack Bins',
-                  used: 86,
-                  color: 'bg-[var(--brand-600)]',
-                },
-                {
-                  zone: 'WH-02 • Semi-Finished WIP Cage',
-                  used: 64,
-                  color: 'bg-emerald-500',
-                },
-                {
-                  zone: 'WH-03 • Finished Goods Dispatch',
-                  used: 72,
-                  color: 'bg-amber-500',
-                },
-                {
-                  zone: 'WH-04 • QC Quarantine Chamber',
-                  used: 28,
-                  color: 'bg-violet-500',
-                },
-              ].map((w) => (
-                <div key={w.zone}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-semibold text-[var(--text-secondary)]">
-                      {w.zone}
-                    </span>
-                    <span className="font-mono-code font-bold text-[var(--text-primary)]">
-                      {w.used}%
-                    </span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-[var(--bg-muted)] overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${w.color}`}
-                      style={{ width: `${w.used}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3 text-xs flex items-center justify-between">
-            <span className="text-[var(--text-muted)]">
-              Logged in as{' '}
-              <strong className="text-[var(--text-primary)]">
-                {user?.username}
-              </strong>
-            </span>
-            <span className="font-mono-code text-[11px] text-[var(--brand-600)] dark:text-[var(--brand-300)] font-bold">
-              comp_id={activeContext.compId} • branch_id=
-              {activeContext.branchId}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Active Shopfloor Production Work Orders Table */}
+      {/* Live Branches & Plants Table from PostgreSQL */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-xs overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-4">
           <div>
             <h2 className="text-sm font-bold text-[var(--text-primary)]">
-              Live Production Work Orders & Batch Execution
+              Registered Manufacturing Plants & Branches (`tbl_org_branch`)
             </h2>
             <p className="text-xs text-[var(--text-muted)]">
-              Real-time shopfloor status with Batch/Lot traceability and Dual-UOM
-              tracking
+              Real-time records fetched directly from PostgreSQL
             </p>
           </div>
           <span className="rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] px-2.5 py-1 text-[11px] font-mono-code font-semibold text-[var(--text-secondary)]">
-            Showing 4 Active Batches
+            {branches.length} Records in Database
           </span>
         </div>
 
@@ -373,74 +246,168 @@ export const DashboardPage: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                <th className="py-3 px-4">Work Order No</th>
-                <th className="py-3 px-4">Item & Specification</th>
-                <th className="py-3 px-4">Current Routing Operation</th>
-                <th className="py-3 px-4">Batch / Lot</th>
-                <th className="py-3 px-4">Planned vs Completed</th>
+                <th className="py-3 px-4">Branch Code</th>
+                <th className="py-3 px-4">Branch / Plant Name</th>
+                <th className="py-3 px-4">Parent Company</th>
+                <th className="py-3 px-4">Facility Type</th>
+                <th className="py-3 px-4">City / State</th>
                 <th className="py-3 px-4">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
-              {PRODUCTION_ORDERS.map((row) => (
-                <tr
-                  key={row.woNo}
-                  className="hover:bg-[var(--bg-hover)] transition"
-                >
-                  <td className="py-3.5 px-4 font-mono-code font-bold text-[var(--brand-600)] dark:text-[var(--brand-300)]">
-                    {row.woNo}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="font-bold text-[var(--text-primary)]">
-                      {row.itemName}
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)] font-mono-code">
-                      {row.itemCode}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-[var(--text-secondary)] font-medium">
-                    {row.stage}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] px-2 py-0.5 font-mono-code text-[11px] font-semibold text-[var(--text-primary)]">
-                      {row.batchNo}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
-                      <span className="text-[var(--text-primary)]">
-                        {row.completedQty}
-                      </span>
-                      <span className="text-[var(--text-muted)]">
-                        of {row.plannedQty} ({row.progress}%)
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-36 rounded-full bg-[var(--bg-muted)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[var(--brand-600)]"
-                        style={{ width: `${row.progress}%` }}
-                      />
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    {row.status === 'COMPLETED' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
-                        <CheckCircle2 className="h-3 w-3" /> Completed
-                      </span>
-                    )}
-                    {row.status === 'IN_PROGRESS' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-50)] dark:bg-[var(--brand-500)]/20 px-2.5 py-0.5 text-[11px] font-bold text-[var(--brand-600)] dark:text-[var(--brand-300)]">
-                        <Clock className="h-3 w-3" /> In Progress
-                      </span>
-                    )}
-                    {row.status === 'QC_HOLD' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-300">
-                        <AlertTriangle className="h-3 w-3" /> QC Quarantine
-                      </span>
-                    )}
+              {branches.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-[var(--text-muted)]"
+                  >
+                    {isLoading
+                      ? 'Loading branches from database...'
+                      : 'No branches found in database.'}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                branches.map((b) => (
+                  <tr
+                    key={b.branchId}
+                    className="hover:bg-[var(--bg-hover)] transition"
+                  >
+                    <td className="py-3.5 px-4 font-mono-code font-bold text-[var(--brand-600)] dark:text-[var(--brand-300)]">
+                      {b.branchCode}
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-[var(--text-primary)]">
+                      {b.branchName}
+                    </td>
+                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                      <span className="font-mono-code font-semibold">
+                        {b.compCode}
+                      </span>{' '}
+                      — {b.compName}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] px-2 py-0.5 font-mono-code text-[11px] font-semibold text-[var(--text-primary)]">
+                        {b.branchType}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                      {b.city || '—'}, {b.stateName || '—'}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {b.isActive ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
+                          <CheckCircle2 className="h-3 w-3" /> Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Live Financial Years Table from PostgreSQL */}
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-xs overflow-hidden">
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-4">
+          <div>
+            <h2 className="text-sm font-bold text-[var(--text-primary)]">
+              Accounting Financial Years & Branch Locks (`tbl_org_financial_year`)
+            </h2>
+            <p className="text-xs text-[var(--text-muted)]">
+              Real-time period lock status from PostgreSQL
+            </p>
+          </div>
+          <span className="rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] px-2.5 py-1 text-[11px] font-mono-code font-semibold text-[var(--text-secondary)]">
+            {financialYears.length} Periods in Database
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                <th className="py-3 px-4">FY Code</th>
+                <th className="py-3 px-4">Period Name</th>
+                <th className="py-3 px-4">Company</th>
+                <th className="py-3 px-4">Start & End Date</th>
+                <th className="py-3 px-4">Branch Locks</th>
+                <th className="py-3 px-4">Period Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
+              {financialYears.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-[var(--text-muted)]"
+                  >
+                    {isLoading
+                      ? 'Loading financial years from database...'
+                      : 'No financial years found in database.'}
+                  </td>
+                </tr>
+              ) : (
+                financialYears.map((fy) => {
+                  const total = fy.branchLocks?.length || 0;
+                  const locked =
+                    fy.branchLocks?.filter((b) => b.isLocked).length || 0;
+                  const open = total - locked;
+                  return (
+                    <tr
+                      key={fy.fyearId}
+                      className="hover:bg-[var(--bg-hover)] transition"
+                    >
+                      <td className="py-3.5 px-4 font-mono-code font-bold text-[var(--brand-600)] dark:text-[var(--brand-300)]">
+                        {fy.fyearCode}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-[var(--text-primary)]">
+                        {fy.fyearName}
+                      </td>
+                      <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                        <span className="font-mono-code font-semibold">
+                          {fy.compCode}
+                        </span>{' '}
+                        — {fy.compName}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono-code text-[var(--text-secondary)]">
+                        {fy.startDate} → {fy.endDate}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1.5 font-semibold">
+                          {locked > 0 ? (
+                            <Lock className="h-3.5 w-3.5 text-amber-500" />
+                          ) : (
+                            <LockOpen className="h-3.5 w-3.5 text-emerald-500" />
+                          )}
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            {open} Open
+                          </span>
+                          <span className="text-[var(--text-muted)]">/</span>
+                          <span className="text-amber-600 dark:text-amber-400">
+                            {locked} Locked
+                          </span>
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {fy.isClosed ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-300">
+                            <Lock className="h-3 w-3" /> Closed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
+                            <CheckCircle2 className="h-3 w-3" /> Open
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

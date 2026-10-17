@@ -48,97 +48,6 @@ const INDIAN_STATES: { code: string; name: string }[] = [
   { code: '36', name: 'Telangana' },
 ];
 
-const FALLBACK_COMPANIES: CompanyEntity[] = [
-  {
-    compId: 1001,
-    compCode: 'KSMFG',
-    compName: 'Kashvira Manufacturing ERP',
-    legalName: 'Kashvira Precision Manufacturing Pvt. Ltd.',
-    gstin: '24AABCK1234F1Z5',
-    panNo: 'AABCK1234F',
-    cinNo: 'U29100GJ2020PTC112233',
-    iecCode: '0820001122',
-    msmeRegNo: 'UDYAM-GJ-01-0011223',
-    baseCurrencyCode: 'INR',
-    registeredAddress: 'Plot 42, GIDC Industrial Estate, Sanand',
-    city: 'Ahmedabad',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '382110',
-    country: 'India',
-    phone: '+91-79-26543210',
-    email: 'info@ksmfg.com',
-    website: 'https://www.ksmfg.com',
-    isActive: true,
-  },
-  {
-    compId: 1002,
-    compCode: 'KSAUTO',
-    compName: 'Kashvira Auto Components',
-    legalName: 'Kashvira Auto Components Pvt. Ltd.',
-    gstin: '27AABCK9999K1Z2',
-    panNo: 'AABCK9999K',
-    cinNo: 'U34300MH2022PTC223344',
-    iecCode: '0322009988',
-    msmeRegNo: 'UDYAM-MH-26-0044556',
-    baseCurrencyCode: 'INR',
-    registeredAddress: 'Plot B-19, Chakan MIDC Phase II',
-    city: 'Pune',
-    stateName: 'Maharashtra',
-    stateCode: '27',
-    pincode: '410501',
-    country: 'India',
-    phone: '+91-20-67891234',
-    email: 'auto@ksmfg.com',
-    website: 'https://auto.ksmfg.com',
-    isActive: true,
-  },
-  {
-    compId: 1003,
-    compCode: 'KSVALVE',
-    compName: 'Kashvira Industrial Valves',
-    legalName: 'Kashvira Industrial Valves & Process Controls Ltd.',
-    gstin: '24AABCK7788V1Z9',
-    panNo: 'AABCK7788V',
-    cinNo: 'U29120GJ2021PLC334455',
-    iecCode: '0821009988',
-    msmeRegNo: 'UDYAM-GJ-01-0099887',
-    baseCurrencyCode: 'INR',
-    registeredAddress: 'Plot 118, Phase IV, Vatva GIDC',
-    city: 'Ahmedabad',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '382445',
-    country: 'India',
-    phone: '+91-79-25894400',
-    email: 'valves@ksmfg.com',
-    website: 'https://valves.ksmfg.com',
-    isActive: true,
-  },
-  {
-    compId: 1004,
-    compCode: 'KSCAST',
-    compName: 'Kashvira Alloy Castings (Subsidiary)',
-    legalName: 'Kashvira Precision Alloy Castings Pvt. Ltd.',
-    gstin: '24AABCK5544C1Z3',
-    panNo: 'AABCK5544C',
-    cinNo: 'U27100GJ2023PTC445566',
-    iecCode: '0823005544',
-    msmeRegNo: 'UDYAM-GJ-20-0055443',
-    baseCurrencyCode: 'INR',
-    registeredAddress: 'Survey 212, Shapar-Veraval Industrial Area',
-    city: 'Rajkot',
-    stateName: 'Gujarat',
-    stateCode: '24',
-    pincode: '360024',
-    country: 'India',
-    phone: '+91-2827-252100',
-    email: 'castings@ksmfg.com',
-    website: 'https://castings.ksmfg.com',
-    isActive: true,
-  },
-];
-
 const EMPTY_FORM = {
   compCode: '',
   compName: '',
@@ -162,8 +71,7 @@ const EMPTY_FORM = {
 };
 
 export const CompanyMasterPage: React.FC = () => {
-  const [companies, setCompanies] =
-    useState<CompanyEntity[]>(FALLBACK_COMPANIES);
+  const [companies, setCompanies] = useState<CompanyEntity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [stateFilter, setStateFilter] = useState<string>('ALL');
@@ -193,7 +101,7 @@ export const CompanyMasterPage: React.FC = () => {
         setCompanies(res.data.data);
       }
     } catch {
-      // Retain seeded fallback records when local PostgreSQL is offline
+      setCompanies([]);
     } finally {
       setIsLoading(false);
     }
@@ -291,52 +199,9 @@ export const CompanyMasterPage: React.FC = () => {
       }
       setIsFormOpen(false);
     } catch (err: any) {
-      if (err?.response?.status) {
-        setFormError(
-          err.response.data?.message || 'Failed to save company record.',
-        );
-        setIsSaving(false);
-        return;
-      }
-
-      // Local demo mode fallback when backend server is not running
-      const normalizedCode = formData.compCode.trim().toUpperCase();
-      const duplicate = companies.some(
-        (c) =>
-          c.compCode.toUpperCase() === normalizedCode &&
-          c.compId !== editingCompany?.compId,
+      setFormError(
+        err?.response?.data?.message || 'Failed to save company record.',
       );
-      if (duplicate) {
-        setFormError(`Company Code "${normalizedCode}" already exists.`);
-        setIsSaving(false);
-        return;
-      }
-
-      if (editingCompany) {
-        setCompanies((prev) =>
-          prev.map((c) =>
-            c.compId === editingCompany.compId
-              ? {
-                  ...c,
-                  ...formData,
-                  compCode: normalizedCode,
-                }
-              : c,
-          ),
-        );
-      } else {
-        const nextId =
-          Math.max(...companies.map((c) => c.compId), 1000) + 1;
-        setCompanies((prev) => [
-          ...prev,
-          {
-            ...formData,
-            compId: nextId,
-            compCode: normalizedCode,
-          },
-        ]);
-      }
-      setIsFormOpen(false);
     } finally {
       setIsSaving(false);
     }
@@ -364,49 +229,11 @@ export const CompanyMasterPage: React.FC = () => {
       if (err?.response?.status === 409) {
         setDeleteError(err.response.data?.message);
         setDeleteDependencies(err.response.data?.details || []);
-        setIsDeleting(false);
-        return;
-      }
-      if (err?.response?.status) {
+      } else {
         setDeleteError(
-          err.response.data?.message || 'Unable to delete company.',
+          err?.response?.data?.message || 'Unable to delete company.',
         );
-        setIsDeleting(false);
-        return;
       }
-
-      // Offline fallback simulation of DependencyCheckService for seeded companies 1001 & 1002
-      if (deleteTarget.compId === 1001 || deleteTarget.compId === 1002) {
-        const branchCnt = deleteTarget.compId === 1001 ? 2 : 1;
-        const fyCnt = deleteTarget.compId === 1001 ? 2 : 1;
-        setDeleteError(
-          `Cannot delete COMPANY #${deleteTarget.compId} because it is referenced in: Plant / Branches (${branchCnt}), Financial Years (${fyCnt}), User Company Role Assignments (1).`,
-        );
-        setDeleteDependencies([
-          {
-            table: 'tbl_org_branch',
-            label: 'Plant / Branches',
-            count: branchCnt,
-          },
-          {
-            table: 'tbl_org_financial_year',
-            label: 'Financial Years',
-            count: fyCnt,
-          },
-          {
-            table: 'tbl_sec_user_company_role',
-            label: 'User Company Role Assignments',
-            count: 1,
-          },
-        ]);
-        setIsDeleting(false);
-        return;
-      }
-
-      setCompanies((prev) =>
-        prev.filter((c) => c.compId !== deleteTarget.compId),
-      );
-      setDeleteTarget(null);
     } finally {
       setIsDeleting(false);
     }
