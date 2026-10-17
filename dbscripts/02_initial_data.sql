@@ -193,3 +193,71 @@ INSERT INTO tbl_sec_user_preference (
 
 SELECT setval('seq_user_preference_id', GREATEST((SELECT COALESCE(MAX(user_preference_id), 1001) FROM tbl_sec_user_preference), 1001));
 
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 1.1 - Company Master Screen Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1008, 1002, 'PRINT', 'Print Company Directory', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1008) FROM tbl_sec_action), 1008));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 1002, 1008, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 1.2 - Branch & Plant Master Screen Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1009, 1003, 'PRINT', 'Print Branch & Plant Directory', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1009) FROM tbl_sec_action), 1009));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 1003, 1009, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 1.3 - Financial Year Master & Branch-FY Locking Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1010, 1004, 'EXPORT', 'Export Financial Years & Branch Locks', TRUE, 1001, 1001, 1001, 1001),
+    (1011, 1004, 'PRINT',  'Print Financial Year Register',         TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1011) FROM tbl_sec_action), 1011));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1004, 1010, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1004, 1011, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+
+

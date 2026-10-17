@@ -6,6 +6,9 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CompanyModule } from './modules/organization/company/company.module';
+import { BranchModule } from './modules/organization/branch/branch.module';
+import { FinancialYearModule } from './modules/organization/financial-year/financial-year.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -22,6 +25,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     DatabaseModule,
     CommonModule,
     AuthModule,
+    CompanyModule,
+    BranchModule,
+    FinancialYearModule,
   ],
   controllers: [AppController],
   providers: [

@@ -12,6 +12,9 @@ import { AppShell } from './components/layout/AppShell';
 import { LoginPage } from './pages/auth/LoginPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { CustomerMasterPage } from './pages/parties/CustomerMasterPage';
+import { CompanyMasterPage } from './pages/org/CompanyMasterPage';
+import { BranchMasterPage } from './pages/org/BranchMasterPage';
+import { FinancialYearMasterPage } from './pages/org/FinancialYearMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -64,6 +67,30 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <DashboardPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/org/companies"
+              element={
+                <ProtectedLayout>
+                  <CompanyMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/org/branches"
+              element={
+                <ProtectedLayout>
+                  <BranchMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/org/financial-years"
+              element={
+                <ProtectedLayout>
+                  <FinancialYearMasterPage />
                 </ProtectedLayout>
               }
             />
