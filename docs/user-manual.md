@@ -206,4 +206,26 @@ When a new screen is released, this manual provides:
      * **Event Metadata Banner:** Displays Timestamp, Actor (`username`, full name, category), IP Address, Client User-Agent, Company & Branch/Plant scope, Module/Screen, Target Table, and Record Primary Key (`record_pk`).
      * **Tab 1 — Field-by-Field Delta Comparison:** Displays a side-by-side comparison table of every field in `old_value` and `new_value`. Modified fields are highlighted in amber with a `CHANGED` badge; added fields are highlighted in emerald (`ADDED`); removed fields are highlighted in rose (`REMOVED`). Includes a **Modified Fields Only (`N`)** toggle to hide unchanged attributes.
      * **Tab 2 — Raw JSONB Snapshots (`old_value` / `new_value`):** Displays formatted JSONB payloads for `changed_fields`, `old_value` (Before Snapshot), and `new_value` (After Snapshot).
-* **Action Buttons:** `Print` (`AUDIT_LOG_VIEWER -> PRINT`), `Export CSV` (`AUDIT_LOG_VIEWER -> EXPORT`), and `Inspect Delta` (`AUDIT_LOG_VIEWER -> VIEW`).
+* **Action Buttons:** `Print` (`AUDIT_LOG -> PRINT`), `Export CSV` (`AUDIT_LOG -> EXPORT`), and `Inspect Delta` (`AUDIT_LOG -> VIEW`).
+
+---
+
+### 2.11 System Configuration Matrix & Document Numbering Series Engine (`/admin/configurations` — Step 2.6)
+
+* **Purpose:** Manage hierarchical enterprise parameters and feature flags (`tbl_sys_config` at `GLOBAL`, `COMPANY`, and `BRANCH` / Plant scopes) alongside multi-plant, multi-financial-year transaction document numbering series (`tbl_sys_doc_number_series`).
+* **Prerequisites:** Active Companies (`/org/companies`), Branches/Plants (`/org/branches`), and Financial Years (`/org/financial-years`) must exist.
+* **Step-by-Step Usage:**
+  1. Navigate to **Security & RBAC $\rightarrow$ System Configuration** (`/admin/configurations`).
+  2. **Tab 1 — System Configuration Matrix (`tbl_sys_config`):**
+     * Filter parameters by **Domain Group** (`INVENTORY_VALUATION`, `PRODUCTION_SHOPFLOOR`, `QUALITY_CONTROL`, `PROCUREMENT_APPROVAL`, `GST_STATUTORY`, `SECURITY_SESSION`) or **Hierarchy Scope** (`GLOBAL`, `COMPANY`, `BRANCH`).
+     * Click **Override** on any Global parameter row to immediately pre-fill a Plant or Company override for that parameter key.
+     * Click **Edit** to modify the active value using a data-type-aware editor (`BOOLEAN` toggle selector, `ENUM` dropdown of allowed options, `NUMBER` input, or `STRING`/`JSON` text editor).
+     * When a parameter's active value differs from its factory default (`CUSTOMIZED`), click **Reset** to restore `default_value` and log a field-delta audit entry.
+     * Click **Delete** on custom or override rules to remove them. Core system parameters (`is_system_locked = TRUE`) are protected from deletion.
+  3. **Tab 2 — Document Numbering Series Engine (`tbl_sys_doc_number_series`):**
+     * Filter numbering series by **ERP Module** (`PROCUREMENT`, `INVENTORY_WMS`, `QUALITY`, `PRODUCTION`, `SALES_DISPATCH`), **Company**, **Plant / Branch**, or **Financial Year**.
+     * Click **+ Create Document Series** (or **Edit** on an existing series) to configure the **Target Company, Plant, Financial Year, Document Type, Prefix Template, FY Suffix, Separator (`/`, `-`, `.`), Zero-Padding Digits (`2`–`10`), Starting Sequence No, Current Next Counter No, and Reset Frequency (`FYEAR`, `MONTHLY`, `NEVER`)**.
+     * Observe the **Live Next Voucher Number Format Preview Banner** inside the modal (e.g., `KSMFG/AHM/PO/26-27/0014`) update in real time as you type.
+     * Click **Simulate** on any series row to open the **Voucher Sequence Generator Simulation Modal**, displaying the next 5 sequential document numbers from PostgreSQL.
+     * Click **Delete** on an unused series (`0` documents issued) to remove it. Any series that has already generated vouchers (`current_next_no > starting_no`) is protected from deletion (`409 Conflict`) to preserve statutory numbering continuity.
+* **Action Buttons:** `Print` (`CONFIG_MASTER -> PRINT`), `Export CSV` (`CONFIG_MASTER -> EXPORT`), `+ Add Parameter / Create Document Series` (`CONFIG_MASTER -> ADD`), `Override / Reset / Edit` (`CONFIG_MASTER -> EDIT`), and `Delete` (`CONFIG_MASTER -> DELETE`).

@@ -14,6 +14,7 @@ import { EmployeeModule } from './modules/hr/employee/employee.module';
 import { RoleModule } from './modules/security/role/role.module';
 import { UserModule } from './modules/security/user/user.module';
 import { AuditLogViewerModule } from './modules/security/audit-log/audit-log-viewer.module';
+import { SystemConfigModule } from './modules/admin/system-config/system-config.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -38,6 +39,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     RoleModule,
     UserModule,
     AuditLogViewerModule,
+    SystemConfigModule,
   ],
   controllers: [AppController],
   providers: [

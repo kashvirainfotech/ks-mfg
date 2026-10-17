@@ -63,3 +63,18 @@ DROP TRIGGER IF EXISTS trg_hr_employee_updated_date ON tbl_hr_employee;
 CREATE TRIGGER trg_hr_employee_updated_date
 BEFORE UPDATE ON tbl_hr_employee
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.6 - Triggers for tbl_sys_config & tbl_sys_doc_number_series
+-- ============================================================================
+DROP TRIGGER IF EXISTS trg_sys_config_updated_date ON tbl_sys_config;
+CREATE TRIGGER trg_sys_config_updated_date
+BEFORE UPDATE ON tbl_sys_config
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sys_doc_series_updated_date ON tbl_sys_doc_number_series;
+CREATE TRIGGER trg_sys_doc_series_updated_date
+BEFORE UPDATE ON tbl_sys_doc_number_series
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+

@@ -225,10 +225,10 @@ INSERT INTO tbl_hr_employee (
     employee_id, emp_code, first_name, last_name, full_name, gender,
     date_of_birth, date_of_joining, dept_id, desig_id, primary_branch_id,
     reporting_manager_id, employment_type, employment_status,
-    official_email, mobile_no, emergency_contact_name, emergency_contact_phone,
-    pan_no, aadhaar_no, pf_uan_no, esi_no,
+    work_email, mobile_no, emergency_contact_name, emergency_contact_phone,
+    pan_no, aadhaar_masked, pf_uan_no, esi_no,
     bank_name, bank_account_no, bank_ifsc_code,
-    current_address, city, state_name, pincode, is_active,
+    address_line1, city, state_name, pincode, is_active,
     comp_id, branch_id, fyear_id, created_by
 ) VALUES
     (1001, 'EMP-1001', 'Mahesh',   'Desai',    'Mahesh Desai',    'MALE',
@@ -402,3 +402,37 @@ INSERT INTO tbl_sys_audit_log (
 ON CONFLICT (audit_id) DO NOTHING;
 
 SELECT setval('seq_audit_id', GREATEST((SELECT COALESCE(MAX(audit_id), 1004) FROM tbl_sys_audit_log), 1004));
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.6 - Sample Company/Plant Configuration Overrides & Multi-Plant
+--          Document Numbering Series (tbl_sys_config, tbl_sys_doc_number_series)
+-- ============================================================================
+INSERT INTO tbl_sys_config (
+    config_id, config_key, config_name, config_group, data_type,
+    config_value, default_value, allowed_values, scope_level,
+    target_comp_id, target_branch_id, description, is_system_locked, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1010, 'PROD_BACKFLUSH_RAW_MATERIAL',  'Auto-Backflush Child BOM Items on PRN (Rajkot Foundry Override)', 'PRODUCTION_SHOPFLOOR', 'BOOLEAN', 'TRUE',          'FALSE',         NULL,                              'BRANCH',  1001, 1002, 'Rajkot Foundry & CNC Unit uses continuous furnace backflushing upon PRN completion', FALSE, TRUE, 1001, 1002, 1001, 1001),
+    (1011, 'INV_VALUATION_METHOD',         'Inventory Valuation Method (Kashvira Auto Components Override)',  'INVENTORY_VALUATION',  'ENUM',    'WEIGHTED_AVG',  'FIFO',          'FIFO,WEIGHTED_AVG,STANDARD_COST', 'COMPANY', 1002, NULL, 'Automotive OEM division values high-volume fasteners and stampings on Weighted Average', FALSE, TRUE, 1002, 1005, 1003, 1001),
+    (1012, 'PROD_MAX_SCRAP_TOLERANCE_PCT', 'Shopfloor Scrap Variance Alert Threshold (Rajkot Casting)',       'PRODUCTION_SHOPFLOOR', 'NUMBER',  '4.5',           '5.0',           NULL,                              'BRANCH',  1001, 1002, 'Sand-casting runner/riser fettling loss allowance for Rajkot Foundry unit',              FALSE, TRUE, 1001, 1002, 1001, 1001)
+ON CONFLICT (config_id) DO NOTHING;
+
+SELECT setval('seq_config_id', GREATEST((SELECT COALESCE(MAX(config_id), 1012) FROM tbl_sys_config), 1012));
+
+INSERT INTO tbl_sys_doc_number_series (
+    series_id, series_code, series_name, doc_type_code, doc_type_name, module_name,
+    target_comp_id, target_branch_id, target_fyear_id,
+    prefix_template, suffix_template, separator_char, padding_digits,
+    starting_no, current_next_no, reset_frequency, allow_manual_override, is_default, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1009, 'RJK-PO-2627',  'Rajkot Foundry Purchase Order Series',      'PO',               'Purchase Order',           'PROCUREMENT',    1001, 1002, 1001, 'KSMFG/RJK/PO',  '26-27', '/', 4, 1, 9,  'FYEAR', FALSE, TRUE, TRUE, 1001, 1002, 1001, 1001),
+    (1010, 'RJK-WO-2627',  'Rajkot Foundry Work Order Series',          'WORK_ORDER',       'Manufacturing Work Order', 'PRODUCTION',     1001, 1002, 1001, 'KSMFG/RJK/WO',  '26-27', '/', 4, 1, 12, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1002, 1001, 1001),
+    (1011, 'AHM-JW-2627',  'Ahmedabad Subcontracting Job-Work Challan', 'JOB_WORK_OUT',     'Outward Job-Work Challan', 'PROCUREMENT',    1001, 1001, 1001, 'KSMFG/AHM/JWO', '26-27', '/', 4, 1, 7,  'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1012, 'PNQ-WO-2627',  'Pune Auto Powertrain Work Order Series',    'WORK_ORDER',       'Manufacturing Work Order', 'PRODUCTION',     1002, 1005, 1003, 'KSAUTO/PNQ/WO', '26-27', '/', 5, 1, 25, 'FYEAR', FALSE, TRUE, TRUE, 1002, 1005, 1003, 1001)
+ON CONFLICT (series_id) DO NOTHING;
+
+SELECT setval('seq_doc_series_id', GREATEST((SELECT COALESCE(MAX(series_id), 1012) FROM tbl_sys_doc_number_series), 1012));
+

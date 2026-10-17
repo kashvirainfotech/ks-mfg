@@ -20,6 +20,7 @@ import { EmployeeMasterPage } from './pages/hr/EmployeeMasterPage';
 import { RoleMasterPage } from './pages/security/RoleMasterPage';
 import { UserMasterPage } from './pages/security/UserMasterPage';
 import { AuditLogViewerPage } from './pages/security/AuditLogViewerPage';
+import { SystemConfigPage } from './pages/admin/SystemConfigPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -136,6 +137,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <AuditLogViewerPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/admin/configurations"
+              element={
+                <ProtectedLayout>
+                  <SystemConfigPage />
                 </ProtectedLayout>
               }
             />

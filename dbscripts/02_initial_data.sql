@@ -401,3 +401,67 @@ INSERT INTO tbl_sec_role_action_permission (
 ) VALUES
     (1001, 1009, 1020, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.6 - System Configuration Matrix & Document Numbering Series
+--          Engine Seeds (tbl_sec_action, tbl_sys_config, tbl_sys_doc_number_series)
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1021, 1010, 'EXPORT', 'Export System Configurations & Number Series', TRUE, 1001, 1001, 1001, 1001),
+    (1022, 1010, 'PRINT',  'Print System Configuration & Series Register', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1022) FROM tbl_sec_action), 1022));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1010, 1021, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1010, 1022, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- Baseline Global System Configurations (tbl_sys_config)
+INSERT INTO tbl_sys_config (
+    config_id, config_key, config_name, config_group, data_type,
+    config_value, default_value, allowed_values, scope_level,
+    target_comp_id, target_branch_id, description, is_system_locked, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'INV_VALUATION_METHOD',          'Default Inventory Valuation Method',            'INVENTORY_VALUATION',  'ENUM',    'FIFO',          'FIFO',          'FIFO,WEIGHTED_AVG,STANDARD_COST', 'GLOBAL', NULL, NULL, 'Determines how raw materials, WIP, and finished goods are valued across ledger postings', TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'INV_ALLOW_NEGATIVE_STOCK',      'Allow Negative Bin Stock on Issue',             'INVENTORY_VALUATION',  'BOOLEAN', 'FALSE',         'FALSE',         NULL,                              'GLOBAL', NULL, NULL, 'Strictly blocks material issue or dispatch when available bin stock is insufficient',     TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'INV_BATCH_TRACEABILITY_STRICT', 'Enforce Mandatory Heat/Batch Lot Traceability', 'INVENTORY_VALUATION',  'BOOLEAN', 'TRUE',          'TRUE',          NULL,                              'GLOBAL', NULL, NULL, 'Requires batch/heat number capture at GRN, QC, shopfloor issue, and customer dispatch',    FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'PROD_BACKFLUSH_RAW_MATERIAL',   'Auto-Backflush Child BOM Items on PRN',         'PRODUCTION_SHOPFLOOR', 'BOOLEAN', 'FALSE',         'FALSE',         NULL,                              'GLOBAL', NULL, NULL, 'Automatically deducts shopfloor WIP bin stock based on standard BOM quantities on PRN',   FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 'PROD_MAX_SCRAP_TOLERANCE_PCT',  'Shopfloor Scrap Variance Alert Threshold (%)',  'PRODUCTION_SHOPFLOOR', 'NUMBER',  '3.5',           '5.0',           NULL,                              'GLOBAL', NULL, NULL, 'Triggers supervisor authorization when work order scrap exceeds standard BOM scrap %',     FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1006, 'QC_MANDATORY_BEFORE_GRN_PUTAWAY','Mandatory Inward QC Clearance Before Bin Put-Away','QUALITY_CONTROL',  'BOOLEAN', 'TRUE',          'TRUE',          NULL,                              'GLOBAL', NULL, NULL, 'Holds inward GRN stock in Quarantine Zone until QA Manager approves test certificate',    TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1007, 'PROC_PO_RATE_VARIANCE_LIMIT_PCT','Max GRN vs PO Rate Variance Tolerance (%)',    'PROCUREMENT_APPROVAL', 'NUMBER',  '2.0',           '2.0',           NULL,                              'GLOBAL', NULL, NULL, 'Maximum upward price variance (%) permitted on supplier invoice against approved PO rate', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1008, 'GST_EINVOICE_AUTO_IRN_THRESHOLD','E-Invoice & E-Way Bill Auto-Trigger Limit (INR)','GST_STATUTORY',      'NUMBER',  '50000',         '50000',         NULL,                              'GLOBAL', NULL, NULL, 'Minimum invoice value in INR above which E-Way Bill / IRN validation is enforced',        FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1009, 'SEC_MAX_FAILED_LOGIN_ATTEMPTS', 'Account Lockout Failed Login Threshold',        'SECURITY_SESSION',     'NUMBER',  '5',             '5',             NULL,                              'GLOBAL', NULL, NULL, 'Locks ERP user account for 30 minutes after consecutive failed password attempts',        TRUE,  TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (config_id) DO NOTHING;
+
+SELECT setval('seq_config_id', GREATEST((SELECT COALESCE(MAX(config_id), 1009) FROM tbl_sys_config), 1009));
+
+-- Baseline Document Numbering Series for Primary Plant (comp_id=1001, branch_id=1001, fyear_id=1001)
+INSERT INTO tbl_sys_doc_number_series (
+    series_id, series_code, series_name, doc_type_code, doc_type_name, module_name,
+    target_comp_id, target_branch_id, target_fyear_id,
+    prefix_template, suffix_template, separator_char, padding_digits,
+    starting_no, current_next_no, reset_frequency, allow_manual_override, is_default, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'AHM-PO-2627',  'Ahmedabad Plant Purchase Order Series',       'PO',               'Purchase Order',              'PROCUREMENT',    1001, 1001, 1001, 'KSMFG/AHM/PO',  '26-27', '/', 4, 1, 14, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'AHM-GRN-2627', 'Ahmedabad Plant Goods Receipt Note Series',   'GRN',              'Goods Receipt Note (GRN)',    'INVENTORY_WMS',  1001, 1001, 1001, 'KSMFG/AHM/GRN', '26-27', '/', 4, 1, 28, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'AHM-QCI-2627', 'Ahmedabad Plant Inward QC Inspection Series', 'QC_INSP',          'Quality Inspection Lot',      'QUALITY',        1001, 1001, 1001, 'KSMFG/AHM/QCI', '26-27', '/', 4, 1, 22, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'AHM-WO-2627',  'Ahmedabad Plant Shopfloor Work Order Series', 'WORK_ORDER',       'Manufacturing Work Order',    'PRODUCTION',     1001, 1001, 1001, 'KSMFG/AHM/WO',  '26-27', '/', 4, 1, 19, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 'AHM-MIS-2627', 'Ahmedabad Plant Shopfloor Material Issue',    'MAT_ISSUE',        'Material Issue Slip (MIS)',   'INVENTORY_WMS',  1001, 1001, 1001, 'KSMFG/AHM/MIS', '26-27', '/', 4, 1, 35, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1006, 'AHM-PRN-2627', 'Ahmedabad Plant Production Receipt Series',   'PROD_RECEIPT',     'Production Receipt Note',     'PRODUCTION',     1001, 1001, 1001, 'KSMFG/AHM/PRN', '26-27', '/', 4, 1, 16, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1007, 'AHM-SO-2627',  'Ahmedabad Plant Customer Sales Order Series', 'SALES_ORDER',      'Customer Sales Order',        'SALES_DISPATCH', 1001, 1001, 1001, 'KSMFG/AHM/SO',  '26-27', '/', 4, 1, 42, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1008, 'AHM-INV-2627', 'Ahmedabad Plant GST Tax Invoice Series',      'SALES_INVOICE',    'GST Tax Invoice',             'SALES_DISPATCH', 1001, 1001, 1001, 'KSMFG/AHM/INV', '26-27', '/', 4, 1, 31, 'FYEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (series_id) DO NOTHING;
+
+SELECT setval('seq_doc_series_id', GREATEST((SELECT COALESCE(MAX(series_id), 1008) FROM tbl_sys_doc_number_series), 1008));
+

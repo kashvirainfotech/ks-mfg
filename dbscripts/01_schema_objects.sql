@@ -445,7 +445,7 @@ CREATE TABLE IF NOT EXISTS tbl_hr_employee (
     employee_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_employee_id'),
     emp_code                VARCHAR(30)     NOT NULL,
     first_name              VARCHAR(80)     NOT NULL,
-    last_name               VARCHAR(80)     NOT NULL,
+    last_name               VARCHAR(80),
     full_name               VARCHAR(165)    NOT NULL,
     gender                  VARCHAR(20)     NOT NULL DEFAULT 'MALE',        -- 'MALE', 'FEMALE', 'OTHER'
     date_of_birth           DATE,
@@ -456,21 +456,23 @@ CREATE TABLE IF NOT EXISTS tbl_hr_employee (
     reporting_manager_id    BIGINT          REFERENCES tbl_hr_employee(employee_id),
     employment_type         VARCHAR(30)     NOT NULL DEFAULT 'PERMANENT',   -- 'PERMANENT', 'CONTRACT', 'TRAINEE', 'CONSULTANT'
     employment_status       VARCHAR(30)     NOT NULL DEFAULT 'ACTIVE',      -- 'ACTIVE', 'PROBATION', 'NOTICE_PERIOD', 'SUSPENDED', 'TERMINATED'
-    official_email          VARCHAR(150),
+    work_email              VARCHAR(150),
     mobile_no               VARCHAR(25)     NOT NULL,
-    emergency_contact_name  VARCHAR(100),
+    emergency_contact_name  VARCHAR(120),
     emergency_contact_phone VARCHAR(25),
-    pan_no                  VARCHAR(20),
-    aadhaar_no              VARCHAR(20),
-    pf_uan_no               VARCHAR(30),
-    esi_no                  VARCHAR(30),
-    bank_name               VARCHAR(100),
+    blood_group             VARCHAR(10),
+    pan_no                  VARCHAR(15),
+    aadhaar_masked          VARCHAR(20),
+    pf_uan_no               VARCHAR(25),
+    esi_no                  VARCHAR(25),
+    bank_name               VARCHAR(120),
     bank_account_no         VARCHAR(40),
     bank_ifsc_code          VARCHAR(20),
-    current_address         VARCHAR(300),
+    address_line1           VARCHAR(200),
     city                    VARCHAR(80),
     state_name              VARCHAR(80),
     pincode                 VARCHAR(15),
+    remarks                 VARCHAR(300),
     is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
     -- Mandatory 7 Audit & Context Columns
     comp_id                 BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
@@ -480,9 +482,83 @@ CREATE TABLE IF NOT EXISTS tbl_hr_employee (
     created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_by              BIGINT,
     updated_date            TIMESTAMPTZ,
-    CONSTRAINT uq_hr_emp_code UNIQUE (comp_id, emp_code)
+    CONSTRAINT uq_hr_employee_code UNIQUE (comp_id, emp_code)
 );
 
 CREATE INDEX IF NOT EXISTS idx_hr_emp_comp_branch ON tbl_hr_employee (comp_id, primary_branch_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_hr_emp_dept_desig ON tbl_hr_employee (dept_id, desig_id);
 CREATE INDEX IF NOT EXISTS idx_hr_emp_manager ON tbl_hr_employee (reporting_manager_id);
+
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 2.6 - System Configuration Matrix & Document Numbering Series
+--          Engine Tables (tbl_sys_config, tbl_sys_doc_number_series)
+-- ============================================================================
+
+CREATE SEQUENCE IF NOT EXISTS seq_config_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sys_config (
+    config_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_config_id'),
+    config_key          VARCHAR(80)     NOT NULL,
+    config_name         VARCHAR(150)    NOT NULL,
+    config_group        VARCHAR(50)     NOT NULL DEFAULT 'INVENTORY_VALUATION', -- 'INVENTORY_VALUATION', 'PRODUCTION_SHOPFLOOR', 'QUALITY_CONTROL', 'PROCUREMENT_APPROVAL', 'GST_STATUTORY', 'SECURITY_SESSION'
+    data_type           VARCHAR(20)     NOT NULL DEFAULT 'STRING',              -- 'BOOLEAN', 'NUMBER', 'STRING', 'ENUM', 'JSON'
+    config_value        VARCHAR(500)    NOT NULL,
+    default_value       VARCHAR(500)    NOT NULL,
+    allowed_values      VARCHAR(500),                                           -- Comma-separated options when data_type = 'ENUM'
+    scope_level         VARCHAR(20)     NOT NULL DEFAULT 'GLOBAL',              -- 'GLOBAL', 'COMPANY', 'BRANCH'
+    target_comp_id      BIGINT          REFERENCES tbl_org_company(comp_id),
+    target_branch_id    BIGINT          REFERENCES tbl_org_branch(branch_id),
+    description         VARCHAR(350),
+    is_system_locked    BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sys_config_group_scope ON tbl_sys_config (config_group, scope_level, is_active);
+CREATE INDEX IF NOT EXISTS idx_sys_config_key ON tbl_sys_config (config_key, target_comp_id, target_branch_id);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_doc_series_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sys_doc_number_series (
+    series_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_doc_series_id'),
+    series_code             VARCHAR(40)     NOT NULL,
+    series_name             VARCHAR(120)    NOT NULL,
+    doc_type_code           VARCHAR(40)     NOT NULL, -- 'PO', 'GRN', 'QC_INSP', 'MAT_ISSUE', 'WORK_ORDER', 'PROD_RECEIPT', 'SALES_ORDER', 'DELIVERY_CHALLAN', 'SALES_INVOICE', 'JOB_WORK_OUT'
+    doc_type_name           VARCHAR(100)    NOT NULL,
+    module_name             VARCHAR(40)     NOT NULL DEFAULT 'PROCUREMENT', -- 'PROCUREMENT', 'INVENTORY_WMS', 'QUALITY', 'PRODUCTION', 'SALES_DISPATCH'
+    target_comp_id          BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    target_branch_id        BIGINT          NOT NULL REFERENCES tbl_org_branch(branch_id),
+    target_fyear_id         BIGINT          NOT NULL REFERENCES tbl_org_financial_year(fyear_id),
+    prefix_template         VARCHAR(50)     NOT NULL,
+    suffix_template         VARCHAR(30),
+    separator_char          VARCHAR(5)      NOT NULL DEFAULT '/',
+    padding_digits          INT             NOT NULL DEFAULT 4,
+    starting_no             INT             NOT NULL DEFAULT 1,
+    current_next_no         INT             NOT NULL DEFAULT 1,
+    reset_frequency         VARCHAR(20)     NOT NULL DEFAULT 'FYEAR', -- 'FYEAR', 'MONTHLY', 'NEVER'
+    allow_manual_override   BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_default              BOOLEAN         NOT NULL DEFAULT TRUE,
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL DEFAULT 1001,
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_sys_doc_series_code UNIQUE (target_comp_id, target_branch_id, target_fyear_id, series_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sys_doc_series_lookup ON tbl_sys_doc_number_series (target_comp_id, target_branch_id, target_fyear_id, doc_type_code, is_active);
+

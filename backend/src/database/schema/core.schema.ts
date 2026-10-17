@@ -517,3 +517,86 @@ export const tblHrEmployee = pgTable(
   }),
 );
 
+// ============================================================================
+// 7. System Configuration Matrix & Document Numbering Series (Step 2.6)
+// ============================================================================
+
+export const tblSysConfig = pgTable('tbl_sys_config', {
+  configId: bigint('config_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_config_id')`),
+  configKey: varchar('config_key', { length: 80 }).notNull(),
+  configName: varchar('config_name', { length: 150 }).notNull(),
+  configGroup: varchar('config_group', { length: 50 })
+    .notNull()
+    .default('INVENTORY_VALUATION'),
+  dataType: varchar('data_type', { length: 20 }).notNull().default('STRING'), // 'BOOLEAN', 'NUMBER', 'STRING', 'ENUM', 'JSON'
+  configValue: varchar('config_value', { length: 500 }).notNull(),
+  defaultValue: varchar('default_value', { length: 500 }).notNull(),
+  allowedValues: varchar('allowed_values', { length: 500 }),
+  scopeLevel: varchar('scope_level', { length: 20 })
+    .notNull()
+    .default('GLOBAL'), // 'GLOBAL', 'COMPANY', 'BRANCH'
+  targetCompId: bigint('target_comp_id', { mode: 'number' }).references(
+    () => tblOrgCompany.compId,
+  ),
+  targetBranchId: bigint('target_branch_id', { mode: 'number' }).references(
+    () => tblOrgBranch.branchId,
+  ),
+  description: varchar('description', { length: 350 }),
+  isSystemLocked: boolean('is_system_locked').notNull().default(false),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+export const tblSysDocNumberSeries = pgTable(
+  'tbl_sys_doc_number_series',
+  {
+    seriesId: bigint('series_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_doc_series_id')`),
+    seriesCode: varchar('series_code', { length: 40 }).notNull(),
+    seriesName: varchar('series_name', { length: 120 }).notNull(),
+    docTypeCode: varchar('doc_type_code', { length: 40 }).notNull(),
+    docTypeName: varchar('doc_type_name', { length: 100 }).notNull(),
+    moduleName: varchar('module_name', { length: 40 })
+      .notNull()
+      .default('PROCUREMENT'),
+    targetCompId: bigint('target_comp_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblOrgCompany.compId),
+    targetBranchId: bigint('target_branch_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblOrgBranch.branchId),
+    targetFyearId: bigint('target_fyear_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblOrgFinancialYear.fyearId),
+    prefixTemplate: varchar('prefix_template', { length: 50 }).notNull(),
+    suffixTemplate: varchar('suffix_template', { length: 30 }),
+    separatorChar: varchar('separator_char', { length: 5 })
+      .notNull()
+      .default('/'),
+    paddingDigits: integer('padding_digits').notNull().default(4),
+    startingNo: integer('starting_no').notNull().default(1),
+    currentNextNo: integer('current_next_no').notNull().default(1),
+    resetFrequency: varchar('reset_frequency', { length: 20 })
+      .notNull()
+      .default('FYEAR'),
+    allowManualOverride: boolean('allow_manual_override')
+      .notNull()
+      .default(false),
+    isDefault: boolean('is_default').notNull().default(true),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqDocSeriesCode: unique('uq_sys_doc_series_code').on(
+      table.targetCompId,
+      table.targetBranchId,
+      table.targetFyearId,
+      table.seriesCode,
+    ),
+  }),
+);
+
+
