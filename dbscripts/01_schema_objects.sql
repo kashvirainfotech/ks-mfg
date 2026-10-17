@@ -12,4 +12,369 @@
 --      comp_id, branch_id, fyear_id, created_by, created_date, updated_by, updated_date.
 -- ============================================================================
 
--- (New CREATE statements for tables, sequences, and indexes will be appended below per screen/feature)
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 0.1 - Core Foundation (Tenancy, Auth/RBAC, User Preferences, Audit Log)
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. Organization & Multi-Tenancy Sequences & Tables
+-- ----------------------------------------------------------------------------
+CREATE SEQUENCE IF NOT EXISTS seq_comp_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_org_company (
+    comp_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_comp_id'),
+    comp_code           VARCHAR(20)     NOT NULL UNIQUE,
+    comp_name           VARCHAR(150)    NOT NULL,
+    legal_name          VARCHAR(200)    NOT NULL,
+    gstin               VARCHAR(20),
+    pan_no              VARCHAR(20),
+    cin_no              VARCHAR(30),
+    iec_code            VARCHAR(30),
+    msme_reg_no         VARCHAR(50),
+    base_currency_code  VARCHAR(10)     NOT NULL DEFAULT 'INR',
+    registered_address  TEXT,
+    city                VARCHAR(100),
+    state_name          VARCHAR(100),
+    state_code          VARCHAR(10),
+    pincode             VARCHAR(15),
+    country             VARCHAR(100)    NOT NULL DEFAULT 'India',
+    phone               VARCHAR(30),
+    email               VARCHAR(150),
+    website             VARCHAR(150),
+    logo_url            VARCHAR(500),
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns (comp_id is PK above)
+    branch_id           BIGINT          NOT NULL DEFAULT 0,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_company_active ON tbl_org_company (is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_branch_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_org_branch (
+    branch_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_branch_id'),
+    branch_code         VARCHAR(20)     NOT NULL,
+    branch_name         VARCHAR(150)    NOT NULL,
+    branch_type         VARCHAR(30)     NOT NULL DEFAULT 'PLANT', -- HO, PLANT, WAREHOUSE, SALES_OFFICE
+    gstin               VARCHAR(20),
+    address             TEXT,
+    city                VARCHAR(100),
+    state_name          VARCHAR(100),
+    state_code          VARCHAR(10),
+    pincode             VARCHAR(15),
+    country             VARCHAR(100)    NOT NULL DEFAULT 'India',
+    phone               VARCHAR(30),
+    email               VARCHAR(150),
+    is_head_office      BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns (branch_id is PK above)
+    comp_id             BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_org_branch_code UNIQUE (comp_id, branch_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_branch_comp ON tbl_org_branch (comp_id, is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_fyear_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_org_financial_year (
+    fyear_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_fyear_id'),
+    fyear_code          VARCHAR(20)     NOT NULL, -- e.g. '2026-27'
+    fyear_name          VARCHAR(50)     NOT NULL, -- e.g. 'FY 2026-2027'
+    start_date          DATE            NOT NULL,
+    end_date            DATE            NOT NULL,
+    is_current          BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_closed           BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns (fyear_id is PK above)
+    comp_id             BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    branch_id           BIGINT          NOT NULL DEFAULT 0,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_org_fyear_code UNIQUE (comp_id, fyear_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_fyear_comp ON tbl_org_financial_year (comp_id, is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_branch_fyear_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_org_branch_fyear (
+    branch_fyear_id     BIGINT          PRIMARY KEY DEFAULT nextval('seq_branch_fyear_id'),
+    is_locked           BOOLEAN         NOT NULL DEFAULT FALSE,
+    books_begin_from    DATE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    branch_id           BIGINT          NOT NULL REFERENCES tbl_org_branch(branch_id),
+    fyear_id            BIGINT          NOT NULL REFERENCES tbl_org_financial_year(fyear_id),
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_org_branch_fyear UNIQUE (comp_id, branch_id, fyear_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_branch_fyear_lookup ON tbl_org_branch_fyear (comp_id, branch_id, fyear_id);
+
+
+-- ----------------------------------------------------------------------------
+-- 2. Global Roles, Screens, Actions & RBAC Permission Tables
+-- ----------------------------------------------------------------------------
+CREATE SEQUENCE IF NOT EXISTS seq_role_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_role (
+    role_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_role_id'),
+    role_code           VARCHAR(40)     NOT NULL UNIQUE,
+    role_name           VARCHAR(100)    NOT NULL,
+    role_description    VARCHAR(300),
+    is_system_role      BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns (Global roles default comp_id/branch_id to 1001)
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_screen_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_screen (
+    screen_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_screen_id'),
+    screen_code         VARCHAR(60)     NOT NULL UNIQUE,
+    screen_name         VARCHAR(120)    NOT NULL,
+    module_name         VARCHAR(60)     NOT NULL, -- e.g. 'DASHBOARD', 'ORGANIZATION', 'SECURITY', 'INVENTORY', 'PROCUREMENT', 'MANUFACTURING', 'SALES'
+    route_path          VARCHAR(150),
+    icon_name           VARCHAR(60),
+    display_order       INT             NOT NULL DEFAULT 1,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_action_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_action (
+    action_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_action_id'),
+    screen_id           BIGINT          NOT NULL REFERENCES tbl_sec_screen(screen_id),
+    action_code         VARCHAR(40)     NOT NULL, -- e.g. 'PRINT', 'EXPORT', 'AUTHORIZE', 'CANCEL', 'REOPEN'
+    action_name         VARCHAR(100)    NOT NULL,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_sec_screen_action UNIQUE (screen_id, action_code)
+);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_role_permission_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_role_permission (
+    role_permission_id  BIGINT          PRIMARY KEY DEFAULT nextval('seq_role_permission_id'),
+    role_id             BIGINT          NOT NULL REFERENCES tbl_sec_role(role_id),
+    screen_id           BIGINT          NOT NULL REFERENCES tbl_sec_screen(screen_id),
+    can_view            BOOLEAN         NOT NULL DEFAULT FALSE,
+    can_add             BOOLEAN         NOT NULL DEFAULT FALSE,
+    can_edit            BOOLEAN         NOT NULL DEFAULT FALSE,
+    can_delete          BOOLEAN         NOT NULL DEFAULT FALSE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_sec_role_screen UNIQUE (role_id, screen_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_role_perm_role ON tbl_sec_role_permission (role_id);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_role_action_permission_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_role_action_permission (
+    role_action_permission_id BIGINT    PRIMARY KEY DEFAULT nextval('seq_role_action_permission_id'),
+    role_id             BIGINT          NOT NULL REFERENCES tbl_sec_role(role_id),
+    screen_id           BIGINT          NOT NULL REFERENCES tbl_sec_screen(screen_id),
+    action_id           BIGINT          NOT NULL REFERENCES tbl_sec_action(action_id),
+    is_allowed          BOOLEAN         NOT NULL DEFAULT FALSE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_sec_role_action UNIQUE (role_id, action_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_role_act_perm_role ON tbl_sec_role_action_permission (role_id);
+
+
+-- ----------------------------------------------------------------------------
+-- 3. Users, Company/Branch Role Assignments & User Theme Preferences
+-- ----------------------------------------------------------------------------
+CREATE SEQUENCE IF NOT EXISTS seq_user_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_user (
+    user_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_user_id'),
+    username            VARCHAR(60)     NOT NULL UNIQUE,
+    email               VARCHAR(150)    NOT NULL UNIQUE,
+    mobile              VARCHAR(25),
+    password_hash       VARCHAR(255)    NOT NULL,
+    full_name           VARCHAR(150)    NOT NULL,
+    user_category       VARCHAR(20)     NOT NULL DEFAULT 'EMPLOYEE', -- 'SYSTEM', 'EMPLOYEE', 'PARTY'
+    linked_entity_id    BIGINT,                                      -- employee_id or party_id (NULL for SYSTEM Super Admin)
+    is_super_admin      BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    failed_login_count  INT             NOT NULL DEFAULT 0,
+    locked_until        TIMESTAMPTZ,
+    last_login_at       TIMESTAMPTZ,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_user_category ON tbl_sec_user (user_category, linked_entity_id);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_user_company_role_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_user_company_role (
+    user_company_role_id BIGINT         PRIMARY KEY DEFAULT nextval('seq_user_company_role_id'),
+    user_id             BIGINT          NOT NULL REFERENCES tbl_sec_user(user_id),
+    mapped_comp_id      BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    role_id             BIGINT          NOT NULL REFERENCES tbl_sec_role(role_id),
+    is_default          BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_sec_user_comp_role UNIQUE (user_id, mapped_comp_id, role_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_user_comp_role_user ON tbl_sec_user_company_role (user_id, is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_user_branch_role_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_user_branch_role (
+    user_branch_role_id BIGINT          PRIMARY KEY DEFAULT nextval('seq_user_branch_role_id'),
+    user_id             BIGINT          NOT NULL REFERENCES tbl_sec_user(user_id),
+    mapped_comp_id      BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    mapped_branch_id    BIGINT          NOT NULL REFERENCES tbl_org_branch(branch_id),
+    role_id             BIGINT          NOT NULL REFERENCES tbl_sec_role(role_id),
+    is_default          BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active           BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ,
+    CONSTRAINT uq_sec_user_branch_role UNIQUE (user_id, mapped_branch_id, role_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_user_branch_role_user ON tbl_sec_user_branch_role (user_id, is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_user_preference_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sec_user_preference (
+    user_preference_id  BIGINT          PRIMARY KEY DEFAULT nextval('seq_user_preference_id'),
+    user_id             BIGINT          NOT NULL UNIQUE REFERENCES tbl_sec_user(user_id),
+    theme_mode          VARCHAR(20)     NOT NULL DEFAULT 'light',   -- 'light', 'dark', 'system'
+    theme_color         VARCHAR(30)     NOT NULL DEFAULT 'indigo',  -- 'indigo', 'blue', 'emerald', 'violet', 'amber', 'rose'
+    sidebar_collapsed   BOOLEAN         NOT NULL DEFAULT FALSE,
+    default_comp_id     BIGINT          REFERENCES tbl_org_company(comp_id),
+    default_branch_id   BIGINT          REFERENCES tbl_org_branch(branch_id),
+    default_fyear_id    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL DEFAULT 1001,
+    branch_id           BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+
+-- ----------------------------------------------------------------------------
+-- 4. Universal Activity & Field-Delta Audit Trail Table
+-- ----------------------------------------------------------------------------
+CREATE SEQUENCE IF NOT EXISTS seq_audit_id START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sys_audit_log (
+    audit_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_audit_id'),
+    user_id             BIGINT          NOT NULL,
+    username            VARCHAR(60),
+    screen_code         VARCHAR(60)     NOT NULL,
+    action_type         VARCHAR(30)     NOT NULL, -- 'ADD', 'EDIT', 'DELETE', 'PRINT', 'EXPORT', 'AUTHORIZE', 'CANCEL', 'REOPEN', 'LOGIN', 'LOGOUT'
+    entity_table        VARCHAR(100)    NOT NULL,
+    record_id           BIGINT          NOT NULL,
+    old_value           JSONB,
+    new_value           JSONB,
+    changed_fields      JSONB,
+    ip_address          VARCHAR(50),
+    user_agent          VARCHAR(300),
+    correlation_id      VARCHAR(60),
+    action_timestamp    TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id             BIGINT          NOT NULL,
+    branch_id           BIGINT          NOT NULL,
+    fyear_id            BIGINT,
+    created_by          BIGINT          NOT NULL,
+    created_date        TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          BIGINT,
+    updated_date        TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sys_audit_log_tenant_time ON tbl_sys_audit_log (comp_id, branch_id, action_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_sys_audit_log_entity ON tbl_sys_audit_log (entity_table, record_id);
+CREATE INDEX IF NOT EXISTS idx_sys_audit_log_user ON tbl_sys_audit_log (user_id, action_timestamp DESC);
+

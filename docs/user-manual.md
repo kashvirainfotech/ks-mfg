@@ -38,3 +38,19 @@ When a new screen is released, this manual provides:
   3. Allocating batch/serial numbers and selecting warehouse bins.
 * **Action Buttons Guide:** Explanations of `Save Draft`, `Submit`, `Authorize`, `Print`, and `Export`.
 * **Troubleshooting & FAQs:** Common validation errors and resolutions.
+
+---
+
+### 2.1 Authentication, Multi-Branch Context Switching & Theme Personalization (Step 0.1)
+
+* **Purpose:** Authenticate users into KS-MFG ERP, resolve their authorized Company, Branch, and Financial Year context, load granular role permissions, and persist personal UI theme preferences.
+* **Default Root Super Admin Credentials:**
+  * **Username / Email:** `admin` or `admin@ksmfg.com`
+  * **Password:** `Admin@123`
+* **Multi-Company / Branch / Financial Year Switching:**
+  * Upon login, your active **Company** (`KSMFG - Kashvira Manufacturing ERP`), **Branch** (`PLT-AHM-01 - Ahmedabad Main Plant & HO`), and **Financial Year** (`FY 2026-2027`) are automatically loaded.
+  * Switching Company, Branch, or Financial Year validates your assigned roles (`tbl_sec_user_company_role` and `tbl_sec_user_branch_role`) and refreshes your active screen and action permissions immediately.
+* **Theme Mode & Color Personalization:**
+  * Users can choose between **Light**, **Dark**, or **System** mode and select from 6 brand palettes (**Indigo**, **Blue**, **Emerald**, **Violet**, **Amber**, **Rose**) plus default sidebar collapsed/expanded state.
+  * Changes are saved directly to your user profile in the database (`tbl_sec_user_preference`) with full audit trail tracking.
+

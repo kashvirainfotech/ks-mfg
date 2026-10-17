@@ -9,36 +9,36 @@
 ## Phase 1: Database Foundation, Tenancy Core & Infrastructure
 
 ### 1.1 Database Scripts & Schema Setup (`dbscripts/` Root Folder)
-- [ ] Verify root folder structure `dbscripts/`, `dbscripts/views/`, `dbscripts/functions/`, `dbscripts/triggers/`, `dbscripts/procedures/`
-- [ ] In `dbscripts/01_schema_objects.sql`:
-  - [ ] Create core sequences (`seq_comp_id`, `seq_branch_id`, `seq_fyear_id`, `seq_user_id`, `seq_employee_id`, `seq_party_id`, `seq_item_id`, `seq_warehouse_id`, `seq_location_id`, `seq_voucher_id`, `seq_audit_id`)
-  - [ ] Create `tbl_mst_company` (with standard 7 audit columns)
-  - [ ] Create `tbl_mst_branch` (with standard 7 audit columns)
-  - [ ] Create `tbl_mst_financial_year` (`fyear_id`, `fyear_code`, `start_date`, `end_date`, `is_locked`)
-  - [ ] Create `tbl_mst_branch_fyear` mapping table for branch-level financial year activation and locking
-  - [ ] Create `tbl_sec_user_preference` for user theme mode and theme color preferences
-  - [ ] Create `tbl_sys_audit_log` (`audit_id`, `comp_id`, `branch_id`, `user_id`, `screen_code`, `action_type`, `table_name`, `record_id`, `changed_fields` JSONB, `old_values` JSONB, `new_values` JSONB, `ip_address`, `user_agent`, `created_date`)
-- [ ] In `dbscripts/functions/fn_set_updated_timestamp.sql`:
-  - [ ] Create trigger function updating `updated_date` automatically
-- [ ] In `dbscripts/triggers/trg_set_updated_timestamp.sql`:
-  - [ ] Create trigger binding for company and branch tables
-- [ ] In `dbscripts/02_initial_data.sql`:
-  - [ ] Add root Super Admin user seed (`admin` / `superadmin`) unmapped to employee/party
-  - [ ] Add default system parameters and initial screen codes
+- [x] Verify root folder structure `dbscripts/`, `dbscripts/views/`, `dbscripts/functions/`, `dbscripts/triggers/`, `dbscripts/procedures/`
+- [x] In `dbscripts/01_schema_objects.sql`:
+  - [x] Create core sequences (`seq_comp_id`, `seq_branch_id`, `seq_fyear_id`, `seq_user_id`, `seq_role_id`, `seq_screen_id`, `seq_action_id`, `seq_audit_id`)
+  - [x] Create `tbl_org_company` (with standard 7 audit columns)
+  - [x] Create `tbl_org_branch` (with standard 7 audit columns)
+  - [x] Create `tbl_org_financial_year` (`fyear_id`, `fyear_code`, `start_date`, `end_date`, `is_closed`)
+  - [x] Create `tbl_org_branch_fyear` mapping table for branch-level financial year activation and locking
+  - [x] Create `tbl_sec_user_preference` for user theme mode and theme color preferences
+  - [x] Create `tbl_sys_audit_log` (`audit_id`, `comp_id`, `branch_id`, `user_id`, `screen_code`, `action_type`, `entity_table`, `record_id`, `changed_fields` JSONB, `old_value` JSONB, `new_value` JSONB, `ip_address`, `user_agent`, `created_date`)
+- [x] In `dbscripts/functions/fn_set_updated_timestamp.sql`:
+  - [x] Create trigger function updating `updated_date` automatically
+- [x] In `dbscripts/triggers/trg_set_updated_timestamp.sql`:
+  - [x] Create trigger binding for company and branch tables
+- [x] In `dbscripts/02_initial_data.sql`:
+  - [x] Add root Super Admin user seed (`admin` / `Admin@123`) unmapped to employee/party
+  - [x] Add default system parameters and initial screen codes
 
 ### 1.2 Backend Framework Setup (NestJS & Drizzle ORM)
 - [x] Initialize NestJS project with TypeScript strict mode
-- [ ] Configure environment variable management (`@nestjs/config`) with `.env.example`
-- [ ] Configure Drizzle ORM in strict non-sync query builder mode
-  - [ ] Verify `drizzle-kit push` and auto-sync are disabled
-  - [ ] Establish connection pool with `pg` driver
-  - [ ] Create schema mapping classes matching reviewed SQL tables
-- [ ] Set up structured logging with `nestjs-pino` and Correlation ID middleware
-- [ ] Set up global `AuditLogInterceptor` for automated activity logging and JSONB field-level change deltas
-- [ ] Set up `DependencyCheckService` to verify foreign references before any master or transaction deletion
-- [ ] Configure Redis client for session tokens and cache management
-- [ ] Set up global ValidationPipe with `class-validator` and `class-transformer`
-- [ ] Set up global HttpExceptionFilter for standardized JSON error responses
+- [x] Configure environment variable management (`@nestjs/config`) with `.env.example`
+- [x] Configure Drizzle ORM in strict non-sync query builder mode
+  - [x] Verify `drizzle-kit push` and auto-sync are disabled
+  - [x] Establish connection pool with `pg` driver
+  - [x] Create schema mapping classes matching reviewed SQL tables
+- [x] Set up structured logging and Correlation ID middleware
+- [x] Set up global `AuditLogInterceptor` for automated activity logging and JSONB field-level change deltas
+- [x] Set up `DependencyCheckService` to verify foreign references before any master or transaction deletion
+- [x] Configure Redis client for session tokens and cache management
+- [x] Set up Zod schema validation for DTOs
+- [x] Set up global `AllExceptionsFilter` and `ResponseEnvelopeInterceptor` for standardized JSON responses
 
 ### 1.3 Frontend Framework Setup (Vite + React 19 + TypeScript)
 - [x] Initialize Vite React TypeScript project
