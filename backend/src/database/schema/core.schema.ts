@@ -6,6 +6,8 @@ import {
   boolean,
   date,
   integer,
+  numeric,
+  smallint,
   timestamp,
   jsonb,
   unique,
@@ -598,5 +600,251 @@ export const tblSysDocNumberSeries = pgTable(
     ),
   }),
 );
+
+// ============================================================================
+// 8. Multi-Level Warehouse & Storage Bin Hierarchy (Step 3.1)
+// ============================================================================
+
+export const tblInvWarehouse = pgTable(
+  'tbl_inv_warehouse',
+  {
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_warehouse_id')`),
+    warehouseCode: varchar('warehouse_code', { length: 30 }).notNull(),
+    warehouseName: varchar('warehouse_name', { length: 120 }).notNull(),
+    warehouseType: varchar('warehouse_type', { length: 30 })
+      .notNull()
+      .default('RAW_MATERIAL'),
+    targetCompId: bigint('target_comp_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblOrgCompany.compId),
+    targetBranchId: bigint('target_branch_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblOrgBranch.branchId),
+    inchargeEmployeeId: bigint('incharge_employee_id', {
+      mode: 'number',
+    }).references(() => tblHrEmployee.employeeId),
+    allowNegativeStock: boolean('allow_negative_stock')
+      .notNull()
+      .default(false),
+    isQcHoldStore: boolean('is_qc_hold_store').notNull().default(false),
+    isShopfloorWip: boolean('is_shopfloor_wip').notNull().default(false),
+    storageTempMinC: numeric('storage_temp_min_c', { precision: 6, scale: 2 }),
+    storageTempMaxC: numeric('storage_temp_max_c', { precision: 6, scale: 2 }),
+    addressLocation: varchar('address_location', { length: 250 }),
+    isDefault: boolean('is_default').notNull().default(false),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqWarehouseCode: unique('uq_inv_warehouse_code').on(
+      table.targetCompId,
+      table.targetBranchId,
+      table.warehouseCode,
+    ),
+  }),
+);
+
+export const tblInvStorageBin = pgTable(
+  'tbl_inv_storage_bin',
+  {
+    binId: bigint('bin_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_storage_bin_id')`),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    binCode: varchar('bin_code', { length: 50 }).notNull(),
+    binName: varchar('bin_name', { length: 120 }).notNull(),
+    zoneCode: varchar('zone_code', { length: 25 }).notNull(),
+    rackCode: varchar('rack_code', { length: 25 }).notNull().default('R01'),
+    shelfLevel: varchar('shelf_level', { length: 25 }).notNull().default('S01'),
+    binPosition: varchar('bin_position', { length: 25 })
+      .notNull()
+      .default('B01'),
+    binType: varchar('bin_type', { length: 30 })
+      .notNull()
+      .default('PALLET_RACK'),
+    maxWeightKg: numeric('max_weight_kg', { precision: 12, scale: 2 })
+      .notNull()
+      .default('1000.00'),
+    maxVolumeCbm: numeric('max_volume_cbm', { precision: 10, scale: 3 }),
+    allowMixedItems: boolean('allow_mixed_items').notNull().default(true),
+    allowMixedBatches: boolean('allow_mixed_batches').notNull().default(false),
+    isPickFace: boolean('is_pick_face').notNull().default(true),
+    isReceivingStaging: boolean('is_receiving_staging')
+      .notNull()
+      .default(false),
+    isBlockedForPutaway: boolean('is_blocked_for_putaway')
+      .notNull()
+      .default(false),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqWarehouseBinCode: unique('uq_inv_warehouse_bin_code').on(
+      table.warehouseId,
+      table.binCode,
+    ),
+  }),
+);
+
+export const tblInvUom = pgTable('tbl_inv_uom', {
+  uomId: bigint('uom_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_uom_id')`),
+  uomCode: varchar('uom_code', { length: 20 }).notNull().unique(),
+  uomName: varchar('uom_name', { length: 100 }).notNull(),
+  uomType: varchar('uom_type', { length: 30 }).notNull().default('COUNT'),
+  decimalPrecision: smallint('decimal_precision').notNull().default(0),
+  gstUqcCode: varchar('gst_uqc_code', { length: 10 }).notNull(),
+  isBaseUom: boolean('is_base_uom').notNull().default(false),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+export const tblInvUomConversion = pgTable(
+  'tbl_inv_uom_conversion',
+  {
+    conversionId: bigint('conversion_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_uom_conversion_id')`),
+    fromUomId: bigint('from_uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    toUomId: bigint('to_uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    conversionFactor: numeric('conversion_factor', { precision: 18, scale: 6 })
+      .notNull(),
+    inverseFactor: numeric('inverse_factor', { precision: 18, scale: 6 })
+      .notNull(),
+    conversionType: varchar('conversion_type', { length: 30 })
+      .notNull()
+      .default('STANDARD'),
+    remarks: varchar('remarks', { length: 255 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqUomConversion: unique('uq_inv_uom_conversion').on(
+      table.fromUomId,
+      table.toUomId,
+    ),
+  }),
+);
+
+export const tblInvItemCategory = pgTable('tbl_inv_item_category', {
+  categoryId: bigint('category_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_item_category_id')`),
+  categoryCode: varchar('category_code', { length: 50 }).notNull().unique(),
+  categoryName: varchar('category_name', { length: 100 }).notNull(),
+  parentCategoryId: bigint('parent_category_id', { mode: 'number' })
+    .references((): any => tblInvItemCategory.categoryId),
+  categoryType: varchar('category_type', { length: 30 })
+    .notNull()
+    .default('RAW_MATERIAL'),
+  hsnSacCode: varchar('hsn_sac_code', { length: 20 }),
+  defaultTaxRate: numeric('default_tax_rate', { precision: 5, scale: 2 })
+    .notNull()
+    .default('18.00'),
+  defaultValuationMethod: varchar('default_valuation_method', { length: 20 })
+    .notNull()
+    .default('FIFO'),
+  levelDepth: smallint('level_depth').notNull().default(1),
+  hierarchyPath: varchar('hierarchy_path', { length: 255 }).notNull(),
+  isLeaf: boolean('is_leaf').notNull().default(true),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+// ============================================================================
+// 10. Item & Material Master (Step 3.3)
+// ============================================================================
+
+export const tblInvItem = pgTable(
+  'tbl_inv_item',
+  {
+    itemId: bigint('item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_item_id')`),
+    itemCode: varchar('item_code', { length: 50 }).notNull(),
+    itemName: varchar('item_name', { length: 150 }).notNull(),
+    categoryId: bigint('category_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItemCategory.categoryId),
+    itemType: varchar('item_type', { length: 30 })
+      .notNull()
+      .default('RAW_MATERIAL'),
+    description: varchar('description', { length: 500 }),
+    baseUomId: bigint('base_uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    purchaseUomId: bigint('purchase_uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    salesUomId: bigint('sales_uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    hsnSacCode: varchar('hsn_sac_code', { length: 20 }),
+    taxRate: numeric('tax_rate', { precision: 5, scale: 2 })
+      .notNull()
+      .default('18.00'),
+    standardCost: numeric('standard_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    purchaseRate: numeric('purchase_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    salesRate: numeric('sales_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    minStockLevel: numeric('min_stock_level', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    maxStockLevel: numeric('max_stock_level', { precision: 14, scale: 3 }),
+    reorderPoint: numeric('reorder_point', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    safetyStock: numeric('safety_stock', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    leadTimeDays: integer('lead_time_days').notNull().default(7),
+    valuationMethod: varchar('valuation_method', { length: 20 })
+      .notNull()
+      .default('FIFO'),
+    isBatchManaged: boolean('is_batch_managed').notNull().default(true),
+    isSerialManaged: boolean('is_serial_managed').notNull().default(false),
+    isQcInspectionRequired: boolean('is_qc_inspection_required')
+      .notNull()
+      .default(true),
+    shelfLifeDays: integer('shelf_life_days'),
+    defaultWarehouseId: bigint('default_warehouse_id', {
+      mode: 'number',
+    }).references(() => tblInvWarehouse.warehouseId),
+    defaultBinId: bigint('default_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    drawingNo: varchar('drawing_no', { length: 60 }),
+    revisionNo: varchar('revision_no', { length: 20 }),
+    weightPerUnitKg: numeric('weight_per_unit_kg', { precision: 12, scale: 4 }),
+    isBomAllowed: boolean('is_bom_allowed').notNull().default(true),
+    yieldPercentage: numeric('yield_percentage', { precision: 5, scale: 2 })
+      .notNull()
+      .default('100.00'),
+    inspectionLeadTimeDays: integer('inspection_lead_time_days')
+      .notNull()
+      .default(1),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvItemCode: unique('uq_inv_item_code').on(table.compId, table.itemCode),
+  }),
+);
+
+
 
 

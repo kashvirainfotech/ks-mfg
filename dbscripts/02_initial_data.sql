@@ -465,3 +465,120 @@ ON CONFLICT (series_id) DO NOTHING;
 
 SELECT setval('seq_doc_series_id', GREATEST((SELECT COALESCE(MAX(series_id), 1008) FROM tbl_sys_doc_number_series), 1008));
 
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.1 - Multi-Level Warehouse & Storage Bin Hierarchy Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1023, 1011, 'EXPORT', 'Export Warehouses & Storage Bin Hierarchy', TRUE, 1001, 1001, 1001, 1001),
+    (1024, 1011, 'PRINT',  'Print Warehouse & Bin Topology Register',   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1024) FROM tbl_sec_action), 1024));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1011, 1023, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1011, 1024, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1011, 1023, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1011, 1023, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.2 - UOM Master & Item Categories Action Seeds (screen_id = 1012)
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1025, 1012, 'EXPORT', 'Export UOMs & Item Categories',           TRUE, 1001, 1001, 1001, 1001),
+    (1026, 1012, 'PRINT',  'Print UOM & Item Category Directory',     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1026) FROM tbl_sec_action), 1026));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1012, 1025, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1012, 1026, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1012, 1025, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1012, 1025, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1012, 1025, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- Standard Baseline Units of Measurement (tbl_inv_uom)
+INSERT INTO tbl_inv_uom (
+    uom_id, uom_code, uom_name, uom_type, decimal_precision,
+    gst_uqc_code, is_base_uom, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'KG',   'Kilogram',                    'WEIGHT', 3, 'KGS', TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'TON',  'Metric Tonne (1,000 kg)',     'WEIGHT', 3, 'TON', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'NOS',  'Numbers / Individual Pieces', 'COUNT',  0, 'NOS', TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'BOX',  'Box / Outer Carton',          'COUNT',  0, 'BOX', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 'MTR',  'Linear Meter',                'LENGTH', 2, 'MTR', TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1006, 'MM',   'Millimeter',                  'LENGTH', 2, 'MTR', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1007, 'LTR',  'Litre (Liquid Volume)',       'VOLUME', 3, 'LTR', TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1008, 'ROLL', 'Roll / Continuous Coil',      'COUNT',  0, 'ROL', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1009, 'SET',  'Assembly Kit / Set',          'COUNT',  0, 'SET', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1010, 'SQM',  'Square Meter (Sheet Area)',   'AREA',   2, 'SQM', TRUE,  TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (uom_id) DO NOTHING;
+
+SELECT setval('seq_uom_id', GREATEST((SELECT COALESCE(MAX(uom_id), 1010) FROM tbl_inv_uom), 1010));
+
+-- Standard Baseline UOM Conversion Matrix (tbl_inv_uom_conversion)
+INSERT INTO tbl_inv_uom_conversion (
+    conversion_id, from_uom_id, to_uom_id,
+    conversion_factor, inverse_factor, conversion_type, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1002, 1001, 1000.000000, 0.001000, 'STANDARD', '1 Metric Tonne = 1000 Kilograms', TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1001, 1002, 0.001000, 1000.000000, 'STANDARD', '1 Kilogram = 0.001 Metric Tonnes', TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1005, 1006, 1000.000000, 0.001000, 'STANDARD', '1 Meter = 1000 Millimeters',       TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1006, 1005, 0.001000, 1000.000000, 'STANDARD', '1 Millimeter = 0.001 Meters',       TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1004, 1003, 50.000000,   0.020000, 'PACKAGING','Standard Secondary Box = 50 Pieces',TRUE, 1001, 1001, 1001, 1001),
+    (1006, 1008, 1005, 250.000000,  0.004000, 'STANDARD', 'Standard Raw Coil Roll = 250 Meters',TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (conversion_id) DO NOTHING;
+
+SELECT setval('seq_uom_conversion_id', GREATEST((SELECT COALESCE(MAX(conversion_id), 1006) FROM tbl_inv_uom_conversion), 1006));
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.3 - Item & Material Master Screen Action Seeds
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1027, 1013, 'PRINT', 'Print Item Specification / Datasheet', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1027) FROM tbl_sec_action), 1027));
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1013, 1005, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1013, 1027, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1013, 1005, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1013, 1027, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1013, 1005, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1013, 1027, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1013, 1005, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1013, 1027, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1013, 1005, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1013, 1027, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+
+

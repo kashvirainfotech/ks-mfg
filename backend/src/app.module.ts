@@ -15,6 +15,9 @@ import { RoleModule } from './modules/security/role/role.module';
 import { UserModule } from './modules/security/user/user.module';
 import { AuditLogViewerModule } from './modules/security/audit-log/audit-log-viewer.module';
 import { SystemConfigModule } from './modules/admin/system-config/system-config.module';
+import { WarehouseModule } from './modules/inventory/warehouse/warehouse.module';
+import { UomModule } from './modules/inventory/uom/uom.module';
+import { ItemModule } from './modules/inventory/item/item.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -40,6 +43,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     UserModule,
     AuditLogViewerModule,
     SystemConfigModule,
+    WarehouseModule,
+    UomModule,
+    ItemModule,
   ],
   controllers: [AppController],
   providers: [

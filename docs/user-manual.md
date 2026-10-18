@@ -229,3 +229,90 @@ When a new screen is released, this manual provides:
      * Click **Simulate** on any series row to open the **Voucher Sequence Generator Simulation Modal**, displaying the next 5 sequential document numbers from PostgreSQL.
      * Click **Delete** on an unused series (`0` documents issued) to remove it. Any series that has already generated vouchers (`current_next_no > starting_no`) is protected from deletion (`409 Conflict`) to preserve statutory numbering continuity.
 * **Action Buttons:** `Print` (`CONFIG_MASTER -> PRINT`), `Export CSV` (`CONFIG_MASTER -> EXPORT`), `+ Add Parameter / Create Document Series` (`CONFIG_MASTER -> ADD`), `Override / Reset / Edit` (`CONFIG_MASTER -> EDIT`), and `Delete` (`CONFIG_MASTER -> DELETE`).
+
+---
+
+### 2.12 Multi-Level Warehouse, Zone, Rack, Shelf & Bin Hierarchy Master (`/inventory/warehouses` — Step 3.1)
+
+* **Purpose:** Configure plant-scoped physical and virtual stores (`tbl_inv_warehouse`: Raw Material, Shopfloor WIP, Finished Goods, IQC Quarantine Hold, Rejection/Scrap, Engineering Spares MRO, Tool Crib, and Subcontractor Job-Work stores) along with a 5-level WMS storage bin coordinate matrix (`tbl_inv_storage_bin`: `Warehouse ▸ Zone ▸ Rack ▸ Shelf ▸ Bin Position`) for barcode-guided putaway, FIFO/FEFO batch picking, and load/volume capacity control.
+* **Prerequisites:** Active Companies (`/org/companies`) and Plant/Branches (`/org/branches`) must exist. Optional Store Custodians are selected from Employee Master (`/hr/employees`).
+* **Step-by-Step Usage:**
+  1. Navigate to **Inventory & WMS $\rightarrow$ Warehouses & Bins** (`/inventory/warehouses`).
+  2. **Tab 1 — Plant Warehouses & Stores (`tbl_inv_warehouse`):**
+     * Filter stores by **Plant / Branch** or group by **Plant / Branch** or **Store Type**.
+     * Click **New Plant Warehouse** to register a store with its **Target Company, Plant/Branch, Warehouse Code, Store Classification Type, Store In-Charge Employee, Storage Temperature Range (`°C`), Default Store Flag, Negative Stock Policy, QC Quarantine Hold Flag, and Shopfloor WIP Backflush Flag**.
+     * Click **Inspect Bins ▸** on any warehouse row to switch directly to Tab 2 filtered to that warehouse's storage bin coordinates.
+     * Click **Delete** to remove an unused warehouse. If storage bins are mapped to the warehouse, `DependencyCheckService` blocks deletion (`409 Conflict`) and lists the dependent `tbl_inv_storage_bin` count inside `<ConfirmDeleteModal>`.
+  3. **Tab 2 — Multi-Level Storage Bin Hierarchy (`tbl_inv_storage_bin`):**
+     * Use the **Interactive Warehouse Pill Bar** to filter storage bins by parent warehouse, or group bins by **Warehouse**, **Warehouse Zone**, or **Physical Bin Type** (`PALLET_RACK`, `CANTILEVER`, `MEZZANINE_SHELF`, `FLOOR_BULK`, `COLD_CHAMBER`, `SILO_TANK`, `QC_QUARANTINE_CAGE`).
+     * Click **+ Add Storage Bin** to create a single 5-level bin coordinate with live preview of the `WH ▸ ZONE ▸ RACK ▸ SHELF ▸ BIN` breadcrumb, safe weight capacity (`kg`), volume limit (`CBM`), and putaway governance flags (`Allow Mixed Items`, `Allow Mixed Batches`, `Pick-Face`, `GRN Staging Bay`, `Blocked for Putaway`).
+     * Click **Bulk Rack/Bin Matrix Generator** to atomically generate up to 100 storage bins across a specified **Zone, Rack Range (`R01`–`Rnn`), Shelf Range (`S01`–`Snn`), and Bin Position Range (`B01`–`Bnn`)** in a single PostgreSQL transaction.
+* **Action Buttons:** `Print` (`WAREHOUSE_MASTER -> PRINT`), `Export CSV` (`WAREHOUSE_MASTER -> EXPORT`), `New Plant Warehouse / + Add Storage Bin / Bulk Rack/Bin Matrix Generator / Clone Bin` (`WAREHOUSE_MASTER -> ADD`), `Edit` (`WAREHOUSE_MASTER -> EDIT`), and `Delete` (`WAREHOUSE_MASTER -> DELETE`).
+
+---
+
+### 2.13 UOM, UOM Conversion Matrix & Item Category Hierarchy Master (`/inventory/uoms` — Step 3.2)
+
+* **Purpose:** Define standard physical units of measurement (`tbl_inv_uom`) equipped with Indian GST Unique Quantity Codes (UQCs) and decimal precisions, mathematical and packaging inter-UOM conversion ratios (`tbl_inv_uom_conversion`), and recursive multi-level item categorization trees (`tbl_inv_item_category`) for Raw Materials, WIP Sub-Assemblies, Finished Goods, MRO Consumables, and Press Tooling.
+* **Prerequisites:** Users must have `UOM_MASTER -> VIEW` permission in their assigned role.
+* **Step-by-Step Usage:**
+  1. Navigate to **Inventory & WMS $\rightarrow$ UOM & Categories** (`/inventory/uoms`).
+  2. **Tab 1 — Units of Measurement (`tbl_inv_uom`):**
+     * Filter units by **Physical Metric Type** (`WEIGHT`, `COUNT`, `LENGTH`, `VOLUME`, `AREA`, `TIME`).
+     * Click **New UOM** to register a unit with its **UOM Code (`KG`, `NOS`, `MTR`), UOM Title, Metric Type, Decimal Precision (`0`–`6`), GST UQC Code, and Base Reference UOM flag**.
+     * Click **View Ratios ▸** on any UOM row to view all active mathematical conversions originating from or targeting this unit.
+     * Click **Delete** to remove an unused UOM. If the UOM is mapped as a source or target in `tbl_inv_uom_conversion`, `DependencyCheckService` blocks deletion (`409 Conflict`) and displays active dependencies in `<ConfirmDeleteModal>`.
+  3. **Tab 2 — Unit Conversion Matrix (`tbl_inv_uom_conversion`):**
+     * Group conversions by **Source Unit** or **Ratio Type** (`STANDARD`, `PACKAGING`, `ITEM_SPECIFIC`).
+     * Click **+ Add Conversion Ratio** to create an inter-unit multiplier (`1 Source UOM = Factor Target UOM`) with live formula visualization and optional **Auto-Create Reciprocal Pair** (e.g., automatically creates both `1 TON = 1000 KG` and `1 KG = 0.001 TON` in a single transaction).
+  4. **Tab 3 — Item Category Hierarchy Tree (`tbl_inv_item_category`):**
+     * Filter categories by **Classification Pillar** (`RAW_MATERIAL`, `WIP_SUB_ASSEMBLY`, `FINISHED_GOODS`, `PACKING_MATERIAL`, `CONSUMABLES_MRO`, `TOOLS_DIES`, `SCRAP_REJECT`).
+     * Click **+ Add Item Category** (or click the `+` button on an existing category row) to register a new tree node. The system auto-calculates the node's **Hierarchy Depth Level (`L1`, `L2`, `L3`)** and materialized path (e.g. `RAW_MATERIAL / RM_FERROUS / RM_HR_SHEET`) while updating parent node folder status (`is_leaf = FALSE`).
+     * Specify default **HSN/SAC Codes**, **GST Tax Rates (`%`)**, and **Valuation Methods (`FIFO`, `WEIGHTED_AVG`, `STANDARD_COST`)** to be automatically inherited by items in this category.
+     * Click **Delete** to remove an empty leaf category. Categories with child sub-categories are protected from deletion (`409 Conflict`).
+* **Action Buttons:** `Print` (`UOM_MASTER -> PRINT`), `Export CSV` (`UOM_MASTER -> EXPORT`), `New UOM / + Add Conversion Ratio / + Add Item Category` (`UOM_MASTER -> ADD`), `Edit` (`UOM_MASTER -> EDIT`), and `Delete` (`UOM_MASTER -> DELETE`).
+
+
+---
+
+### 2.14 Item & Material Master, Multi-UOM, Pricing, Quality & BOM Parameters (`/inventory/items` — Step 3.3)
+
+* **Purpose:** Centrally manage all engineering materials, purchased items, WIP sub-assemblies, finished goods, consumables, and press tooling (`tbl_inv_item`). Configure multi-UOM mappings (Inventory Base UOM vs. Purchase Order UOM vs. Sales Invoice UOM), standard and actual cost benchmarks, GST statutory rates & HSN codes, buffer inventory thresholds (ROP, Min Stock, Safety Stock, Lead Time), and discrete manufacturing governance parameters (Batch/Heat traceability, Serial number tracking, Mandatory Quality Control inspection, and Bill of Materials parent allowance).
+* **Prerequisites:** 
+  1. Base and secondary units must exist in **UOM Master** (`/inventory/uoms`).
+  2. Leaf category nodes must exist in **Item Category Hierarchy Tree** (`/inventory/uoms`).
+  3. Physical warehouses and storage bins must exist in **Warehouse & Bin Hierarchy** (`/inventory/warehouses`).
+* **Step-by-Step Usage:**
+  1. Navigate to **Inventory & WMS $\rightarrow$ Item & BOM Catalog** (`/inventory/items`).
+  2. **Catalog Overview & KPI Metric Cards:**
+     * Review real-time catalog analytics: **Total Master SKUs**, **Finished Goods (Saleable)**, **WIP & Sub-Assemblies**, and **Batch & QC Governed SKUs**.
+     * Filter items by **Classification Pillar Pills** (`All Types`, `Raw Material`, `WIP / Sub-Assembly`, `Finished Goods`, `Packing Material`, `MRO Consumable`, `Tooling & Die`, `Scrap & Rejection`).
+     * Filter or group items dynamically by **Classification**, **Category Pillar**, **Valuation Method (`FIFO`, `WEIGHTED_AVG`, `STANDARD_COST`)**, or **Default Storing Warehouse**.
+  3. **Creating or Editing an Item SKU:**
+     * Click **New Item SKU** (or the pencil icon on an existing row) to open the 4-tab item configuration modal:
+     * **Tab 1 — Identity & Classification:**
+       * Enter unique **Item Code** (e.g. `RM-SS316-ROUND-50`, `WIP-VLV-BODY-MACH`, `FG-GATE-VALVE-50`).
+       * Select **Classification Pillar** and **Item Category Tree Node** (automatically inherits category HSN, default tax rate, and valuation method).
+       * Enter **Item Name & Title**, optional **Material Specification / Engineering Notes**, **Engineering Drawing Number & Revision** (e.g. `DWG-VB-2026-01 Rev.B`), and **Unit Weight (`kg`)**.
+     * **Tab 2 — Multi-UOM & Warehouse Planning:**
+       * Select **Base Inventory UOM** (strictly used for stock ledger valuation).
+       * Select default **Purchase UOM** and **Sales UOM** (e.g., steel sheet purchased in `TON` but inventoried in `KG`, or automotive mounts sold in `BOX` of 50).
+       * Select default putaway **Warehouse** and specific **Storage Bin coordinate** (filtered dynamically to the chosen warehouse).
+       * Configure replenishment buffers: **Reorder Point (ROP)**, **Minimum Stock Level**, **Safety Stock**, and **Procurement/Production Lead Time (Days)**.
+     * **Tab 3 — Costing & Taxation:**
+       * Enter **Standard Cost (₹)**, default **Purchase Rate (₹)**, and list **Selling Rate (₹)**.
+       * Verify statutory **HSN / SAC Code**, **GST Tax Rate (%)**, and choose inventory **Valuation Method** (`FIFO`, `Moving Weighted Average`, `Standard Costing`).
+     * **Tab 4 — Quality & BOM Governance:**
+       * **Batch / Heat Number Managed:** Mandatory heat/batch allocation during GRN inward and job-work receipts.
+       * **Serial Number Individual Tracking:** Generates unique individual serial tracking for critical high-value assemblies.
+       * **Mandatory QC Inspection Required:** Inward receipts route automatically to the Quarantine QC bay before clearance to active bin storage.
+       * **Shelf Life (Days):** Enter expiration horizon for chemicals, adhesives, or rubber seals.
+       * **Allow as BOM Parent SKU:** Enables creating multi-level Bill of Materials for this SKU.
+       * **Expected Standard Yield %:** Enter anticipated manufacturing process yield (e.g., `98.00%` factoring in turning scrap).
+       * **QC Inspection Lead Time (Days):** Allocation for metallurgy testing, dimensional CMM inspection, or hydrostatic test certification.
+  4. **Datasheet Printing & Export:**
+     * Click the **Printer icon** on any item row to preview and print a clean, high-density industrial specification sheet.
+     * Click **Export CSV** to download the comprehensive item catalogue with all engineering, multi-UOM, and costing attributes. All export and print activities are automatically logged in `tbl_sec_audit_log`.
+  5. **Safe Deletion with Dependency Checking:**
+     * Click the **Trash icon** on an item row. If the SKU is linked to active Bills of Materials (`tbl_bom_header`, `tbl_bom_item`), Warehouse Stock Balances (`tbl_inv_stock_balance`), Purchase Orders (`tbl_po_item`), Goods Receipts (`tbl_grn_item`), or Shopfloor Work Orders (`tbl_prod_work_order`), `DependencyCheckService` blocks deletion (`409 Conflict`) and lists all child references in `<ConfirmDeleteModal>`.
+* **Action Buttons:** `Print Datasheet` (`ITEM_MASTER -> PRINT`), `Export CSV` (`ITEM_MASTER -> EXPORT`), `New Item SKU` (`ITEM_MASTER -> ADD`), `Edit Item Master` (`ITEM_MASTER -> EDIT`), and `Delete Item Master` (`ITEM_MASTER -> DELETE`).

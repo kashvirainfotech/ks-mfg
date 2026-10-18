@@ -242,3 +242,72 @@ Each screen or feature documentation entry must contain:
    * `DELETE /api/v1/admin/configurations/doc-series/:id` (`@RequirePermission('CONFIG_MASTER', 'DELETE')`) — blocks deletion (`409 Conflict`) if `current_next_no > starting_no`.
 3. **Frontend Architecture (`frontend/src/pages/admin/SystemConfigPage.tsx`):**
    * Dual-tab interface (*1. System Configuration Matrix* and *2. Document Numbering Series Engine*) reusing `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="CONFIG_MASTER">`, complete with live voucher number preview and sequence simulator modal with zero dummy data.
+
+---
+
+### 2.12 Step 3.1 — Multi-Level Warehouse, Zone, Rack, Shelf & Bin Hierarchy Master (`/inventory/warehouses`)
+
+1. **Database Objects (`dbscripts/`):**
+   * Tables: `tbl_inv_warehouse` (`warehouse_id` PK, `warehouse_code`, `warehouse_name`, `warehouse_type`, `target_comp_id` FK $\rightarrow$ `tbl_org_company`, `target_branch_id` FK $\rightarrow$ `tbl_org_branch`, `incharge_employee_id` FK $\rightarrow$ `tbl_hr_employee`, `allow_negative_stock`, `is_qc_hold_store`, `is_shopfloor_wip`, `storage_temp_min_c`, `storage_temp_max_c`, `address_location`, `is_default`, `is_active`, unique `(target_comp_id, target_branch_id, warehouse_code)`) and `tbl_inv_storage_bin` (`bin_id` PK, `warehouse_id` FK $\rightarrow$ `tbl_inv_warehouse`, `bin_code`, `bin_name`, `zone_code`, `rack_code`, `shelf_level`, `bin_position`, `bin_type`, `max_weight_kg`, `max_volume_cbm`, `allow_mixed_items`, `allow_mixed_batches`, `is_pick_face`, `is_receiving_staging`, `is_blocked_for_putaway`, `is_active`, unique `(warehouse_id, bin_code)`).
+   * Triggers: `trg_inv_warehouse_updated_date` and `trg_inv_storage_bin_updated_date` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds: `02_initial_data.sql` (`EXPORT` `1023` and `PRINT` `1024` action items on `screen_id = 1011`), `03_sample_demo_data.sql` (7 multi-plant warehouses `1001`–`1007` across Changodar, Sanand, and Pune plants, plus 8 5-level storage bins `1001`–`1008`).
+2. **Backend API Contracts (`backend/src/modules/inventory/warehouse/`):**
+   * `GET /api/v1/inventory/warehouses` & `GET /api/v1/inventory/warehouses/:id` (`@RequirePermission('WAREHOUSE_MASTER', 'VIEW')`) — returns plant warehouses joined with company, branch, custodian employee, and aggregated bin topology statistics (`totalBinsCount`, `activeBinsCount`, `distinctZonesCount`, `totalMaxWeightKg`).
+   * `POST /api/v1/inventory/warehouses` & `PUT /api/v1/inventory/warehouses/:id` (`@RequirePermission('WAREHOUSE_MASTER', 'ADD' | 'EDIT')`) — validates plant-level code uniqueness and atomically toggles `is_default` per `(target_comp_id, target_branch_id, warehouse_type)`.
+   * `DELETE /api/v1/inventory/warehouses/:id` (`@RequirePermission('WAREHOUSE_MASTER', 'DELETE')`) — invokes `DependencyCheckService.verifyCanDelete()` against `tbl_inv_storage_bin (warehouse_id)` before deletion.
+   * `GET /api/v1/inventory/warehouses/bins` & `GET /api/v1/inventory/warehouses/bins/:binId` (`@RequirePermission('WAREHOUSE_MASTER', 'VIEW')`) — returns 5-level storage bin coordinates enriched with computed `hierarchyPath`.
+   * `POST /api/v1/inventory/warehouses/bins`, `PUT /api/v1/inventory/warehouses/bins/:binId`, & `DELETE /api/v1/inventory/warehouses/bins/:binId` (`@RequirePermission('WAREHOUSE_MASTER', 'ADD' | 'EDIT' | 'DELETE')`).
+   * `POST /api/v1/inventory/warehouses/bins/bulk-generate` (`@RequirePermission('WAREHOUSE_MASTER', 'ADD')`) — atomically generates a 3D rack/shelf/bin coordinate matrix inside a PostgreSQL transaction using `ON CONFLICT (warehouse_id, bin_code) DO NOTHING`.
+3. **Frontend Architecture (`frontend/src/pages/inventory/WarehouseMasterPage.tsx`):**
+   * Dual-tab interface (*1. Plant Warehouses & Stores* and *2. Multi-Level Storage Bin Hierarchy*) reusing `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="WAREHOUSE_MASTER">`, with a live 5-level hierarchy path preview and an interactive Bulk Rack/Shelf/Bin Matrix Generator Modal with zero dummy data.
+
+
+---
+
+### 2.13 Step 3.2 — UOM, UOM Conversion Matrix & Item Category Hierarchy Master (`/inventory/uoms`)
+
+1. **Database Objects (`dbscripts/`):**
+   * Tables:
+     * `tbl_inv_uom` (`uom_id` PK, `uom_code` UNIQUE, `uom_name`, `uom_type`, `decimal_precision`, `gst_uqc_code`, `is_base_uom`, `is_active`).
+     * `tbl_inv_uom_conversion` (`conversion_id` PK, `from_uom_id` FK $\rightarrow$ `tbl_inv_uom`, `to_uom_id` FK $\rightarrow$ `tbl_inv_uom`, `conversion_factor` NUMERIC(18,6), `inverse_factor` NUMERIC(18,6), `conversion_type`, `remarks`, `is_active`, unique `(from_uom_id, to_uom_id)`).
+     * `tbl_inv_item_category` (`category_id` PK, `category_code` UNIQUE, `category_name`, `parent_category_id` FK $\rightarrow$ `tbl_inv_item_category`, `category_type`, `hsn_sac_code`, `default_tax_rate`, `default_valuation_method`, `level_depth`, `hierarchy_path`, `is_leaf`, `is_active`).
+   * Triggers: `trg_inv_uom_updated_date`, `trg_inv_uom_conversion_updated_date`, and `trg_inv_item_category_updated_date` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds: `02_initial_data.sql` (`EXPORT` `1025` and `PRINT` `1026` action items on `screen_id = 1012`, 10 standard industrial UOMs, and 6 baseline mathematical/packaging conversions), `03_sample_demo_data.sql` (18 multi-level item categories spanning Raw Materials, WIP, Finished Goods, MRO, and Tooling).
+2. **Backend API Contracts (`backend/src/modules/inventory/uom/`):**
+   * `GET /api/v1/inventory/uoms` & `GET /api/v1/inventory/uoms/:id` (`@RequirePermission('UOM_MASTER', 'VIEW')`) — returns all units of measurement enriched with linked `conversionsCount`.
+   * `POST /api/v1/inventory/uoms` & `PUT /api/v1/inventory/uoms/:id` (`@RequirePermission('UOM_MASTER', 'ADD' | 'EDIT')`) — enforces uppercase sanitized codes and atomic `is_base_uom` uniqueness per `uom_type`.
+   * `DELETE /api/v1/inventory/uoms/:id` (`@RequirePermission('UOM_MASTER', 'DELETE')`) — checks foreign key dependencies in `tbl_inv_uom_conversion` (both `from_uom_id` and `to_uom_id`).
+   * `GET /api/v1/inventory/uoms/conversions` & `GET /api/v1/inventory/uoms/conversions/:conversionId` (`@RequirePermission('UOM_MASTER', 'VIEW')`) — returns conversion ratios enriched with source/target codes and computed human-readable equation strings.
+   * `POST /api/v1/inventory/uoms/conversions` & `PUT /api/v1/inventory/uoms/conversions/:conversionId` (`@RequirePermission('UOM_MASTER', 'ADD' | 'EDIT')`) — supports optional bidirectional reciprocal creation.
+   * `DELETE /api/v1/inventory/uoms/conversions/:conversionId` (`@RequirePermission('UOM_MASTER', 'DELETE')`).
+   * `GET /api/v1/inventory/uoms/categories` & `GET /api/v1/inventory/uoms/categories/:categoryId` (`@RequirePermission('UOM_MASTER', 'VIEW')`) — returns recursive category trees with `parentCategoryCode`, `levelDepth`, `hierarchyPath`, and `childCategoriesCount`.
+   * `POST /api/v1/inventory/uoms/categories` & `PUT /api/v1/inventory/uoms/categories/:categoryId` (`@RequirePermission('UOM_MASTER', 'ADD' | 'EDIT')`) — calculates `level_depth` and materialized `hierarchy_path` while atomically updating parent `is_leaf = FALSE`.
+   * `DELETE /api/v1/inventory/uoms/categories/:categoryId` (`@RequirePermission('UOM_MASTER', 'DELETE')`) — verifies no child subcategories depend on the node.
+   * `POST /api/v1/inventory/uoms/action/:actionType` (`@RequirePermission('UOM_MASTER', 'VIEW')`).
+3. **Frontend Architecture (`frontend/src/pages/inventory/UomMasterPage.tsx`):**
+   * 3-tab interface (*1. Units of Measurement*, *2. Conversion Matrix*, *3. Item Category Hierarchy Tree*) reusing `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="UOM_MASTER">`, with live formula preview, reciprocal creation, and category path preview with zero dummy data.
+
+
+---
+
+### 2.14 Step 3.3 — Item & Material Master, Multi-UOM, Pricing, Quality & BOM Parameters (`/inventory/items`)
+
+1. **Database Objects (`dbscripts/`):**
+   * Tables:
+     * `tbl_inv_item` (`item_id` PK, `item_code` VARCHAR(50), `item_name` VARCHAR(150), `category_id` FK $\rightarrow$ `tbl_inv_item_category`, `item_type` (`RAW_MATERIAL`, `WIP_SEMI_FINISHED`, `FINISHED_GOODS`, `PACKING_MATERIAL`, `CONSUMABLE_MRO`, `TOOLING_DIE`, `SCRAP`), `description`, `base_uom_id` FK $\rightarrow$ `tbl_inv_uom`, `purchase_uom_id` FK $\rightarrow$ `tbl_inv_uom`, `sales_uom_id` FK $\rightarrow$ `tbl_inv_uom`, `hsn_sac_code`, `tax_rate`, `standard_cost`, `purchase_rate`, `sales_rate`, `min_stock_level`, `max_stock_level`, `reorder_point`, `safety_stock`, `lead_time_days`, `valuation_method` (`FIFO`, `WEIGHTED_AVG`, `STANDARD_COST`), `is_batch_managed`, `is_serial_managed`, `is_qc_inspection_required`, `shelf_life_days`, `default_warehouse_id` FK $\rightarrow$ `tbl_inv_warehouse`, `default_bin_id` FK $\rightarrow$ `tbl_inv_storage_bin`, `drawing_no`, `revision_no`, `weight_per_unit_kg`, `is_bom_allowed`, `yield_percentage`, `inspection_lead_time_days`, `is_active`, 7 audit columns, unique `(comp_id, item_code)`).
+   * Sequences: `seq_item_id` (starts at 1001).
+   * Indexes: `idx_inv_item_comp_cat` on `(comp_id, category_id, is_active)`, `idx_inv_item_type` on `(comp_id, item_type, is_active)`, and `idx_inv_item_name` on `(comp_id, item_name)`.
+   * Triggers: `trg_inv_item_updated_date` on `tbl_inv_item` executing `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Action items `1005` (`EXPORT`) and `1027` (`PRINT`) on `screen_id = 1013` granted across global roles.
+     * `03_sample_demo_data.sql`: 11 engineering items across Raw Materials (SS-316 round bars, CR steel coils, aluminum alloy ingots, PP copolymer granules), WIP Sub-Assemblies (machined valve bodies, dynamically balanced bronze impellers, stamped door shells), Finished Goods (API 600 flanged gate valves, OEM automotive powertrain hydromounts), and MRO consumables (fully synthetic CNC cutting fluid, tungsten carbide turning inserts).
+2. **Backend API Contracts (`backend/src/modules/inventory/item/`):**
+   * `GET /api/v1/inventory/items/summary` (`@RequirePermission('ITEM_MASTER', 'VIEW')`) — computes real-time catalog analytics (`totalItems`, `activeFinishedGoods`, `rawMaterialsCount`, `wipItemsCount`, `batchQcCount`).
+   * `GET /api/v1/inventory/items` & `GET /api/v1/inventory/items/:itemId` (`@RequirePermission('ITEM_MASTER', 'VIEW')`) — returns items joined with category name/hierarchy, base/purchase/sales UOMs, default warehouse, and default bin.
+   * `POST /api/v1/inventory/items` & `PUT /api/v1/inventory/items/:itemId` (`@RequirePermission('ITEM_MASTER', 'ADD' | 'EDIT')`) — enforces uppercase sanitized codes, multi-UOM assignments, category property inheritance, and delta audit logging.
+   * `DELETE /api/v1/inventory/items/:itemId` (`@RequirePermission('ITEM_MASTER', 'DELETE')`) — checks foreign key dependencies via `DependencyCheckService.verifyCanDelete()` across BOM headers, BOM components, stock balances, purchase requisitions, PO items, GRN items, and work orders.
+   * `POST /api/v1/inventory/items/actions/log` (`@RequirePermission('ITEM_MASTER', 'VIEW')`) — logs datasheet print and CSV export actions in `tbl_sec_audit_log`.
+3. **Frontend Architecture (`frontend/src/pages/inventory/ItemMasterPage.tsx`):**
+   * High-density industrial catalog screen reusing `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="ITEM_MASTER">`.
+   * Real-time 4-card KPI metric display, dynamic classification pill filters, category tree dropdown, and valuation group-by options.
+   * Comprehensive 4-tab Item SKU Modal (*1. Identity & Classification*, *2. Multi-UOM & Warehouse Planning*, *3. Costing & Taxation*, *4. Quality & BOM Governance*) with zero dummy data and strict live PostgreSQL integration.

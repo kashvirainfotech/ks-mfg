@@ -436,3 +436,233 @@ ON CONFLICT (series_id) DO NOTHING;
 
 SELECT setval('seq_doc_series_id', GREATEST((SELECT COALESCE(MAX(series_id), 1012) FROM tbl_sys_doc_number_series), 1012));
 
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.1 - Sample Multi-Plant Warehouses & Multi-Level Storage Bins
+--          (tbl_inv_warehouse, tbl_inv_storage_bin)
+-- ============================================================================
+INSERT INTO tbl_inv_warehouse (
+    warehouse_id, warehouse_code, warehouse_name, warehouse_type,
+    target_comp_id, target_branch_id, incharge_employee_id,
+    allow_negative_stock, is_qc_hold_store, is_shopfloor_wip,
+    storage_temp_min_c, storage_temp_max_c, address_location,
+    is_default, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'WH-AHM-RM01',  'Ahmedabad Central Alloy & Bar Raw Material Store', 'RAW_MATERIAL',    1001, 1001, 1004, FALSE, FALSE, FALSE, 18.00, 35.00, 'Bay A1-A4, Sanand Main Plant West Wing',       TRUE,  TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'WH-AHM-QC01',  'Ahmedabad Inward GRN Quarantine & QC Hold Bay',    'QUARANTINE_QC',   1001, 1001, 1003, FALSE, TRUE,  FALSE, 20.00, 28.00, 'Receiving Dock 2, Metallurgy QC Annex',       FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'WH-AHM-WIP01', 'Ahmedabad CNC Machining & Valve Assembly WIP Floor','WIP_SHOPFLOOR',  1001, 1001, 1002, FALSE, FALSE, TRUE,  20.00, 32.00, 'Shopfloor Hall B — CNC Turning & VMC Cells',  FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'WH-AHM-FG01',  'Ahmedabad Bonded Finished Goods & Dispatch Hub',   'FINISHED_GOODS',  1001, 1001, 1004, FALSE, FALSE, FALSE, 15.00, 30.00, 'Dispatch Terminal East, High-Bay Pallet Racks',FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 'WH-AHM-SCR01', 'Ahmedabad Turning Chips & QC Rejection Scrap Yard','SCRAP_REJECTION', 1001, 1001, 1004, FALSE, FALSE, FALSE, NULL,  NULL,  'Rear Yard Compound C, Segregated Metal Bins', FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1006, 'WH-RJK-RM01',  'Rajkot Foundry Pig Iron, Scrap & Sand Store',      'RAW_MATERIAL',    1001, 1002, 1005, FALSE, FALSE, FALSE, NULL,  NULL,  'Metoda GIDC Plot 18, Foundry Raw Material Shed',TRUE, TRUE, 1001, 1002, 1001, 1001),
+    (1007, 'WH-PNQ-RM01',  'Pune Auto Powertrain Forging & Fastener Store',    'RAW_MATERIAL',    1002, 1005, 1001, FALSE, FALSE, FALSE, 18.00, 30.00, 'Chakan Phase II, Block D Automated Racking',  TRUE,  TRUE, 1002, 1005, 1003, 1001)
+ON CONFLICT (warehouse_id) DO NOTHING;
+
+SELECT setval('seq_warehouse_id', GREATEST((SELECT COALESCE(MAX(warehouse_id), 1007) FROM tbl_inv_warehouse), 1007));
+
+INSERT INTO tbl_inv_storage_bin (
+    bin_id, warehouse_id, bin_code, bin_name,
+    zone_code, rack_code, shelf_level, bin_position, bin_type,
+    max_weight_kg, max_volume_cbm,
+    allow_mixed_items, allow_mixed_batches, is_pick_face, is_receiving_staging, is_blocked_for_putaway, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 'RM-Z1-R01-S01-B01', 'SS-316 Bar Stock Cantilever Cradle 01',      'Z1-BAR',     'R01', 'S01', 'B01', 'CANTILEVER_BAR',   2500.00, 4.500, FALSE, FALSE, TRUE,  FALSE, FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1001, 'RM-Z1-R01-S01-B02', 'SS-304 Bar Stock Cantilever Cradle 02',      'Z1-BAR',     'R01', 'S01', 'B02', 'CANTILEVER_BAR',   2500.00, 4.500, FALSE, FALSE, TRUE,  FALSE, FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1001, 'RM-Z2-R04-S02-B01', 'Forged Valve Body Casting Pallet Bin A',     'Z2-CASTING', 'R04', 'S02', 'B01', 'PALLET_RACK',      1500.00, 2.400, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1001, 'RM-Z3-R02-S03-B04', 'PTFE Seals, O-Rings & Fasteners Tote Bin',   'Z3-SPARES',  'R02', 'S03', 'B04', 'SMALL_PARTS_TOTE',  150.00, 0.350, TRUE,  TRUE,  TRUE,  FALSE, FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1002, 'QC-Z1-R01-S01-B01', 'Inward GRN Pending Metallurgy Test Cage 01',  'Z1-INWARD',  'R01', 'S01', 'B01', 'QUARANTINE_CAGE',  2000.00, 3.600, TRUE,  TRUE,  FALSE, TRUE,  FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1006, 1003, 'WIP-CNC-L01-S01-B01','CNC Turning Cell #1 Lineside Kanban Buffer', 'Z1-CNC',     'L01', 'S01', 'B01', 'LINESIDE_KANBAN',   800.00, 1.200, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1007, 1004, 'FG-Z1-R01-S01-B01', 'Export Valve Pallet Export Dispatch Rack 01', 'Z1-EXPORT',  'R01', 'S01', 'B01', 'PALLET_RACK',      1800.00, 2.880, FALSE, FALSE, TRUE,  FALSE, FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1008, 1006, 'RJK-Z1-FLR-S01-B01','Foundry Induction Furnace Charge Floor Bunker','Z1-MELT',   'FLR', 'S01', 'B01', 'FLOOR_BULK',       5000.00, 8.000, TRUE,  TRUE,  TRUE,  FALSE, FALSE, TRUE, 1001, 1002, 1001, 1001)
+ON CONFLICT (bin_id) DO NOTHING;
+
+SELECT setval('seq_storage_bin_id', GREATEST((SELECT COALESCE(MAX(bin_id), 1008) FROM tbl_inv_storage_bin), 1008));
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.2 - Sample Multi-Level Item Category & Grouping Tree (tbl_inv_item_category)
+-- ============================================================================
+INSERT INTO tbl_inv_item_category (
+    category_id, category_code, category_name, parent_category_id,
+    category_type, hsn_sac_code, default_tax_rate, default_valuation_method,
+    level_depth, hierarchy_path, is_leaf, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Level 1: Root Categories
+    (1001, 'RAW_MATERIAL',      'Raw Materials & Primary Stock',              NULL, 'RAW_MATERIAL',     '7200', 18.00, 'FIFO', 1, 'RAW_MATERIAL',                    FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1009, 'WIP_SUB_ASSEMBLY',  'Work-In-Progress & Sub-Assemblies',          NULL, 'WIP_SUB_ASSEMBLY', '8708', 18.00, 'FIFO', 1, 'WIP_SUB_ASSEMBLY',                FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1012, 'FINISHED_GOODS',    'Finished Goods (Saleable)',                  NULL, 'FINISHED_GOODS',   '8708', 28.00, 'FIFO', 1, 'FINISHED_GOODS',                  FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1015, 'CONSUMABLES_MRO',   'MRO, Oils & Plant Consumables',              NULL, 'CONSUMABLES_MRO',  '2710', 18.00, 'FIFO', 1, 'CONSUMABLES_MRO',                 FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1017, 'TOOLS_DIES',        'Press Tooling, CNC Cutters & Fixtures',      NULL, 'TOOLS_DIES',       '8207', 18.00, 'FIFO', 1, 'TOOLS_DIES',                      FALSE, TRUE, 1001, 1001, 1001, 1001),
+
+    -- Level 2: Sub-Categories under RAW_MATERIAL
+    (1002, 'RM_FERROUS',        'Ferrous Metals & Steel Alloys',              1001, 'RAW_MATERIAL',     '7208', 18.00, 'FIFO', 2, 'RAW_MATERIAL / RM_FERROUS',        FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 'RM_NON_FERROUS',    'Non-Ferrous Metals (Al, Brass, Cu)',         1001, 'RAW_MATERIAL',     '7601', 18.00, 'FIFO', 2, 'RAW_MATERIAL / RM_NON_FERROUS',    FALSE, TRUE, 1001, 1001, 1001, 1001),
+    (1007, 'RM_POLYMERS',       'Engineering Polymers & Thermoplastics',      1001, 'RAW_MATERIAL',     '3902', 18.00, 'FIFO', 2, 'RAW_MATERIAL / RM_POLYMERS',       FALSE, TRUE, 1001, 1001, 1001, 1001),
+
+    -- Level 3: Leaf Categories under RM_FERROUS
+    (1003, 'RM_HR_SHEET',       'Hot Rolled Steel Sheets & Coils',            1002, 'RAW_MATERIAL',     '7208', 18.00, 'FIFO', 3, 'RAW_MATERIAL / RM_FERROUS / RM_HR_SHEET', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'RM_CR_COIL',        'Cold Rolled Precision Steel Coils',          1002, 'RAW_MATERIAL',     '7209', 18.00, 'FIFO', 3, 'RAW_MATERIAL / RM_FERROUS / RM_CR_COIL',  TRUE, TRUE, 1001, 1001, 1001, 1001),
+
+    -- Level 3: Leaf Categories under RM_NON_FERROUS & RM_POLYMERS
+    (1006, 'RM_ALUM_INGOT',     'Aluminum Alloy Ingots (LM24/ADC12)',         1005, 'RAW_MATERIAL',     '7601', 18.00, 'FIFO', 3, 'RAW_MATERIAL / RM_NON_FERROUS / RM_ALUM_INGOT', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1008, 'RM_PP_GRANULES',    'Polypropylene Copolymer (PP-CP)',            1007, 'RAW_MATERIAL',     '3902', 18.00, 'FIFO', 3, 'RAW_MATERIAL / RM_POLYMERS / RM_PP_GRANULES',  TRUE, TRUE, 1001, 1001, 1001, 1001),
+
+    -- Level 2: Leaf Categories under WIP_SUB_ASSEMBLY
+    (1010, 'WIP_PRESSED_PARTS', 'Stamped & Pressed Body Shells',              1009, 'WIP_SUB_ASSEMBLY', '8708', 28.00, 'FIFO', 2, 'WIP_SUB_ASSEMBLY / WIP_PRESSED_PARTS',  TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1011, 'WIP_WELDED_FRAME',  'Robotic Welded Tubular Frames',              1009, 'WIP_SUB_ASSEMBLY', '8708', 28.00, 'FIFO', 2, 'WIP_SUB_ASSEMBLY / WIP_WELDED_FRAME',   TRUE, TRUE, 1001, 1001, 1001, 1001),
+
+    -- Level 2: Leaf Categories under FINISHED_GOODS
+    (1013, 'FG_AUTO_COMPONENTS','Automotive Drivetrain & Engine Mounts',      1012, 'FINISHED_GOODS',   '8708', 28.00, 'FIFO', 2, 'FINISHED_GOODS / FG_AUTO_COMPONENTS',    TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1014, 'FG_FABRICATED_UNITS','Heavy Fabricated Industrial Machine Bases', 1012, 'FINISHED_GOODS',   '8479', 18.00, 'FIFO', 2, 'FINISHED_GOODS / FG_FABRICATED_UNITS',    TRUE, TRUE, 1001, 1001, 1001, 1001),
+
+    -- Level 2: Leaf Categories under CONSUMABLES & TOOLS
+    (1016, 'MRO_LUBRICANTS',    'Hydraulic Oils, Soluble Coolants & Greases', 1015, 'CONSUMABLES_MRO',  '2710', 18.00, 'FIFO', 2, 'CONSUMABLES_MRO / MRO_LUBRICANTS',        TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1018, 'MRO_TOOLING',       'Carbide Cutting Inserts & End Mills',        1017, 'TOOLS_DIES',       '8207', 18.00, 'FIFO', 2, 'TOOLS_DIES / MRO_TOOLING',               TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (category_id) DO NOTHING;
+
+SELECT setval('seq_item_category_id', GREATEST((SELECT COALESCE(MAX(category_id), 1018) FROM tbl_inv_item_category), 1018));
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.3 - Sample Manufacturing & Engineering Items (tbl_inv_item)
+-- ============================================================================
+INSERT INTO tbl_inv_item (
+    item_id, item_code, item_name, category_id, item_type, description,
+    base_uom_id, purchase_uom_id, sales_uom_id, hsn_sac_code, tax_rate,
+    standard_cost, purchase_rate, sales_rate,
+    min_stock_level, max_stock_level, reorder_point, safety_stock,
+    lead_time_days, valuation_method,
+    is_batch_managed, is_serial_managed, is_qc_inspection_required, shelf_life_days,
+    default_warehouse_id, default_bin_id,
+    drawing_no, revision_no, weight_per_unit_kg, is_bom_allowed, yield_percentage, inspection_lead_time_days,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'RM-SS316-ROUND-50', 'Stainless Steel 316 Round Bar Dia 50mm', 1002, 'RAW_MATERIAL',
+     'High corrosion-resistant SS316 round solid bar for valve trim and shaft machining',
+     1001, 1001, 1001, '7222', 18.00,
+     385.0000, 380.0000, 0.0000,
+     500.000, 5000.000, 1200.000, 300.000,
+     10, 'FIFO',
+     TRUE, FALSE, TRUE, NULL,
+     1001, 1001,
+     'SPEC-BAR-50-SS', 'Rev.1', 15.4200, FALSE, 100.00, 2,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 'RM-CR-COIL-1.2MM', 'Cold Rolled Precision Steel Coil 1.2mm x 1250mm', 1004, 'RAW_MATERIAL',
+     'Deep drawing automotive grade CR steel coils for precision sheet metal stamping',
+     1001, 1002, 1001, '7209', 18.00,
+     72.0000, 70.0000, 0.0000,
+     3000.000, 25000.000, 6000.000, 1500.000,
+     14, 'WEIGHTED_AVG',
+     TRUE, FALSE, TRUE, NULL,
+     1001, 1002,
+     'SPEC-CR-COIL-12', 'Rev.0', NULL, FALSE, 100.00, 2,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 'RM-ALUM-LM24-ING', 'HPDC Aluminum Alloy Ingot LM24', 1006, 'RAW_MATERIAL',
+     'Aluminum foundry ingots for high pressure die-cast powertrain components',
+     1001, 1001, 1001, '7601', 18.00,
+     215.0000, 210.0000, 0.0000,
+     1500.000, 10000.000, 3500.000, 800.000,
+     7, 'FIFO',
+     TRUE, FALSE, TRUE, NULL,
+     1001, 1003,
+     NULL, NULL, 6.0000, FALSE, 100.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1004, 'RM-PP-CP-MFI12', 'Polypropylene Copolymer Granules Injection Grade', 1008, 'RAW_MATERIAL',
+     'High-impact copolymer pellets for technical injection molded automotive enclosures',
+     1001, 1001, 1001, '3902', 18.00,
+     105.0000, 102.5000, 0.0000,
+     800.000, 8000.000, 2500.000, 500.000,
+     5, 'FIFO',
+     TRUE, FALSE, TRUE, NULL,
+     1001, 1004,
+     NULL, NULL, NULL, FALSE, 100.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 'WIP-VLV-BODY-MACH', 'Machined SS-316 Gate Valve Body Casting 2" 150#', 1009, 'WIP_SEMI_FINISHED',
+     'Precision CNC turned and bored gate valve casting with raised face flanged ends',
+     1003, 1003, 1003, '8481', 18.00,
+     1850.0000, 0.0000, 0.0000,
+     50.000, 400.000, 100.000, 25.000,
+     4, 'STANDARD_COST',
+     TRUE, FALSE, TRUE, NULL,
+     1003, 1006,
+     'DWG-VB-2026-01', 'Rev.B', 12.8000, TRUE, 98.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1006, 'WIP-PUMP-IMPELLER', 'Dynamically Balanced Bronze Impeller Ø180mm', 1009, 'WIP_SEMI_FINISHED',
+     'Sub-assembly bronze impeller for multi-stage centrifugal pump assembly line',
+     1003, 1003, 1003, '8413', 18.00,
+     950.0000, 0.0000, 0.0000,
+     30.000, 250.000, 80.000, 15.000,
+     3, 'STANDARD_COST',
+     TRUE, FALSE, TRUE, NULL,
+     1003, 1006,
+     'DWG-IMP-180-C', 'Rev.0', 4.2500, TRUE, 99.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1007, 'WIP-AUTO-STAMP-SHL', 'Stamped Sheet Metal Outer Door Panel Shell', 1010, 'WIP_SEMI_FINISHED',
+     'Single-draw stamped 1.2mm CR outer door shell with punched hinge mounting recesses',
+     1003, 1003, 1003, '8708', 28.00,
+     420.0000, 0.0000, 0.0000,
+     200.000, 1500.000, 500.000, 100.000,
+     2, 'FIFO',
+     TRUE, FALSE, TRUE, NULL,
+     1003, 1006,
+     'DWG-DP-2024-X', 'Rev.2', 8.6000, TRUE, 97.50, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1008, 'FG-GATE-VALVE-50', 'Industrial SS-316 Flanged Gate Valve 2" Class 150', 1014, 'FINISHED_GOODS',
+     'API 600 compliant stainless steel gate valve with handwheel actuator and hydrostatic test certificate',
+     1003, 1003, 1003, '8481', 18.00,
+     4800.0000, 0.0000, 7200.0000,
+     20.000, 200.000, 50.000, 10.000,
+     5, 'FIFO',
+     TRUE, TRUE, TRUE, NULL,
+     1004, 1007,
+     'DWG-GV50-ASSY', 'Rev.D', 18.5000, TRUE, 100.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly', 1013, 'FINISHED_GOODS',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     1003, 1003, 1004, '8708', 28.00,
+     1250.0000, 0.0000, 1950.0000,
+     100.000, 1000.000, 300.000, 50.000,
+     3, 'FIFO',
+     TRUE, FALSE, TRUE, NULL,
+     1004, 1007,
+     'DWG-HMP-900', 'Rev.4', 3.1000, TRUE, 100.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1010, 'MRO-COOL-SYN-200L', 'Fully Synthetic High-Pressure CNC Cutting Fluid', 1016, 'CONSUMABLE_MRO',
+     'Chlorine-free water-miscible biostable coolant concentrate for multi-axis CNC machines',
+     1007, 1007, 1007, '2710', 18.00,
+     180.0000, 175.0000, 0.0000,
+     200.000, 1200.000, 600.000, 100.000,
+     3, 'FIFO',
+     TRUE, FALSE, FALSE, 730,
+     1001, 1004,
+     NULL, NULL, 1.0200, FALSE, 100.00, 1,
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1011, 'MRO-CNMG-120408', 'Tungsten Carbide Turning Insert CNMG 120408-PM', 1018, 'TOOLING_DIE',
+     'Multi-layer CVD coated carbide insert for general turning of stainless steel and superalloys',
+     1003, 1004, 1003, '8207', 18.00,
+     240.0000, 230.0000, 0.0000,
+     50.000, 500.000, 150.000, 20.000,
+     5, 'FIFO',
+     FALSE, FALSE, FALSE, NULL,
+     1001, 1004,
+     NULL, NULL, 0.0150, FALSE, 100.00, 1,
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (item_id) DO NOTHING;
+
+SELECT setval('seq_item_id', GREATEST((SELECT COALESCE(MAX(item_id), 1011) FROM tbl_inv_item), 1011));
+
+
+
+

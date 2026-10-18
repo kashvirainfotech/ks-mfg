@@ -562,3 +562,222 @@ CREATE TABLE IF NOT EXISTS tbl_sys_doc_number_series (
 
 CREATE INDEX IF NOT EXISTS idx_sys_doc_series_lookup ON tbl_sys_doc_number_series (target_comp_id, target_branch_id, target_fyear_id, doc_type_code, is_active);
 
+
+-- ============================================================================
+-- DATE: 2026-10-17
+-- FEATURE: Step 3.1 - Multi-Level Warehouse, Zone, Rack, Shelf & Bin Hierarchy
+--          Master Tables (tbl_inv_warehouse, tbl_inv_storage_bin)
+-- ============================================================================
+
+CREATE SEQUENCE IF NOT EXISTS seq_warehouse_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_warehouse (
+    warehouse_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_warehouse_id'),
+    warehouse_code          VARCHAR(30)     NOT NULL,
+    warehouse_name          VARCHAR(120)    NOT NULL,
+    warehouse_type          VARCHAR(30)     NOT NULL DEFAULT 'RAW_MATERIAL', -- 'RAW_MATERIAL', 'WIP_SHOPFLOOR', 'FINISHED_GOODS', 'QUARANTINE_QC', 'SCRAP_REJECTION', 'TOOL_CRIB', 'BONDED_EXCISE'
+    target_comp_id          BIGINT          NOT NULL REFERENCES tbl_org_company(comp_id),
+    target_branch_id        BIGINT          NOT NULL REFERENCES tbl_org_branch(branch_id),
+    incharge_employee_id    BIGINT          REFERENCES tbl_hr_employee(employee_id),
+    allow_negative_stock    BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_qc_hold_store        BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_shopfloor_wip        BOOLEAN         NOT NULL DEFAULT FALSE,
+    storage_temp_min_c      NUMERIC(6,2),
+    storage_temp_max_c      NUMERIC(6,2),
+    address_location        VARCHAR(250),
+    is_default              BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL DEFAULT 1001,
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_inv_warehouse_code UNIQUE (target_comp_id, target_branch_id, warehouse_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_warehouse_branch_type ON tbl_inv_warehouse (target_comp_id, target_branch_id, warehouse_type, is_active);
+
+
+CREATE SEQUENCE IF NOT EXISTS seq_storage_bin_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_storage_bin (
+    bin_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_storage_bin_id'),
+    warehouse_id            BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    bin_code                VARCHAR(50)     NOT NULL, -- e.g. 'RM-Z1-R01-S01-B01'
+    bin_name                VARCHAR(120)    NOT NULL,
+    zone_code               VARCHAR(25)     NOT NULL, -- Level 1: Storage Zone (e.g. 'Z1-HEAVY', 'Z2-BAR', 'QC-BAY')
+    rack_code               VARCHAR(25)     NOT NULL DEFAULT 'R01', -- Level 2: Aisle / Rack
+    shelf_level             VARCHAR(25)     NOT NULL DEFAULT 'S01', -- Level 3: Shelf / Level
+    bin_position            VARCHAR(25)     NOT NULL DEFAULT 'B01', -- Level 4: Bin / Compartment
+    bin_type                VARCHAR(30)     NOT NULL DEFAULT 'PALLET_RACK', -- 'PALLET_RACK', 'CANTILEVER_BAR', 'FLOOR_BULK', 'SMALL_PARTS_TOTE', 'QUARANTINE_CAGE', 'LINESIDE_KANBAN'
+    max_weight_kg           NUMERIC(12,2)   NOT NULL DEFAULT 1000.00,
+    max_volume_cbm          NUMERIC(10,3),
+    allow_mixed_items       BOOLEAN         NOT NULL DEFAULT TRUE,
+    allow_mixed_batches     BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_pick_face            BOOLEAN         NOT NULL DEFAULT TRUE,
+    is_receiving_staging    BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_blocked_for_putaway  BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL DEFAULT 1001,
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_inv_warehouse_bin_code UNIQUE (warehouse_id, bin_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_storage_bin_wh_zone ON tbl_inv_storage_bin (warehouse_id, zone_code, rack_code, is_active);
+
+
+-- ============================================================================
+-- 13. Unit of Measurement Master (tbl_inv_uom)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_uom_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_uom (
+    uom_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_uom_id'),
+    uom_code                VARCHAR(20)     NOT NULL,
+    uom_name                VARCHAR(100)    NOT NULL,
+    uom_type                VARCHAR(30)     NOT NULL DEFAULT 'COUNT',
+    decimal_precision       SMALLINT        NOT NULL DEFAULT 0,
+    gst_uqc_code            VARCHAR(10)     NOT NULL,
+    is_base_uom             BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL DEFAULT 1001,
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_inv_uom_code UNIQUE (uom_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_uom_type ON tbl_inv_uom (uom_type, is_active);
+
+-- ============================================================================
+-- 14. Unit of Measurement Conversion Matrix (tbl_inv_uom_conversion)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_uom_conversion_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_uom_conversion (
+    conversion_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_uom_conversion_id'),
+    from_uom_id             BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    to_uom_id               BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    conversion_factor       NUMERIC(18, 6)  NOT NULL,
+    inverse_factor          NUMERIC(18, 6)  NOT NULL,
+    conversion_type         VARCHAR(30)     NOT NULL DEFAULT 'STANDARD',
+    remarks                 VARCHAR(255),
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL DEFAULT 1001,
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_inv_uom_conversion UNIQUE (from_uom_id, to_uom_id),
+    CONSTRAINT chk_inv_uom_not_same CHECK (from_uom_id <> to_uom_id),
+    CONSTRAINT chk_conv_factor_gt_zero CHECK (conversion_factor > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_uom_conv_lookup ON tbl_inv_uom_conversion (from_uom_id, to_uom_id, is_active);
+
+-- ============================================================================
+-- 15. Item Category & Grouping Hierarchy Master (tbl_inv_item_category)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_item_category_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_item_category (
+    category_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_item_category_id'),
+    category_code           VARCHAR(50)     NOT NULL,
+    category_name           VARCHAR(100)    NOT NULL,
+    parent_category_id      BIGINT          REFERENCES tbl_inv_item_category(category_id),
+    category_type           VARCHAR(30)     NOT NULL DEFAULT 'RAW_MATERIAL',
+    hsn_sac_code            VARCHAR(20),
+    default_tax_rate        NUMERIC(5, 2)   NOT NULL DEFAULT 18.00,
+    default_valuation_method VARCHAR(20)    NOT NULL DEFAULT 'FIFO',
+    level_depth             SMALLINT        NOT NULL DEFAULT 1,
+    hierarchy_path          VARCHAR(255)    NOT NULL,
+    is_leaf                 BOOLEAN         NOT NULL DEFAULT TRUE,
+    is_active               BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                 BIGINT          NOT NULL DEFAULT 1001,
+    branch_id               BIGINT          NOT NULL DEFAULT 1001,
+    fyear_id                BIGINT,
+    created_by              BIGINT          NOT NULL,
+    created_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by              BIGINT,
+    updated_date            TIMESTAMPTZ,
+    CONSTRAINT uq_inv_item_category_code UNIQUE (category_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_item_category_parent ON tbl_inv_item_category (parent_category_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_item_category_type ON tbl_inv_item_category (category_type, is_active);
+
+
+-- ============================================================================
+-- 16. Item & Material Master (tbl_inv_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_item (
+    item_id                     BIGINT          PRIMARY KEY DEFAULT nextval('seq_item_id'),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    category_id                 BIGINT          NOT NULL REFERENCES tbl_inv_item_category(category_id),
+    item_type                   VARCHAR(30)     NOT NULL DEFAULT 'RAW_MATERIAL', -- 'RAW_MATERIAL', 'WIP_SEMI_FINISHED', 'FINISHED_GOODS', 'PACKING_MATERIAL', 'CONSUMABLE_MRO', 'TOOLING_DIE', 'SCRAP'
+    description                 VARCHAR(500),
+    base_uom_id                 BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    purchase_uom_id             BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    sales_uom_id                BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    hsn_sac_code                VARCHAR(20),
+    tax_rate                    NUMERIC(5, 2)   NOT NULL DEFAULT 18.00,
+    standard_cost               NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    purchase_rate               NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    sales_rate                  NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    min_stock_level             NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    max_stock_level             NUMERIC(14, 3),
+    reorder_point               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    safety_stock                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    lead_time_days              INTEGER         NOT NULL DEFAULT 7,
+    valuation_method            VARCHAR(20)     NOT NULL DEFAULT 'FIFO', -- 'FIFO', 'WEIGHTED_AVG', 'STANDARD_COST'
+    is_batch_managed            BOOLEAN         NOT NULL DEFAULT TRUE,
+    is_serial_managed           BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_qc_inspection_required   BOOLEAN         NOT NULL DEFAULT TRUE,
+    shelf_life_days             INTEGER,
+    default_warehouse_id        BIGINT          REFERENCES tbl_inv_warehouse(warehouse_id),
+    default_bin_id              BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    drawing_no                  VARCHAR(60),
+    revision_no                 VARCHAR(20),
+    weight_per_unit_kg          NUMERIC(12, 4),
+    is_bom_allowed              BOOLEAN         NOT NULL DEFAULT TRUE,
+    yield_percentage            NUMERIC(5, 2)   NOT NULL DEFAULT 100.00,
+    inspection_lead_time_days   INTEGER         NOT NULL DEFAULT 1,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_item_code UNIQUE (comp_id, item_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_item_comp_cat ON tbl_inv_item (comp_id, category_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_item_type ON tbl_inv_item (comp_id, item_type, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_item_name ON tbl_inv_item (comp_id, item_name);
+
+
+
+
