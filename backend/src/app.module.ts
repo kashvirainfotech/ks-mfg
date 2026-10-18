@@ -31,6 +31,7 @@ import { InvoiceModule } from './modules/procurement/invoice/invoice.module';
 import { BomModule } from './modules/manufacturing/bom/bom.module';
 import { WorkCenterModule } from './modules/manufacturing/work-center/work-center.module';
 import { RoutingModule } from './modules/manufacturing/routing/routing.module';
+import { MrpModule } from './modules/manufacturing/mrp/mrp.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -72,6 +73,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     BomModule,
     WorkCenterModule,
     RoutingModule,
+    MrpModule,
   ],
   controllers: [AppController],
   providers: [

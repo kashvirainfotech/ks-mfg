@@ -285,3 +285,13 @@ DROP TRIGGER IF EXISTS trg_mfg_routing_operation_updated_date ON tbl_mfg_routing
 CREATE TRIGGER trg_mfg_routing_operation_updated_date
 BEFORE UPDATE ON tbl_mfg_routing_operation
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_mrp_run_header_updated_date ON tbl_mfg_mrp_run_header;
+CREATE TRIGGER trg_mfg_mrp_run_header_updated_date
+BEFORE UPDATE ON tbl_mfg_mrp_run_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_mrp_planned_order_updated_date ON tbl_mfg_mrp_planned_order;
+CREATE TRIGGER trg_mfg_mrp_planned_order_updated_date
+BEFORE UPDATE ON tbl_mfg_mrp_planned_order
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

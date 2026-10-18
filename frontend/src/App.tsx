@@ -36,6 +36,7 @@ import { InwardQcMasterPage } from './pages/quality/InwardQcMasterPage';
 import { BomMasterPage } from './pages/manufacturing/BomMasterPage';
 import { WorkCenterMasterPage } from './pages/manufacturing/WorkCenterMasterPage';
 import { RoutingMasterPage } from './pages/manufacturing/RoutingMasterPage';
+import { MrpMasterPage } from './pages/manufacturing/MrpMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -296,6 +297,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <RoutingMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/mrp"
+              element={
+                <ProtectedLayout>
+                  <MrpMasterPage />
                 </ProtectedLayout>
               }
             />

@@ -2152,3 +2152,93 @@ CREATE TABLE IF NOT EXISTS tbl_mfg_routing_operation (
 
 CREATE INDEX IF NOT EXISTS idx_mfg_routing_op_routing ON tbl_mfg_routing_operation (routing_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_mfg_routing_op_wc ON tbl_mfg_routing_operation (work_center_id);
+
+-- ============================================================================
+-- 51. MATERIAL REQUIREMENTS PLANNING RUN (tbl_mfg_mrp_run_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_mrp_run_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_mrp_run_header (
+    mrp_run_id                 BIGINT          PRIMARY KEY DEFAULT nextval('seq_mrp_run_id'),
+    mrp_run_no                 VARCHAR(50)     NOT NULL,
+    run_date                   TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    planning_horizon_days      INT             NOT NULL DEFAULT 30,
+    demand_source              VARCHAR(30)     NOT NULL DEFAULT 'BUFFER_DEFICIT'
+                                               CHECK (demand_source IN ('ALL', 'BUFFER_DEFICIT', 'SALES_ORDERS', 'MANUAL_FORECAST')),
+    status                     VARCHAR(25)     NOT NULL DEFAULT 'COMPLETED'
+                                               CHECK (status IN ('DRAFT', 'RUNNING', 'COMPLETED', 'RELEASED', 'CANCELLED')),
+    total_items_analyzed       INT             NOT NULL DEFAULT 0,
+    total_planned_orders       INT             NOT NULL DEFAULT 0,
+    total_planned_buy_qty      NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    total_planned_make_qty     NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    total_estimated_spend      NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    execution_time_ms          INT             DEFAULT 0,
+    run_by                     BIGINT          REFERENCES tbl_sec_user(user_id),
+    remarks                    VARCHAR(350),
+    is_active                  BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                    BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                  BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                   BIGINT,
+    created_by                 BIGINT          NOT NULL,
+    created_date               TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                 BIGINT,
+    updated_date               TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_mrp_run_no UNIQUE (comp_id, branch_id, mrp_run_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_run_comp_branch ON tbl_mfg_mrp_run_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_run_date ON tbl_mfg_mrp_run_header (run_date);
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_run_status ON tbl_mfg_mrp_run_header (status);
+
+
+-- ============================================================================
+-- 52. MRP GROSS-TO-NET PLANNED ORDERS (tbl_mfg_mrp_planned_order)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_mrp_planned_order_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_mrp_planned_order (
+    planned_order_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_mrp_planned_order_id'),
+    mrp_run_id                  BIGINT          NOT NULL REFERENCES tbl_mfg_mrp_run_header(mrp_run_id) ON DELETE CASCADE,
+    planned_order_no            VARCHAR(50)     NOT NULL,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    bom_id                      BIGINT          REFERENCES tbl_mfg_bom_header(bom_id),
+    routing_id                  BIGINT          REFERENCES tbl_mfg_routing_header(routing_id),
+    order_type                  VARCHAR(25)     NOT NULL DEFAULT 'BUY'
+                                                CHECK (order_type IN ('MAKE', 'BUY', 'SUBCONTRACT')),
+    source_demand_type          VARCHAR(35)     NOT NULL DEFAULT 'BUFFER_DEFICIT'
+                                                CHECK (source_demand_type IN ('BUFFER_DEFICIT', 'PARENT_BOM_EXPLOSION', 'SALES_ORDER', 'MANUAL_FORECAST')),
+    parent_planned_order_id     BIGINT          REFERENCES tbl_mfg_mrp_planned_order(planned_order_id) ON DELETE SET NULL,
+    bom_level                   INT             NOT NULL DEFAULT 0,
+    gross_requirement_qty       NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    on_hand_stock_qty           NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scheduled_receipts_qty      NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    safety_stock_qty            NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    net_requirement_qty         NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    planned_order_qty           NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    lead_time_days              INT             NOT NULL DEFAULT 1,
+    required_by_date            DATE            NOT NULL,
+    order_release_date          DATE            NOT NULL,
+    estimated_unit_cost         NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    estimated_total_cost        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'SUGGESTED'
+                                                CHECK (status IN ('SUGGESTED', 'CONFIRMED', 'CONVERTED_TO_PR', 'CONVERTED_TO_WO', 'CANCELLED')),
+    converted_pr_id             BIGINT          REFERENCES tbl_pr_header(pr_id),
+    converted_wo_id             BIGINT,
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_run ON tbl_mfg_mrp_planned_order (mrp_run_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_item ON tbl_mfg_mrp_planned_order (item_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_dates ON tbl_mfg_mrp_planned_order (order_release_date, required_by_date);
+CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_type ON tbl_mfg_mrp_planned_order (order_type, status);

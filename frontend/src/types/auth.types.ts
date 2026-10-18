@@ -29,7 +29,9 @@ export type PermissionAction =
   | 'CONFIRM'
   | 'CLONE'
   | 'EXPLODE'
-  | 'MAINTENANCE';
+  | 'MAINTENANCE'
+  | 'RUN_MRP'
+  | 'CONVERT';
 
 export interface UserProfile {
   userId: number;

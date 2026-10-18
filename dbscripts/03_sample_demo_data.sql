@@ -2206,3 +2206,139 @@ SELECT setval('seq_routing_op_id', GREATEST((SELECT COALESCE(MAX(routing_op_id),
 UPDATE tbl_mfg_bom_header SET routing_id = 1001 WHERE bom_id = 1002 AND (routing_id IS NULL OR routing_id <> 1001);
 UPDATE tbl_mfg_bom_header SET routing_id = 1002 WHERE bom_id = 1001 AND (routing_id IS NULL OR routing_id <> 1002);
 UPDATE tbl_mfg_bom_header SET routing_id = 1003 WHERE bom_id = 1004 AND (routing_id IS NULL OR routing_id <> 1003);
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.4 - Material Requirements Planning (MRP-I Engine) & Gross-to-Net Planned Orders
+--          (tbl_mfg_mrp_run_header, tbl_mfg_mrp_planned_order)
+-- ============================================================================
+INSERT INTO tbl_mfg_mrp_run_header (
+    mrp_run_id, mrp_run_no, run_date, planning_horizon_days, demand_source,
+    status, total_items_analyzed, total_planned_orders, total_planned_buy_qty,
+    total_planned_make_qty, total_estimated_spend, execution_time_ms, run_by,
+    remarks, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'MRP-AHM-2627-0001', '2026-04-20 09:30:00+05:30', 30, 'BUFFER_DEFICIT',
+     'COMPLETED', 12, 8, 2390.000, 325.000, 442873.00, 420, 1001,
+     'Monthly gross-to-net MRP run triggered for Q1 buffer replenishment and multi-level BOM explosion.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 'MRP-AHM-2627-0002', '2026-04-22 14:00:00+05:30', 60, 'ALL',
+     'RELEASED', 14, 3, 400.000, 60.000, 145000.00, 385, 1001,
+     'Mid-month re-planning run for expedited automotive hydromount production & alloy buffer replenishment.',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, mrp_run_no) DO NOTHING;
+
+SELECT setval('seq_mrp_run_id', GREATEST((SELECT COALESCE(MAX(mrp_run_id), 1002) FROM tbl_mfg_mrp_run_header), 1002));
+
+INSERT INTO tbl_mfg_mrp_planned_order (
+    planned_order_id, mrp_run_id, planned_order_no, item_id, bom_id, routing_id,
+    order_type, source_demand_type, parent_planned_order_id, bom_level,
+    gross_requirement_qty, on_hand_stock_qty, scheduled_receipts_qty, safety_stock_qty,
+    net_requirement_qty, planned_order_qty, uom_id, lead_time_days,
+    required_by_date, order_release_date, estimated_unit_cost, estimated_total_cost,
+    status, converted_pr_id, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Run 1: Level 0 FG Gate Valve (MAKE)
+    (1001, 1001, 'PLN-ORD-0001', 1008, 1002, 1001,
+     'MAKE', 'BUFFER_DEFICIT', NULL, 0,
+     25.000, 5.000, 0.000, 10.000,
+     30.000, 30.000, 1003, 5,
+     '2026-05-15', '2026-05-10', 2986.6000, 89598.00,
+     'CONFIRMED', NULL, 'Finished Gate Valve safety stock deficit below ROP. Level 0 planned order.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 1 Machined Valve Body Sub-Assembly (MAKE) exploded from #1001
+    (1002, 1001, 'PLN-ORD-0002', 1005, 1004, 1003,
+     'MAKE', 'PARENT_BOM_EXPLOSION', 1001, 1,
+     30.300, 10.000, 0.000, 25.000,
+     45.300, 45.000, 1003, 4,
+     '2026-05-10', '2026-05-06', 1850.0000, 83250.00,
+     'SUGGESTED', NULL, 'Exploded child assembly from Valve PLN-ORD-0001. Requires CNC boring & milling.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 2 SS-316 Round Bar Raw Material (BUY) exploded from #1002
+    (1003, 1001, 'PLN-ORD-0003', 1001, NULL, NULL,
+     'BUY', 'PARENT_BOM_EXPLOSION', 1002, 2,
+     174.960, 80.000, 50.000, 300.000,
+     344.960, 350.000, 1001, 12,
+     '2026-05-06', '2026-04-24', 380.0000, 133000.00,
+     'SUGGESTED', NULL, 'SS-316 round bar raw material for valve body CNC machining. Supplier lead time 10d + QC 2d.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 2 Tungsten Carbide Inserts (BUY) exploded from #1002
+    (1004, 1001, 'PLN-ORD-0004', 1011, NULL, NULL,
+     'BUY', 'PARENT_BOM_EXPLOSION', 1002, 2,
+     18.000, 5.000, 0.000, 10.000,
+     23.000, 25.000, 1003, 3,
+     '2026-05-06', '2026-05-03', 240.0000, 6000.00,
+     'SUGGESTED', NULL, 'Tooling insert consumable for precision turning of valve bodies.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 1 Cutting Fluid (BUY) exploded from #1001
+    (1005, 1001, 'PLN-ORD-0005', 1010, NULL, NULL,
+     'BUY', 'PARENT_BOM_EXPLOSION', 1001, 1,
+     6.000, 2.000, 0.000, 10.000,
+     14.000, 15.000, 1007, 4,
+     '2026-05-10', '2026-05-06', 175.0000, 2625.00,
+     'CONVERTED_TO_PR', 1001, 'Hydro-testing coolant medium converted to Purchase Requisition PR-AHM-2627-0001.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 0 Automotive Hydromount Assembly (MAKE)
+    (1006, 1001, 'PLN-ORD-0006', 1009, 1001, 1002,
+     'MAKE', 'BUFFER_DEFICIT', NULL, 0,
+     50.000, 20.000, 0.000, 50.000,
+     80.000, 80.000, 1003, 3,
+     '2026-05-02', '2026-04-29', 761.5750, 60926.00,
+     'CONFIRMED', NULL, 'Automotive powertrain hydromount assembly safety buffer replenishment order.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 1 Stamped Sheet Metal Outer Shell (MAKE) exploded from #1006
+    (1007, 1001, 'PLN-ORD-0007', 1007, 1003, NULL,
+     'MAKE', 'PARENT_BOM_EXPLOSION', 1006, 1,
+     81.600, 15.000, 0.000, 100.000,
+     166.600, 170.000, 1003, 2,
+     '2026-04-29', '2026-04-27', 420.0000, 71400.00,
+     'SUGGESTED', NULL, 'Stamped outer shell sub-assembly required for hydromount batch assembly.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 1: Level 2 Cold Rolled Steel Coil (BUY) exploded from #1007
+    (1008, 1001, 'PLN-ORD-0008', 1002, NULL, NULL,
+     'BUY', 'PARENT_BOM_EXPLOSION', 1007, 2,
+     540.600, 200.000, 0.000, 1500.000,
+     1840.600, 2000.000, 1001, 16,
+     '2026-04-27', '2026-04-11', 70.0000, 140000.00,
+     'SUGGESTED', NULL, 'CR coil 1.2mm deep draw grade. [PAST-DUE EXPEDITE WARNING]: Release date precedes run date.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 2: Level 0 Automotive Hydromount (MAKE)
+    (1009, 1002, 'PLN-ORD-0009', 1009, 1001, 1002,
+     'MAKE', 'BUFFER_DEFICIT', NULL, 0,
+     30.000, 10.000, 0.000, 40.000,
+     60.000, 60.000, 1003, 3,
+     '2026-05-20', '2026-05-17', 761.5750, 45694.50,
+     'SUGGESTED', NULL, 'Mid-month hydromount replenishment.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 2: Level 1 Aluminum Alloy Ingot (BUY)
+    (1010, 1002, 'PLN-ORD-0010', 1003, NULL, NULL,
+     'BUY', 'PARENT_BOM_EXPLOSION', 1009, 1,
+     120.000, 40.000, 0.000, 200.000,
+     280.000, 300.000, 1001, 8,
+     '2026-05-17', '2026-05-09', 210.0000, 63000.00,
+     'SUGGESTED', NULL, 'HPDC Aluminum Ingot LM24 casting alloy for housing brackets.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Run 2: Level 1 Polypropylene Granules (BUY)
+    (1011, 1002, 'PLN-ORD-0011', 1004, NULL, NULL,
+     'BUY', 'PARENT_BOM_EXPLOSION', 1009, 1,
+     45.000, 15.000, 0.000, 70.000,
+     100.000, 100.000, 1001, 6,
+     '2026-05-17', '2026-05-11', 102.5000, 10250.00,
+     'CONFIRMED', NULL, 'Polypropylene granules for elastomer molding cushions.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (planned_order_id) DO NOTHING;
+
+SELECT setval('seq_mrp_planned_order_id', GREATEST((SELECT COALESCE(MAX(planned_order_id), 1011) FROM tbl_mfg_mrp_planned_order), 1011));
+

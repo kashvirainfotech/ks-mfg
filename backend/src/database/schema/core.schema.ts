@@ -2502,3 +2502,112 @@ export const tblMfgRoutingOperation = pgTable(
     ),
   }),
 );
+
+export const tblMfgMrpRunHeader = pgTable(
+  'tbl_mfg_mrp_run_header',
+  {
+    mrpRunId: bigint('mrp_run_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_mrp_run_id')`),
+    mrpRunNo: varchar('mrp_run_no', { length: 50 }).notNull(),
+    runDate: timestamp('run_date', { withTimezone: true })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    planningHorizonDays: integer('planning_horizon_days').notNull().default(30),
+    demandSource: varchar('demand_source', { length: 30 })
+      .notNull()
+      .default('BUFFER_DEFICIT'),
+    status: varchar('status', { length: 25 }).notNull().default('COMPLETED'),
+    totalItemsAnalyzed: integer('total_items_analyzed').notNull().default(0),
+    totalPlannedOrders: integer('total_planned_orders').notNull().default(0),
+    totalPlannedBuyQty: numeric('total_planned_buy_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    totalPlannedMakeQty: numeric('total_planned_make_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    totalEstimatedSpend: numeric('total_estimated_spend', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    executionTimeMs: integer('execution_time_ms').default(0),
+    runBy: bigint('run_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgMrpRunNo: unique('uq_mfg_mrp_run_no').on(
+      table.compId,
+      table.branchId,
+      table.mrpRunNo,
+    ),
+  }),
+);
+
+export const tblMfgMrpPlannedOrder = pgTable(
+  'tbl_mfg_mrp_planned_order',
+  {
+    plannedOrderId: bigint('planned_order_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_mrp_planned_order_id')`),
+    mrpRunId: bigint('mrp_run_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgMrpRunHeader.mrpRunId),
+    plannedOrderNo: varchar('planned_order_no', { length: 50 }).notNull(),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    bomId: bigint('bom_id', { mode: 'number' }).references(
+      () => tblMfgBomHeader.bomId,
+    ),
+    routingId: bigint('routing_id', { mode: 'number' }).references(
+      () => tblMfgRoutingHeader.routingId,
+    ),
+    orderType: varchar('order_type', { length: 25 }).notNull().default('BUY'),
+    sourceDemandType: varchar('source_demand_type', { length: 35 })
+      .notNull()
+      .default('BUFFER_DEFICIT'),
+    parentPlannedOrderId: bigint('parent_planned_order_id', { mode: 'number' }),
+    bomLevel: integer('bom_level').notNull().default(0),
+    grossRequirementQty: numeric('gross_requirement_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    onHandStockQty: numeric('on_hand_stock_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    scheduledReceiptsQty: numeric('scheduled_receipts_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    safetyStockQty: numeric('safety_stock_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    netRequirementQty: numeric('net_requirement_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    plannedOrderQty: numeric('planned_order_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    leadTimeDays: integer('lead_time_days').notNull().default(1),
+    requiredByDate: date('required_by_date').notNull(),
+    orderReleaseDate: date('order_release_date').notNull(),
+    estimatedUnitCost: numeric('estimated_unit_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    estimatedTotalCost: numeric('estimated_total_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    status: varchar('status', { length: 25 }).notNull().default('SUGGESTED'),
+    convertedPrId: bigint('converted_pr_id', { mode: 'number' }).references(
+      () => tblPrHeader.prId,
+    ),
+    convertedWoId: bigint('converted_wo_id', { mode: 'number' }),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);

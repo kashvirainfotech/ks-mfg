@@ -23,7 +23,9 @@ export type AuditActionType =
   | 'APPROVE'
   | 'REJECT'
   | 'ASSIGN'
-  | 'CONFIRM';
+  | 'CONFIRM'
+  | 'RUN_MRP'
+  | 'CONVERT';
 
 export interface RecordAuditLogParams {
   userId: number;

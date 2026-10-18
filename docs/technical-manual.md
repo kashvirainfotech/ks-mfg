@@ -754,3 +754,52 @@ Each screen or feature documentation entry must contain:
    * Interactive Sequential Operation Flow Timeline modal (`Eye`) displaying chronological manufacturing stages, machine assets, cycle times, tooling specs, and QC gates.
    * 3-Tab Creation / Edit modal (`Header & General Parameters`, `Operation Sequencer`, `Absorption Costing & Summary`) with dynamic stage reordering (`ArrowUp`/`ArrowDown`).
    * Dedicated Engineering Approval modal (`CheckCircle2`), Revision Cloning modal (`Copy`), and printable Shopfloor Route Traveler Card modal (`Printer`).
+
+### 2.28 Step 6.4 — Material Requirements Planning (MRP-I Engine) & Gross-to-Net Planned Orders (`/manufacturing/mrp`)
+
+1. **Database Objects (`dbscripts/` & `backend/src/database/schema/core.schema.ts`):**
+   * Tables:
+     * `tbl_mfg_mrp_run_header` (`mrp_run_id` BIGINT PK backed by `seq_mrp_run_id`, `mrp_run_no` VARCHAR(50) NOT NULL, `run_date` TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, `planning_horizon_days` INT NOT NULL DEFAULT 30, `demand_source` VARCHAR(30) NOT NULL DEFAULT `'BUFFER_DEFICIT'` CHECK IN (`'ALL'`, `'BUFFER_DEFICIT'`, `'SALES_ORDERS'`, `'MANUAL_FORECAST'`), `status` VARCHAR(25) NOT NULL DEFAULT `'COMPLETED'` CHECK IN (`'DRAFT'`, `'RUNNING'`, `'COMPLETED'`, `'RELEASED'`, `'CANCELLED'`), `total_items_analyzed` INT NOT NULL DEFAULT 0, `total_planned_orders` INT NOT NULL DEFAULT 0, `total_planned_buy_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `total_planned_make_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `total_estimated_spend` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `execution_time_ms` INT DEFAULT 0, `run_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `remarks` VARCHAR(350), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns, UNIQUE `(comp_id, branch_id, mrp_run_no)`).
+     * `tbl_mfg_mrp_planned_order` (`planned_order_id` BIGINT PK backed by `seq_mrp_planned_order_id`, `mrp_run_id` BIGINT NOT NULL REFERENCES `tbl_mfg_mrp_run_header(mrp_run_id)` ON DELETE CASCADE, `planned_order_no` VARCHAR(50) NOT NULL, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `bom_id` BIGINT REFERENCES `tbl_mfg_bom_header(bom_id)`, `routing_id` BIGINT REFERENCES `tbl_mfg_routing_header(routing_id)`, `order_type` VARCHAR(25) NOT NULL DEFAULT `'BUY'` CHECK IN (`'MAKE'`, `'BUY'`, `'SUBCONTRACT'`), `source_demand_type` VARCHAR(35) NOT NULL DEFAULT `'BUFFER_DEFICIT'` CHECK IN (`'BUFFER_DEFICIT'`, `'PARENT_BOM_EXPLOSION'`, `'SALES_ORDER'`, `'MANUAL_FORECAST'`), `parent_planned_order_id` BIGINT REFERENCES `tbl_mfg_mrp_planned_order(planned_order_id)` ON DELETE SET NULL, `bom_level` INT NOT NULL DEFAULT 0, `gross_requirement_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `on_hand_stock_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `scheduled_receipts_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `safety_stock_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `net_requirement_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `planned_order_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`, `lead_time_days` INT NOT NULL DEFAULT 1, `required_by_date` DATE NOT NULL, `order_release_date` DATE NOT NULL, `estimated_unit_cost` NUMERIC(14,4) NOT NULL DEFAULT 0.0000, `estimated_total_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `status` VARCHAR(25) NOT NULL DEFAULT `'SUGGESTED'` CHECK IN (`'SUGGESTED'`, `'CONFIRMED'`, `'CONVERTED_TO_PR'`, `'CONVERTED_TO_WO'`, `'CANCELLED'`), `converted_pr_id` BIGINT REFERENCES `tbl_pr_header(pr_id)`, `converted_wo_id` BIGINT, `remarks` VARCHAR(350), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns).
+   * Sequences: `seq_mrp_run_id`, `seq_mrp_planned_order_id` (starting at 1001).
+   * Indexes: `idx_mfg_mrp_run_comp_branch`, `idx_mfg_mrp_run_date`, `idx_mfg_mrp_run_status`, `idx_mfg_mrp_plan_run`, `idx_mfg_mrp_plan_item`, `idx_mfg_mrp_plan_dates`, `idx_mfg_mrp_plan_type`.
+   * Triggers: `trg_mfg_mrp_run_header_updated_date` and `trg_mfg_mrp_planned_order_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered screen `1027` (`MFG_MRP`) with actions `1081` (`RUN_MRP`), `1082` (`EXPORT`), `1083` (`PRINT`), and `1084` (`CONVERT`). Role permissions assigned for `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_MGR`, and `PUR_EXEC`.
+     * `03_sample_demo_data.sql`: 2 MRP execution runs (`MRP-AHM-2627-0001`, `MRP-AHM-2627-0002`), 11 planned orders spanning Level 0 finished assemblies (`FG-GATE-VALVE-50`, `FG-AUTO-MNT-DRV`), Level 1 sub-assemblies (`WIP-VLV-BODY-MACH`, `WIP-AUTO-STAMP-SHL`), and Level 2 raw materials/tooling (`RM-SS316-ROUND-50`, `RM-CR-COIL-1.2MM`, `RM-ALUM-LM24-ING`, turning inserts, cutting fluid).
+2. **Backend Architecture & API Contracts (`backend/src/modules/manufacturing/mrp/`):**
+   * Controller: `MrpController` mapped to `/api/v1/manufacturing/mrp`.
+   * Endpoints:
+     * `GET /manufacturing/mrp/summary` (`@RequirePermission('MFG_MRP', 'VIEW')`) — returns KPI metrics (`totalRuns`, `totalPlannedOrders`, `totalPlannedBuySpend`, `totalPlannedMakeOrders`, `criticalPastDueCount`).
+     * `GET /manufacturing/mrp/lookups` (`@RequirePermission('MFG_MRP', 'VIEW')`) — returns items, warehouses, departments, and vendors for filter and conversion workflows.
+     * `GET /manufacturing/mrp/runs` (`@RequirePermission('MFG_MRP', 'VIEW')`) — paginated listing of MRP runs with execution time, order counts, and spend totals.
+     * `GET /manufacturing/mrp/runs/:id` (`@RequirePermission('MFG_MRP', 'VIEW')`) — single MRP run with all child planned orders ordered by `bom_level ASC` and `required_by_date ASC`.
+     * `GET /manufacturing/mrp/planned-orders` (`@RequirePermission('MFG_MRP', 'VIEW')`) — comprehensive paginated planned orders register with filtering by `mrpRunId`, `orderType`, `status`, `bomLevel`, `isPastDue`, and full-text search.
+     * `POST /manufacturing/mrp/run` (`@RequirePermission('MFG_MRP', 'RUN_MRP')`) — executes the Gross-to-Net MRP engine across on-hand inventory, open PO receipts, and multi-level BOM explosions.
+     * `POST /manufacturing/mrp/convert-to-pr` (`@RequirePermission('MFG_MRP', 'CONVERT')`) — 1-click batch conversion of planned `BUY` orders into an official Purchase Requisition (`tbl_pr_header` and `tbl_pr_item`).
+     * `PUT /manufacturing/mrp/planned-orders/:id/status` (`@RequirePermission('MFG_MRP', 'RUN_MRP')`) — updates planned order status (`SUGGESTED` $\leftrightarrow$ `CONFIRMED` $\leftrightarrow$ `CANCELLED`).
+     * `DELETE /manufacturing/mrp/runs/:id` (`@RequirePermission('MFG_MRP', 'RUN_MRP')`) — cascade deletion of unreleased MRP runs and associated planned orders with referential protection against converted orders.
+3. **Domain Logic & Algorithms:**
+   * **Gross-to-Net Balance Engine:**
+     $$\text{Target Buffer} = \begin{cases} \text{reorder\_point} & \text{if } \text{reorder\_point} > 0 \\ \text{safety\_stock} & \text{if } \text{safety\_stock} > 0 \\ \text{min\_stock\_level} & \text{otherwise} \end{cases}$$
+     $$\text{Deficit} = \max\left(0, \text{Target Buffer} - (\text{On-Hand Stock} + \text{Scheduled PO Receipts})\right)$$
+     $$\text{Net Requirement} = \text{Deficit} + \text{Safety Stock}$$
+   * **Multi-Level BOM Recursive Explosion:**
+     $$\text{Component Gross Requirement} = \text{Parent Planned Qty} \times \left(\frac{\text{Component Gross Quantity}}{\text{BOM Batch Size}}\right)$$
+   * **Backward Scheduling & Lead Time Offset:**
+     $$\text{Order Release Date} = \text{Required By Date} - \text{Lead Time Days}$$
+     $$\text{Past-Due Condition}: \text{Order Release Date} < \text{CURRENT\_DATE}$$
+4. **Frontend Architecture (`frontend/src/pages/manufacturing/MrpMasterPage.tsx`):**
+   * Accessible at route `/manufacturing/mrp` under `MANUFACTURING & PRODUCTION` with `'Live'` badge.
+   * Built with `<PermissionGate screen="MFG_MRP">` and `<ConfirmDeleteModal>`.
+   * 4 KPI cards (`MRP Engine Executions`, `Total Planned Orders`, `Planned BUY Spend`, `Past-Due Expedite Alerts`).
+   * 3 View Tabs:
+     * **Planned Orders Register:** Full interactive table with order selection checkboxes, BOM level pills (`L0`, `L1`, `L2`), Gross-to-Net quantities, lead times, release dates, past-due alerts, status badges, and inline actions.
+     * **MRP Execution Runs:** Historical execution audit table showing duration, counts, spend, and triggering operator.
+     * **Multi-Level BOM Hierarchy:** Visual hierarchical tree mapping Level 0 assemblies down to child sub-assemblies and purchased materials.
+   * Modals:
+     * **Run MRP Modal (`RUN_MRP`):** Horizon selector (15/30/60/90 days), demand source radio group, safety stock buffer toggle, and justification notes.
+     * **Convert to PR Modal (`CONVERT`):** Selected items breakdown, delivery warehouse, department, required delivery date, and priority.
+     * **Order Calculation Drill-down Modal (`Eye`):** Formula breakdown and backward scheduling timeline.
+     * **Printable Schedule Modal (`PRINT`):** Formatted printable schedule with corporate manufacturing layout.
+

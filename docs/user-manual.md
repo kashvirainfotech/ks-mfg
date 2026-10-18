@@ -904,3 +904,47 @@ When a new screen is released, this manual provides:
      * Prevents deletion of active routings if they are linked to Bill of Materials (BOM) or production work orders.
      * Performs cascading removal of child operations within an ACID transaction.
 * **Action Buttons:** `Print Traveler` (`MFG_ROUTING -> PRINT`), `Export Register` (`MFG_ROUTING -> EXPORT`), `+ New Routing` (`MFG_ROUTING -> ADD`), `Edit Routing` (`MFG_ROUTING -> EDIT`), `Timeline Visualizer` (`MFG_ROUTING -> VIEW`), `Clone Revision` (`MFG_ROUTING -> CLONE`), `Approve & Release` (`MFG_ROUTING -> APPROVE`), and `Delete Routing` (`MFG_ROUTING -> DELETE`).
+
+### 2.28 Step 6.4 — Material Requirements Planning (MRP-I Engine) & Gross-to-Net Planned Orders (`/manufacturing/mrp`)
+
+* **Screen Code:** `MFG_MRP` (Screen ID: `1027`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Material Requirements (MRP)`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_MGR`, `PUR_EXEC`
+* **Operational Capabilities:**
+  1. **Executive MRP KPIs:**
+     * **MRP Engine Executions:** Total historical and current Material Requirements Planning simulation and release runs.
+     * **Total Planned Orders:** Fleet-wide scheduled manufacturing (`MAKE`) and procurement (`BUY`) orders with live breakdown.
+     * **Planned BUY Spend:** Total estimated capital outflow in ₹ required to replenish raw materials, bought-out components, and tooling.
+     * **Past-Due Expedite Alerts:** High-priority warning counter highlighting planned orders whose lead-time calculated order release date is prior to the current date.
+  2. **Multi-Level Gross-to-Net MRP Calculation Engine (`RUN_MRP`):**
+     * Multi-level explosion algorithm calculating exact material requirements across the factory supply chain.
+     * **Gross-to-Net Formula:**
+       $$\text{Net Requirement} = \text{Gross Requirement} - \text{Current On-Hand Warehouse Stock} - \text{Scheduled Open PO Receipts} + \text{Safety Stock Buffer}$$
+     * Recursively explodes parent assembly Bills of Materials (`tbl_mfg_bom_header` & `tbl_mfg_bom_item`) incorporating component scrap factors (`gross_quantity`), generating Level 1 child sub-assemblies and Level 2 raw materials.
+     * Action classification:
+       * `MAKE`: Generated for Level 0 finished products and multi-level semi-finished sub-assemblies linking primary BOMs and routings.
+       * `BUY`: Generated for direct raw materials, standard bought-out components, lubricants, and consumable tooling inserts.
+       * `SUBCONTRACT`: Generated for outsourced secondary machining and specialized surface treatments.
+     * Backward scheduling:
+       $$\text{Order Release Date} = \text{Required By Date} - \text{Lead Time Days}$$
+       Where lead time incorporates routing machining cycle times for `MAKE` orders, or vendor procurement lead time plus incoming QC inspection lead time for `BUY` orders.
+  3. **High-Density Planned Orders Register:**
+     * Comprehensive interactive tabular register displaying Planned Order No (`PLN-ORD-XXXX`), MRP Run reference, hierarchical BOM Level pill (`L0`, `L1`, `L2`), Item Code & Description, Order Action Type (`MAKE` / `BUY` / `SUBCONTRACT`), Parent Order linkage, Gross Requirements, On-Hand Bin Stock, Scheduled PO Receipts, Safety Stock Buffer, Net Requirement, Planned Order Quantity & UOM, Lead Time days, Order Release Date (with Past-Due alert badges), Required By Date, and Estimated Order Spend in ₹.
+     * Quick filter toolbar with MRP Run selector, Order Type filter, Status filter (`SUGGESTED`, `CONFIRMED`, `CONVERTED_TO_PR`), BOM Level selector, Past-Due Expeditations toggle, and search filter.
+  4. **1-Click Conversion to Purchase Requisition (`CONVERT`):**
+     * Select one or multiple planned `BUY` orders using row checkboxes.
+     * Seamless modal to specify delivery warehouse, requesting department, target required delivery date, and requisition priority (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL_URGENT`).
+     * Instantly creates an official Purchase Requisition in `tbl_pr_header` and `tbl_pr_item`, sets planned order statuses to `CONVERTED_TO_PR`, links `converted_pr_id`, and writes immutable audit trail logs.
+  5. **MRP Calculation Runs History:**
+     * Audit log register tracking every executed MRP run (`MRP-{BRANCH}-{FYEAR}-XXXX`) with run timestamps, horizon period (15/30/60/90 days), demand identification source (`BUFFER_DEFICIT`, `ALL`), items analyzed, order counts, planned spend, execution duration (ms), and triggering operator.
+  6. **Interactive Multi-Level BOM Hierarchy Tree View:**
+     * Visual multi-tier tree diagram mapping parent Level 0 finished assemblies down to Level 1 sub-assemblies and Level 2 raw materials.
+     * Collapsible nodes displaying component consumption quantities, lead-time offsets, and buy/make badges.
+  7. **Order Calculation Drill-down Modal (`Eye`):**
+     * Complete breakdown of individual planned order computations showing step-by-step arithmetic deductions (Gross Req, On-Hand, Sched PO, Safety Buffer, Net Req), lead-time timelines, and parent BOM relationships.
+  8. **Official Printable MRP Planning & Purchase Requisition Schedule (`PRINT`):**
+     * Clean, professional printable tabular schedule with corporate manufacturing header, execution metadata, line-item order requirements, and supervisory sign-offs.
+  9. **Cascade Run Deletion Guard (`DELETE`):**
+     * Safely deletes draft or completed MRP runs and their child planned orders, while preventing deletion if any order has already been converted into an official PR or Work Order.
+* **Action Buttons:** `Execute MRP Run` (`MFG_MRP -> RUN_MRP`), `Convert to PR` (`MFG_MRP -> CONVERT`), `Print Schedule` (`MFG_MRP -> PRINT`), `Confirm Order` (`MFG_MRP -> RUN_MRP`), `View Order Details` (`MFG_MRP -> VIEW`), and `Delete Run` (`MFG_MRP -> RUN_MRP`).
+

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Building2,
+  Calculator,
   CalendarRange,
   ChevronDown,
   Cpu,
@@ -198,6 +199,13 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Production Routings',
         path: '/manufacturing/routings',
         icon: Workflow,
+        badge: 'Live',
+      },
+      {
+        code: 'MFG_MRP',
+        label: 'Material Requirements (MRP)',
+        path: '/manufacturing/mrp',
+        icon: Calculator,
         badge: 'Live',
       },
     ],

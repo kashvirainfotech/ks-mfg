@@ -1456,3 +1456,73 @@ INSERT INTO tbl_sec_role_action_permission (
     (1005, 1026, 1079, FALSE, 1001, 1001, 1001, 1001),
     (1005, 1026, 1080, FALSE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.4 - Material Requirements Planning (MRP Engine) & Planned Orders
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1027, 'MFG_MRP', 'Material Requirements Planning (MRP)', 'MANUFACTURING', '/manufacturing/mrp', 'Calculator', 27, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1027) FROM tbl_sec_screen), 1027));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1081, 1027, 'RUN_MRP', 'Execute Gross-to-Net MRP Planning Run',                 TRUE, 1001, 1001, 1001, 1001),
+    (1082, 1027, 'EXPORT',  'Export Planned Orders Schedule & Deficit Register',     TRUE, 1001, 1001, 1001, 1001),
+    (1083, 1027, 'PRINT',   'Print MRP Executive Summary & Procurement Plan',        TRUE, 1001, 1001, 1001, 1001),
+    (1084, 1027, 'CONVERT', 'Convert Planned Orders to Purchase Requisitions (PR)',  TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1084) FROM tbl_sec_action), 1084));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1027, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1027, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1027, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- QA_HEAD
+    (1004, 1027, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1005, 1027, TRUE, TRUE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- PURCHASE_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1027, 1081, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1027, 1082, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1027, 1083, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1027, 1084, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER
+    (1002, 1027, 1081, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1027, 1082, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1027, 1083, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1027, 1084, TRUE, 1001, 1001, 1001, 1001),
+    -- QA_HEAD (View, Print, Export)
+    (1003, 1027, 1081, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1027, 1082, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1027, 1083, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1027, 1084, FALSE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Run, View, Print, Export, Convert)
+    (1004, 1027, 1081, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1027, 1082, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1027, 1083, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1027, 1084, TRUE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Print, Export, Convert to PR)
+    (1005, 1027, 1081, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1027, 1082, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1027, 1083, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1027, 1084, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
