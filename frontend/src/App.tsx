@@ -12,6 +12,7 @@ import { AppShell } from './components/layout/AppShell';
 import { LoginPage } from './pages/auth/LoginPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { CustomerMasterPage } from './pages/parties/CustomerMasterPage';
+import { PriceListMasterPage } from './pages/parties/PriceListMasterPage';
 import { CompanyMasterPage } from './pages/org/CompanyMasterPage';
 import { BranchMasterPage } from './pages/org/BranchMasterPage';
 import { FinancialYearMasterPage } from './pages/org/FinancialYearMasterPage';
@@ -24,6 +25,12 @@ import { SystemConfigPage } from './pages/admin/SystemConfigPage';
 import { WarehouseMasterPage } from './pages/inventory/WarehouseMasterPage';
 import { UomMasterPage } from './pages/inventory/UomMasterPage';
 import { ItemMasterPage } from './pages/inventory/ItemMasterPage';
+import { RequisitionMasterPage } from './pages/procurement/RequisitionMasterPage';
+import { RfqMasterPage } from './pages/procurement/RfqMasterPage';
+import { PurchaseOrderMasterPage } from './pages/procurement/PurchaseOrderMasterPage';
+import { GateInwardMasterPage } from './pages/procurement/GateInwardMasterPage';
+import { GrnMasterPage } from './pages/procurement/GrnMasterPage';
+import { InwardQcMasterPage } from './pages/quality/InwardQcMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -180,6 +187,70 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <CustomerMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/parties/master"
+              element={
+                <ProtectedLayout>
+                  <CustomerMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/parties/price-lists"
+              element={
+                <ProtectedLayout>
+                  <PriceListMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/procurement/requisitions"
+              element={
+                <ProtectedLayout>
+                  <RequisitionMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/procurement/rfqs"
+              element={
+                <ProtectedLayout>
+                  <RfqMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/procurement/purchase-orders"
+              element={
+                <ProtectedLayout>
+                  <PurchaseOrderMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/procurement/gate-inward"
+              element={
+                <ProtectedLayout>
+                  <GateInwardMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/procurement/grn"
+              element={
+                <ProtectedLayout>
+                  <GrnMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/quality/inward-qc"
+              element={
+                <ProtectedLayout>
+                  <InwardQcMasterPage />
                 </ProtectedLayout>
               }
             />

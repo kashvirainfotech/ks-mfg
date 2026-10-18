@@ -119,6 +119,25 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 - **Step 2.2 — Employee Master Directory (`/hr/employees`)**: 3-tab workforce registry (`tbl_hr_employee`) covering organization/plant/department/designation assignment, self-referencing reporting manager hierarchy (`reporting_manager_id`), emergency contacts, statutory identifiers (PAN, Masked Aadhaar, PF UAN, ESIC), and payroll bank records.
 - **Step 2.3 — Global Roles & Granular Screen/Action Permissions Matrix (`/security/roles`)**: Global role catalogue (`tbl_sec_role`) with optional **Baseline Permission Cloning** and an interactive **Screen & Action Permissions Matrix** (`tbl_sec_role_permission` and `tbl_sec_role_action_permission`) with module filtering, bulk presets, and `SUPER_ADMIN` self-lockout protection.
 - **Step 2.4 — User Master & Multi-Company / Multi-Branch Role Assignment (`/security/users`)**: ERP user account management (`tbl_sec_user`) with HR Employee linking, 12-round Bcrypt password hashing, atomic multi-company (`tbl_sec_user_company_role`) and multi-branch (`tbl_sec_user_branch_role`) role assignments, administrative password reset, and account lockout unlock.
+- **Step 2.5 — Security & Field-Delta Audit Trail Viewer (`/security/audit-logs`)**: Complete immutable audit viewer (`tbl_sys_audit_log`) with side-by-side JSONB `old_value` vs `new_value` field diff inspector, multi-column search, and CSV export.
+- **Step 2.6 — System Configuration Matrix & Document Numbering Series Engine (`/admin/configurations`)**: Dual-tab administration engine managing company/plant configuration overrides (`tbl_sys_config`) and multi-plant document numbering series (`tbl_sys_doc_number_series`) with live preview, token generation, and rollover rules.
+
+### 📦 Phase 3: Inventory Foundation & Warehouse Hierarchy (`INVENTORY`)
+- **Step 3.1 — Multi-level Warehouse, Zone, Rack, and Bin Master (`/inventory/warehouses`)**: Physical logistics model (`tbl_inv_warehouse` and `tbl_inv_storage_bin`) supporting raw materials, QC quarantine hold bays, WIP lineside kanbans, finished goods, and scrap yards with temperature ranges, storage volume capacities, and bin put-away blocks.
+- **Step 3.2 — Unit of Measure (UOM), UOM Conversion Matrix & Item Category Hierarchy (`/inventory/uoms`)**: 3-tab inventory configuration managing standardized industrial UOMs (`tbl_inv_uom`), bidirectional conversion factor ratios (`tbl_inv_uom_conversion`), and recursive item category tree hierarchies (`tbl_inv_item_category`).
+- **Step 3.3 — Item & Material Master, Multi-UOM, Pricing, Quality & BOM Parameters (`/inventory/items`)**: Comprehensive 4-tab engineering material master (`tbl_inv_item`) managing standard/purchase/sales rates, multi-UOM mappings (Base, Purchase, Sales), inventory buffer thresholds (ROP, Min, Safety Stock), QC inspection flags, heat/batch/serial tracking, and BOM parent flags.
+
+### 🤝 Phase 4: Unified Party Master & Commercial Terms (`CRM_SRM`)
+- **Step 4.1 — Unified Customer, Supplier, Transporter & Job-Worker Master (`/parties/customers` & `/parties/master`)**: Multi-faceted corporate entity directory (`tbl_crm_party`) with 1-to-N multi-plant addresses and state-level GSTINs (`tbl_crm_party_address`), PAN, MSME Udyam classification, credit limit controls, and payment terms.
+- **Step 4.2 — Tiered Price Lists, Volume Discounts & Vendor Rate Contracts (`/parties/price-lists`)**: Commercial sales price lists, vendor procurement contracts, and subcontractor machining rate cards (`tbl_crm_price_list`) with multi-tier quantity break discounts (`tbl_crm_price_list_item`), validity dates, default fallback rules, and authorized trading partner assignments (`tbl_crm_party_price_list`).
+
+### 🚚 Phase 5: Procurement & Physical Inward Supply Chain (`PROCUREMENT`)
+- **Step 5.1 — Material Purchase Requisition (MR) & Multi-Level Authorization (`/procurement/requisitions`)**: Internal shopfloor & department material indents (`tbl_pr_header` & `tbl_pr_item`) with multi-level approval workflows, item-level quantity adjustment, benchmark rate estimation, and printable requisition vouchers.
+- **Step 5.2 — Supplier Request for Quotation (RFQ) & Comparative Statement Matrix (`/procurement/rfqs`)**: Multi-vendor bidding tenders (`tbl_rfq_header`, `tbl_rfq_item`, `tbl_rfq_vendor`, `tbl_rfq_vendor_item`) with 1-click requisition import, supplier bid logging, dynamic Comparative Statement (CS) evaluation matrix with automated L1 bidder detection and price variance benchmarks, and formal contract awarding.
+- **Step 5.3 — Purchase Order (PO) Management & Commercial Release Workflow (`/procurement/purchase-orders`)**: Legally binding purchase contracts (`tbl_po_header` & `tbl_po_item`) covering Standard PO, Blanket Agreement, Subcontracting Job-Work, Service PO, and CapEx, real-time GST tax computation, 1-click sourcing import from Awarded RFQs / Approved PRs, commercial sign-off release (`RELEASE`), cancellation workflows, and printable purchase order vouchers.
+- **Step 5.4 — Gate Entry & Security Inward Register (`/procurement/gate-inward`)**: Factory perimeter security checkpoints (`tbl_gate_inward_header` & `tbl_gate_inward_item`) tracking incoming supplier transport trucks, delivery challans, Indian GST E-Way Bills, LR consignment notes, weighbridge gross/tare/net weight verification, stores offloading clearance (`UNLOAD`), and security outward departure passes (`EXIT`).
+- **Step 5.5 — Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`)**: Dock receiving vouchers (`tbl_inv_grn_header` & `tbl_inv_grn_item`) with 1-click Gate Inward / PO sync, shortage/excess variance logging, supplier heat/batch number tracking, quarantine staging cage put-away (`QC_IN_PROGRESS`), store approval (`APPROVED`) with automatic PO received balance increments, and printable official GRN vouchers.
+- **Step 5.6 — Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`)**: Full metallurgical and physical laboratory testing (`tbl_qc_inward_inspection_header` & `tbl_qc_inward_inspection_item`) with 1-click Quarantine GRN import, 4-pillar testing checklist (Visual, Dimensional, Chemical/Spectro, Hardness), JSON observed parameters tracking, split accepted vs rejected lot disposition, upstream PO and GRN synchronization on approval, and printable official QC certificates.
 
 ---
 
@@ -126,17 +145,14 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 
 Development proceeds strictly **one screen/feature at a time**, completely implemented end-to-end (PostgreSQL DDL/DML $\rightarrow$ NestJS API $\rightarrow$ React UI $\rightarrow$ Living Manuals):
 
-- **Phase 2 (Remaining)**:
-  - **Step 2.5**: Security & Field-Delta Audit Trail Viewer (`/security/audit-logs`) with side-by-side JSONB `old_value` vs `new_value` inspector.
-  - **Step 2.6**: System Configuration Matrix & Document Numbering Series Engine (`/admin/configurations`).
-- **Phase 3 — Inventory Foundation & Warehouse Hierarchy (`INVENTORY`)**:
-  - Multi-level Warehouse, Zone, Rack, and Bin Master (`/inventory/warehouses`).
-  - Unit of Measure (UOM), UOM Conversion Matrix & Item Category Hierarchy (`/inventory/uoms`).
-  - Item & Material Master (`RAW`, `SFG`, `FG`, `CONSUMABLE`, `SPARE`, `SCRAP`) with reorder rules, QC flags, and batch/serial tracking (`/inventory/items`).
-- **Phase 4 — Unified Party Master & Commercial Terms (`CRM_SRM`)**:
-  - Unified Customer, Supplier & Job-Work Subcontractor Master with multi-address, GST, and credit limit controls (`/parties/master`).
-  - Tiered Price Lists, Volume Discounts & Vendor Rate Contracts (`/parties/price-lists`).
 - **Phase 5 — Procurement, Inward GRN, Quality Inspection & Put-Away (`PROCUREMENT`)**:
+  - **Step 5.1**: Material Purchase Requisition (MR) & Multi-Level Authorization (`/procurement/requisitions`).
+  - **Step 5.2**: Request for Quotation (RFQ) & Vendor Rate Comparison Matrix (`/procurement/rfq`).
+  - **Step 5.3**: Purchase Order (PO) with GST Tax Calculation & Multi-Plant Delivery Schedule (`/procurement/purchase-orders`).
+  - **Step 5.4**: Gate Entry & Security Inward Register (`/procurement/gate-inward`).
+  - **Step 5.5**: Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`).
+  - **Step 5.6**: Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`).
+  - **Step 5.7**: Warehouse Bin Put-Away & Purchase Invoice Matching (`/inventory/put-away`).
   - Material Requisition (MR) $\rightarrow$ RFQ & Vendor Comparison $\rightarrow$ Purchase Order (PO) with multi-level authorization.
   - Gate Entry $\rightarrow$ Goods Receipt Note (GRN) $\rightarrow$ Incoming QC Quarantine & Inspection $\rightarrow$ Bin Put-Away & Purchase Invoice matching.
 - **Phase 6 — Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`)**:

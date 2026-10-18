@@ -316,3 +316,413 @@ When a new screen is released, this manual provides:
   5. **Safe Deletion with Dependency Checking:**
      * Click the **Trash icon** on an item row. If the SKU is linked to active Bills of Materials (`tbl_bom_header`, `tbl_bom_item`), Warehouse Stock Balances (`tbl_inv_stock_balance`), Purchase Orders (`tbl_po_item`), Goods Receipts (`tbl_grn_item`), or Shopfloor Work Orders (`tbl_prod_work_order`), `DependencyCheckService` blocks deletion (`409 Conflict`) and lists all child references in `<ConfirmDeleteModal>`.
 * **Action Buttons:** `Print Datasheet` (`ITEM_MASTER -> PRINT`), `Export CSV` (`ITEM_MASTER -> EXPORT`), `New Item SKU` (`ITEM_MASTER -> ADD`), `Edit Item Master` (`ITEM_MASTER -> EDIT`), and `Delete Item Master` (`ITEM_MASTER -> DELETE`).
+
+
+---
+
+### 2.15 Unified Customer, Supplier, Transporter & Job-Worker Master (`/parties/customers` & `/parties/master` — Step 4.1)
+
+* **Purpose:** Centrally manage all external and internal business counter-parties (`tbl_crm_party`) within a unified, multi-role entity architecture. Configure multi-faceted trading partner roles (Customer, Supplier, Transporter, Job-Worker), statutory tax identifiers (PAN, GSTIN, MSME Udyam registration, TAN), financial risk & credit terms (credit limit ₹, payment grace days, interest on overdue, bank account details), and unlimited physical operating locations & warehouse delivery sites (`tbl_crm_party_address`) with GSTIN validation and default billing/shipping designations.
+* **Prerequisites:**
+  1. Base operational currency and financial years configured in **Financial Year Master** (`/org/financial-years`).
+  2. Operating branch entities configured in **Branch Master** (`/org/branches`).
+* **Step-by-Step Usage:**
+  1. Navigate to **CRM & Sales $\rightarrow$ Customer Master** or direct URL `/parties/customers` / `/parties/master`.
+  2. **Entity Portfolio & KPI Metrics:**
+     * Monitor real-time partner distributions: **Total Master Entities**, **Active Customers**, **Vendors & Suppliers**, and **Job-Workers & Transporters**.
+     * Filter dynamically using quick role toggle pills (`All Counter-Parties`, `Customers Only`, `Suppliers Only`, `Job-Workers`, `Transporters / Logistics`).
+     * Search instantly by **Party Code**, **Legal / Trade Name**, **PAN Number**, or **Primary GSTIN**.
+  3. **Creating or Editing a Unified Party:**
+     * Click **+ New Counter-Party** (or click the pencil icon on an existing party row) to launch the unified partner modal:
+     * **Tab 1 — Basic Identity & Roles:**
+       * Enter unique **Party Code** (e.g. `CUST-MARUTI-01`, `SUPP-JSW-STEEL-01`, `JW-MICRO-PREC-01`).
+       * Enter **Legal Company Name** and optional **Trade / Brand Name**.
+       * Check applicable enterprise role flags: **Customer (Debtor)**, **Supplier (Creditor)**, **Job-Worker (Subcontractor)**, and/or **Transporter (Logistics Carrier)**. A single corporate group can simultaneously operate as a supplier of raw materials and a customer for finished goods without duplicating legal PAN records.
+       * Select **Party Classification Group** (`ENTERPRISE_OEM`, `TIER_1_AUTO`, `DISTRIBUTOR`, `RAW_MATERIAL_MILL`, `SPECIALTY_JOB_WORKER`, `FREIGHT_FORWARDER`).
+       * Enter **Primary Email**, **Primary Phone / Mobile**, and **Website URL**.
+     * **Tab 2 — Statutory, Tax & MSME Compliance:**
+       * Enter 10-character Permanent Account Number (**PAN**) (e.g., `AAACM1234F`).
+       * Enter **Primary GSTIN** (15-character statutory GST identification).
+       * Enter Tax Deduction Account Number (**TAN**) if applicable.
+       * Enter **MSME Udyam Registration Number** (e.g., `UDYAM-MH-12-0012345`) and MSME Enterprise Category (`MICRO`, `SMALL`, `MEDIUM`, or `NOT_APPLICABLE`) for Indian MSME payment compliance (45-day statutory vendor settlement clause).
+     * **Tab 3 — Credit, Banking & Payment Terms:**
+       * Enter **Credit Limit (₹)** and **Credit Grace Period (Days)** (e.g., Net 30, Net 60, Net 90).
+       * Enter **Overdue Interest Rate (% per annum)** for customer credit control.
+       * Select default **Price List Group** (`STANDARD_WHOLESALE`, `OEM_SPECIAL`, `RETAIL_DISTRIBUTION`).
+       * Enter disbursement banking details: **Bank Name**, **Bank Branch**, **Bank Account Number**, and **IFSC Code**.
+     * **Tab 4 — Multi-Location Addresses & GSTINs:**
+       * Maintain an unlimited list of physical branches, registered offices, plants, and delivery points for this counter-party.
+       * Click **+ Add Location / Address** to append an address row.
+       * Specify **Address Title / Label** (e.g., `Gurugram Plant Delivery Bay`, `Coimbatore Machine Works`, `Mumbai Corporate HQ`).
+       * Enter **Street Address Line 1 & 2**, **City**, **State**, 2-digit **State Code** (e.g., `06` for Haryana, `27` for Maharashtra, `33` for Tamil Nadu), **Postal PIN Code**, and **Location-specific GSTIN**.
+       * Toggle **Default Billing Address** and **Default Shipping Address** radio markers.
+       * Enter site-level **Contact Person Name**, **Contact Phone**, and **Contact Email**.
+  4. **Datasheet Printing & CSV Export:**
+     * Click the **Printer icon** on any party row to view and print an industrial partner summary report including statutory registration details, banking particulars, and all operating addresses.
+     * Click **Export CSV** to download the complete counter-party register with address details. All print and export operations are captured in the security audit trail (`tbl_sec_audit_log`).
+  5. **Safe Deletion with Referential Integrity:**
+     * Click the **Trash icon** on a party row. If the party has active linked Sales Orders (`tbl_so_header`), Purchase Orders (`tbl_po_header`), Job-Work Outward DC vouchers (`tbl_subcon_dc_header`), or Accounting Invoices, the transaction is rejected with `409 Conflict` and detailed dependency references are displayed.
+* **Action Buttons:** `Print Party Datasheet` (`PARTY_MASTER -> PRINT`), `Export CSV` (`PARTY_MASTER -> EXPORT`), `+ New Counter-Party` (`PARTY_MASTER -> ADD`), `Edit Party Master` (`PARTY_MASTER -> EDIT`), and `Delete Party Master` (`PARTY_MASTER -> DELETE`).
+
+
+---
+
+### 2.16 Tiered Price Lists, Volume Discounts & Vendor Rate Contracts (`/parties/price-lists` — Step 4.2)
+
+* **Purpose:** Centrally manage commercial sales price lists, vendor procurement contracts, and subcontractor machining rate cards (`tbl_crm_price_list`). Configure multi-tier volume discount brackets (`tbl_crm_price_list_item`) where unit rates automatically scale according to order batch quantity, establish contract validity periods (`effective_from` to `effective_to`), define company-wide fallback defaults (`is_default`), and link rate cards directly to authorized counter-parties (`tbl_crm_party_price_list`).
+* **Prerequisites:**
+  1. Engineering materials, finished goods, and sub-assemblies configured in **Item & BOM Catalog** (`/inventory/items`).
+  2. Baseline inventory and secondary packaging units configured in **UOM Master** (`/inventory/uoms`).
+  3. Commercial trading partners configured in **Unified Customer & Supplier Master** (`/parties/customers` or `/parties/master`).
+* **Step-by-Step Usage:**
+  1. Navigate to **CRM & Parties $\rightarrow$ Tiered Price Lists** (`/parties/price-lists`).
+  2. **Rate Card Portfolio & KPI Metrics:**
+     * Review real-time pricing analytics: **Total Master Contracts**, **Sales Rate Cards**, **Vendor Rate Contracts**, and **Job-Work & Machining Cards** with total active item tier brackets.
+     * Filter dynamically using quick role toggle pills (`All Price Lists`, `Sales Rate Cards`, `Vendor Rate Contracts`, `Job-Work Subcontracting`).
+     * Toggle **Default Lists Only** or **Active Contracts Only** to isolate active baseline rate sheets.
+     * Search instantly by **Price List Code**, **Contract Name**, **Contract Type**, or **Description notes**.
+  3. **Creating or Editing a Price List / Rate Contract:**
+     * Click **+ New Price List / Contract** (or click the pencil icon on an existing row) to open the 3-tab configuration modal:
+     * **Tab 1 — Header & Validity:**
+       * Enter unique **Price List Code** (e.g. `PL-OEM-MARUTI-2026`, `VRC-JSW-STEEL-2026`, `JWC-PREC-HEAT-2026`).
+       * Enter descriptive **Contract / List Name**.
+       * Select **Contract Type**:
+         * `Sales Rate Card (Customers)`: Outward finished goods and spare parts selling prices.
+         * `Purchase Contract (Vendors)`: Inward raw materials, tooling, and consumables procurement rates.
+         * `Job-Work Machining Card`: Outward/inward subcontractor machining, heat treatment, or electroplating rates.
+       * Select **Currency** (`INR (₹)`, `USD ($)`, `EUR (€)`, `GBP (£)`).
+       * Set **Effective From Date** and optional **Effective To Date** (leave blank for perpetual open-ended agreement).
+       * Toggle **Company Default List** checkbox (auto-applied when no party-specific contract exists).
+       * Enter commercial terms notes in **Description** (freight terms, packaging specs, annual escalation).
+     * **Tab 2 — Tiered Rate Brackets:**
+       * Click **+ Add Item / Tier** to append a line item row:
+       * Select **Item SKU** from searchable dropdown (e.g. `FG-AUTO-MNT-DRV`, `RM-CR-COIL-2MM`, `MRO-CNMG-120408`).
+       * Select applicable **UOM** (e.g. `NOS`, `TON`, `KGS`).
+       * Enter **Min Qty** and optional **Max Qty** (e.g. Bracket 1: 1–99 pcs, Bracket 2: 100–499 pcs, Bracket 3: 500+ pcs with blank Max Qty).
+       * Enter **Base Rate (₹)** and **Discount %**. The system automatically computes **Effective Rate (₹)**: `Base Rate × (1 - Discount % / 100)`.
+       * Enter supplier/delivery **Lead Time (Days)** and batch-specific remarks.
+     * **Tab 3 — Assigned Counter-Parties:**
+       * View filtered list of eligible trading partners (Customers for Sales cards, Suppliers for Purchase contracts, Job-Workers for Job-work cards).
+       * Click any partner card to toggle assignment. When generating Sales Orders or Purchase Orders, the ERP automatically resolves the partner's assigned price list and exact quantity bracket.
+  4. **Datasheet Printing & CSV Export:**
+     * Click the **Printer icon** on any price list row to preview and print an industrial rate card specification sheet complete with company header, quantity brackets, effective unit rates, and authorized counter-parties.
+     * Click **Export CSV** to download the master contract register. All print and export operations are logged in `tbl_sec_audit_log`.
+  5. **Safe Deletion with Referential Integrity:**
+     * Click the **Trash icon** on a price list row. If the contract is referenced in active downstream transactions (Sales Orders in `tbl_so_header` or Purchase Orders in `tbl_po_header`), `DependencyCheckService` blocks deletion (`409 Conflict`) and lists all child references in `<ConfirmDeleteModal>`.
+* **Action Buttons:** `Print Rate Card` (`PRICE_LIST -> PRINT`), `Export CSV` (`PRICE_LIST -> EXPORT`), `+ New Price List / Contract` (`PRICE_LIST -> ADD`), `Edit Price List` (`PRICE_LIST -> EDIT`), and `Delete Price List` (`PRICE_LIST -> DELETE`).
+
+---
+
+### 2.17 Material Purchase Requisition (MR) & Multi-Level Authorization (Step 5.1 - `/procurement/requisitions`)
+
+* **Purpose:** Enable shop-floor supervisors, store officers, and plant engineers to indent raw materials, tooling, capital spares, and job-work services against discrete work orders or buffer minimums. Provides multi-level review and authorization (`APPROVE` with approved quantity controls or `REJECT` with mandatory remarks) before converting into RFQs or Purchase Orders.
+* **Prerequisites:**
+  * Active Company & Plant Branch context.
+  * Active Department Master (`tbl_hr_department`) & Warehouse/Store Master (`tbl_inv_warehouse`).
+  * Item SKU catalog (`tbl_inv_item`) with assigned base UOMs.
+  * Optional: Registered suppliers (`tbl_crm_party`) for suggested sourcing.
+* **Step-by-Step Usage:**
+  1. **Accessing Requisitions:**
+     * Navigate to **PROCUREMENT & SOURCING** $\rightarrow$ **Purchase Requisitions** (`/procurement/requisitions`).
+     * Review the 4 real-time KPI metric cards: **Total Requisitions**, **Pending Approvals** (awaiting sign-off), **Authorized / Approved** (ready for PO/RFQ), and **Critical & Urgent** (high-priority / line-stoppage indents).
+     * Filter indents dynamically using quick status pills (`All Statuses`, `Draft`, `Submitted`, `Approved`, `Rejected`), priority levels (`Critical / Urgent`, `High`, `Medium`, `Low`), department selectors, or warehouse filters.
+     * Group items by Status, Priority, Requesting Department, Receiving Warehouse, or Requisition Type using the table group-by selector.
+  2. **Creating a Material Purchase Requisition:**
+     * Click **+ New Material Requisition** to launch the requisition builder modal:
+     * **Header Information:**
+       * **PR Number:** Enter manual code or leave blank for automatic sequence generation (`PR-AHM-2627-XXXX`).
+       * **Requisition Date:** Defaults to current date.
+       * **Required By Date:** Target arrival date at the receiving warehouse.
+       * **Requesting Department:** Select initiating department (e.g., *Production - Machine Shop*, *Tool Room & Die Maintenance*, *Quality Assurance*).
+       * **Destination Warehouse:** Target storage location (e.g., *Main Raw Materials Warehouse*, *Tool Crib & Spare Parts Store*).
+       * **Priority Level:** Choose from `Low`, `Medium`, `High`, or `Critical / Urgent (Line Stoppage)`.
+       * **Requisition Type:** Select `Raw Material`, `Capital Asset`, `Consumable & MRO`, `Tooling & Spares`, or `Job Work Service`.
+       * **Purpose / Justification:** Enter operational justification (e.g., *For Job Order JO-AHM-2627-010, replacement cutter inserts*).
+     * **Material Line Items Grid:**
+       * Click **+ Add Item** to append indent rows.
+       * Select **Item SKU** from searchable item dropdown. System auto-fills base UOM and standard purchase rate.
+       * Specify **Required Quantity** and verify/adjust **Estimated Rate (₹)**. Line item **Estimated Amount (₹)** is calculated automatically (`Required Qty × Estimated Rate`).
+       * Optionally designate a **Suggested Vendor** from qualified suppliers and add item-specific specification notes in **Remarks**.
+       * Review the **Total Estimated Amount** summary footer.
+     * Click **Save Requisition**. New indents are saved in `DRAFT` status.
+  3. **Submitting for Authorization:**
+     * On any `DRAFT` requisition row, click the paper airplane icon (**Submit for Approval**).
+     * Status updates to `SUBMITTED` (`Pending Approval`), routing the indent into the authorization queue.
+  4. **Multi-Level Authorization (Approve / Reject):**
+     * Authorized managers (Plant Managers, Purchase Officers) click the shield check icon (**Authorize Requisition**) on any `SUBMITTED` row.
+     * In the authorization modal:
+       * Review requisition details and line items.
+       * Choose **Approve Requisition**: Adjust **Approved Qty** on individual line items (e.g., reduce requested quantity based on current plant budget or warehouse stock reserves) and enter optional approval remarks.
+       * Choose **Reject Requisition**: Enter mandatory rejection justification remarks (e.g., *Budget exceeded, substitute material already in stock*).
+       * Click **Confirm Approval** or **Confirm Rejection**. The system updates the requisition header and line item approved quantities and total estimated amount atomically.
+  5. **Printing Requisition Vouchers & CSV Export:**
+     * Click the **Printer icon** on any row to open the high-fidelity internal voucher modal with company header, indent details, item specifications with requested vs approved quantities, and triple-signature sign-off blocks (*Requested By*, *Store In-charge*, *Plant Head / Approver*).
+     * Click **Print Document** to invoke system print dialog.
+     * Click **Export CSV** in `<MasterDataTable>` to export requisitions data. All print and export operations are logged in `tbl_sec_audit_log`.
+  6. **Safe Deletion with Referential Integrity:**
+     * Click the **Trash icon** on any `DRAFT` or `CANCELLED` requisition row.
+     * Requisitions linked to downstream Requests for Quotation (`tbl_rfq_item`) or Purchase Orders (`tbl_po_item`) cannot be deleted; the ERP's `DependencyCheckService` blocks deletion with conflict details.
+* **Action Buttons:** `Print Voucher` (`PURCHASE_REQ -> PRINT`), `Export CSV` (`PURCHASE_REQ -> EXPORT`), `+ New Material Requisition` (`PURCHASE_REQ -> ADD`), `Edit Requisition` (`PURCHASE_REQ -> EDIT`), `Submit for Approval` (`PURCHASE_REQ -> SUBMIT`), `Authorize Requisition` (`PURCHASE_REQ -> AUTHORIZE`), and `Delete Requisition` (`PURCHASE_REQ -> DELETE`).
+
+---
+
+### 2.18 Supplier Request for Quotation (RFQ) & Comparative Statement (Step 5.2 - `/procurement/rfqs`)
+
+* **Purpose:** Enable procurement executives and purchase managers to issue competitive multi-vendor inquiries (RFQs) against approved material requisitions or manual indents, log supplier quotation bids, generate automatic Comparative Statements (CS) with L1 (Lowest Bidder) calculation and variance benchmarks, and formally award purchase contracts with complete audit traceability.
+* **Prerequisites:**
+  * Active Company & Plant Branch context.
+  * Receiving Plant / Warehouse Master (`tbl_inv_warehouse`).
+  * Item SKU catalog (`tbl_inv_item`) with UOMs and benchmark purchase rates.
+  * Registered vendor suppliers (`tbl_crm_party` where `is_supplier = true`).
+  * Optional: Approved Material Purchase Requisitions (`tbl_pr_header` / `tbl_pr_item`) for 1-click indent import.
+* **Step-by-Step Usage:**
+  1. **Accessing RFQ Register:**
+     * Navigate to **PROCUREMENT & SOURCING** $\rightarrow$ **Requests for Quotation** (`/procurement/rfqs`).
+     * Inspect 4 real-time KPI metric cards: **Total RFQ Tenders**, **Open Inquiries** (Drafts & Issued to vendors), **Comparative Analysis** (Quotes in & ready for CS evaluation), and **Contracts Awarded** (Ready for Purchase Order generation).
+     * Filter dynamically using quick status pills (`All Tenders`, `Draft`, `Sent`, `Quotes In`, `CS Ready`, `Awarded`) and warehouse selectors.
+     * Group rows by Status, Destination Warehouse, or Awarded Supplier using the table grouping menu.
+  2. **Creating an RFQ Tender:**
+     * Click **+ New RFQ Tender** to launch the inquiry builder modal:
+     * **Header Details:**
+       * **RFQ Number:** Auto-generated sequence (`RFQ-AHM-2627-XXXX`) or custom code.
+       * **Issue Date & Due Date:** Quotation submission cutoff date for suppliers.
+       * **Receiving Warehouse:** Destination plant store.
+       * **Commercial Terms:** Default payment terms (e.g., *30 Days Net from GRN*) and delivery terms (*FOR Destination Plant*).
+       * **Tender Scope / Remarks:** Operational instructions for suppliers.
+     * **Line Items & Quick Requisition Import:**
+       * Click any **Approved Requisition Pill** (e.g. `+ PR-AHM-2627-0001`) to automatically pull all approved indented line items, quantities, and target benchmark rates directly into the inquiry.
+       * Alternatively, click **+ Add Item** to select SKUs manually from the catalog, specify required quantities, target estimated unit rates (₹), and technical tolerances/specs.
+     * **Inviting Qualified Suppliers:**
+       * Select 2 or more qualified vendors from the multi-select vendor supplier list.
+     * Click **Save RFQ Tender**. Saved in `DRAFT` status.
+  3. **Issuing RFQ to Suppliers:**
+     * On any `DRAFT` row, click the paper airplane icon (**Issue to Invited Vendors**).
+     * Status updates to `SENT`, locking initial specifications and opening the inquiry for bid recording.
+  4. **Recording Vendor Quotation Bids:**
+     * When supplier quotes arrive (via email, portal, or sealed envelope), click the green dollar icon (**Record Supplier Quotation Bid**).
+     * Select the responding vendor, enter **Vendor Quote Ref No**, **Quotation Date**, offered payment terms, and delivery lead time (days).
+     * For each line item, input **Offered Quantity**, **Quoted Unit Rate (₹)**, **Discount %**, and applicable **GST/Tax %**. The system computes Net Unit Rate and Total Line Amount in real-time.
+     * Click **Save Vendor Quotation**. The system saves the bid, updates the vendor's total quote amount, and auto-calculates L1 flags.
+  5. **Comparative Statement (CS) Evaluation & L1 Analysis:**
+     * Click the spreadsheet icon (**View Comparative Statement**) on any RFQ row.
+     * **Vendor Bid Summary:** Displays total bid value, payment terms, delivery lead days, and L1 item win count per vendor.
+     * **Item-by-Item Rate Comparison Matrix:**
+       * Displays required quantities, internal target benchmark rates, and side-by-side quotes for all participating suppliers.
+       * Prominently highlights the **Lowest (L1) Bidder** with a live pulsing green indicator and computes the percentage **Price Variance** ($\Delta$) against internal target estimates.
+  6. **Finalizing & Awarding the Contract:**
+     * Inside the Comparative Statement modal, scroll to the **Finalize & Award Purchase Contract** section.
+     * Select the **Winning Vendor** and enter mandatory **Award Justification / Remarks** (e.g., *Selected L1 lowest quote with verified ISO 9001 mill test certificates*).
+     * Click **Confirm Contract Award**. The RFQ status transitions to `AWARDED`, locking the comparative statement and recording the selection delta in the audit log.
+  7. **Printing Inquiries, CS Sheets & CSV Export:**
+     * Click the **Printer icon** on any row to open the high-fidelity print modal. Toggle between **Comparative Sheet** (for internal commercial committee approvals) and **Supplier Inquiry Form** (formal tender document for vendors).
+     * Click **Export CSV** in the table to export full tender registers. All print and export operations are logged in `tbl_sec_audit_log`.
+  8. **Safe Deletion with Referential Integrity:**
+     * Click the **Trash icon** on any `DRAFT` or `CANCELLED` RFQ.
+     * If downstream Purchase Orders (`tbl_po_item`) are linked to this RFQ, `DependencyCheckService` blocks deletion with conflict details in `<ConfirmDeleteModal>`.
+* **Action Buttons:** `Print CS / Inquiry` (`PROCUREMENT_RFQ -> PRINT`), `Export CSV` (`PROCUREMENT_RFQ -> EXPORT`), `+ New RFQ Tender` (`PROCUREMENT_RFQ -> ADD`), `Edit RFQ` (`PROCUREMENT_RFQ -> EDIT`), `Issue to Vendors` (`PROCUREMENT_RFQ -> SEND`), `Award Contract` (`PROCUREMENT_RFQ -> FINALIZE`), and `Delete RFQ` (`PROCUREMENT_RFQ -> DELETE`).
+
+---
+
+### 2.19 Step 5.3 — Purchase Order (PO) Management & Release Workflow (`/procurement/purchase-orders`)
+
+* **Purpose:** Enable procurement managers, purchasing officers, and commercial controllers to generate legally binding purchase contracts and official purchase orders against awarded RFQ quotations or approved material requisitions. Manage multiple PO typologies (Standard PO, Blanket Agreement, Subcontracting Job-Work, Service PO, Capital Asset / CapEx), line item taxes, delivery schedules, commercial authorization sign-off (`RELEASE`), order cancellations, and official printable purchase vouchers.
+* **Prerequisites:**
+  * Active Company & Plant Branch context.
+  * Receiving Plant / Warehouse Master (`tbl_inv_warehouse`).
+  * Item SKU catalog (`tbl_inv_item`) with UOMs and benchmark purchase rates.
+  * Registered vendor suppliers (`tbl_crm_party` where `is_supplier = true`).
+  * Optional Sourcing Acceleration: Awarded RFQs (`tbl_rfq_header` / `tbl_rfq_item`) or Approved PRs (`tbl_pr_header` / `tbl_pr_item`) for 1-click import.
+* **Step-by-Step Usage:**
+  1. **Accessing Purchase Orders Register:**
+     * Navigate to **PROCUREMENT & SOURCING** $\rightarrow$ **Purchase Orders** (`/procurement/purchase-orders`).
+     * Inspect 4 real-time KPI metric cards: **Total Purchase Orders**, **Pending Authorization** (Drafts & Submitted orders awaiting commercial sign-off), **Commercially Released** (Active orders dispatched to suppliers), and **Committed Spend Value** (Net valuation in ₹).
+     * Filter dynamically using quick status pills (`All Statuses`, `Draft`, `Submitted`, `Released`, `Closed`, `Cancelled`), PO Type filter, Vendor dropdown, and Plant / Warehouse dropdown.
+     * Group rows by Order Status, Vendor / Supplier, PO Type, or Receiving Plant using the table grouping menu.
+  2. **Creating a Purchase Order:**
+     * Click **+ New Purchase Order** to launch the order builder modal:
+     * **Sourcing Acceleration Toolbar:**
+       * Click **Import Awarded RFQ** to select from awarded quotation tenders. Selecting an RFQ auto-populates the winning vendor, destination plant, payment terms, delivery terms, and negotiated line items with final unit rates.
+       * Click **Import Approved PR Items** to multi-select approved indented lines from department requisitions.
+     * **Order Header Information:**
+       * **Supplier / Vendor:** Select qualified vendor from the supplier directory.
+       * **Receiving Warehouse:** Select plant raw material stores.
+       * **PO Type:** Choose between *Standard PO (Stock / RM)*, *Blanket Agreement (Contract)*, *Subcontracting Job-Work*, *Service PO*, or *Capital Asset (CapEx)*.
+       * **Order Date & Expected Delivery Date:** Set procurement issue date and delivery schedule deadline.
+       * **Commercial Terms:** Specify Payment Terms (e.g. *30 Days Net from GRN*) and Delivery Incoterms (e.g. *FOR Destination Plant*).
+       * **Shipping & Billing Addresses:** Review and adjust plant delivery address and corporate tax billing address.
+     * **Order Items & Real-Time Tax Valuation:**
+       * Click **+ Add Item Line** to select items from catalog, specify ordered quantity, UOM, unit rate (₹), discount %, GST tax %, and expected delivery date.
+       * Live calculation footer displays **Gross Total**, **Total Discount**, **Tax (GST)**, and **Net Payable Amount**.
+     * Click **Create Purchase Order**. Saved in `DRAFT` status with automatic sequence code (e.g. `PO-AHM-2627-0006`).
+  3. **Submitting PO for Commercial Review:**
+     * On any `DRAFT` purchase order, click the paper airplane icon (**Submit Order**).
+     * Status updates to `SUBMITTED`, indicating that the purchase contract is pending commercial sign-off.
+  4. **Commercial Release Sign-Off Workflow:**
+     * Authorized purchase heads / commercial managers inspect submitted orders.
+     * Click the green shield icon (**Commercial Release Sign-Off**).
+     * Review the committed order value and enter mandatory **Commercial Sign-Off Notes / Remarks** (e.g., *Terms verified against RFQ comparison. Approved for delivery schedule*).
+     * Click **Authorize & Release Order**.
+     * The order status transitions to `RELEASED`. The system records the authorizer's user ID, release timestamp, and sign-off remarks in the audit trail.
+  5. **Printing Official Purchase Order Vouchers:**
+     * On any purchase order, click the printer icon (**Print Purchase Order Voucher**).
+     * Preview the official manufacturing purchase voucher formatted for `@media print` printing:
+       * Company branding: Kashvira Infotech Private Limited, Plant address, GSTIN, CIN.
+       * Vendor billing and destination warehouse ship-to details.
+       * Full line item table with item codes, specifications, quantities, UOM, rates, discount, GST %, and line amounts.
+       * Commercial terms, delivery terms, and standard manufacturing terms & conditions.
+       * Triple signature sign-off blocks: Prepared By, Checked By, and Commercial Signatory.
+     * Click **Print Document** to trigger high-fidelity browser print/PDF export. Logged in `tbl_sec_audit_log` as `PRINT` action.
+  6. **Cancelling an Order:**
+     * On any `DRAFT`, `SUBMITTED`, or `RELEASED` order, click the red cross icon (**Cancel Order**).
+     * Enter mandatory **Reason for Cancellation** (e.g. *Vendor delivery delay / design revision*).
+     * Status transitions to `CANCELLED`, blocking any downstream goods receipts.
+  7. **Safe Deletion with Referential Integrity:**
+     * Click the **Trash icon** on any `DRAFT` PO.
+     * If downstream Goods Receipt Notes (GRN) or supplier invoices are linked, `DependencyCheckService` blocks deletion with conflict details in `<ConfirmDeleteModal>`.
+* **Action Buttons:** `Print Voucher` (`PURCHASE_ORDER -> PRINT`), `Export Register` (`PURCHASE_ORDER -> EXPORT`), `+ New Purchase Order` (`PURCHASE_ORDER -> ADD`), `Edit Order` (`PURCHASE_ORDER -> EDIT`), `Submit Order` (`PURCHASE_ORDER -> SUBMIT`), `Commercial Release` (`PURCHASE_ORDER -> RELEASE`), `Cancel Order` (`PURCHASE_ORDER -> CANCEL`), and `Delete Order` (`PURCHASE_ORDER -> DELETE`).
+
+---
+
+### 2.20 Step 5.4 — Gate Entry & Security Inward Register (`/procurement/gate-inward`)
+
+* **Purpose:** Manage factory perimeter security checkpoints and physical consignment inward logistics. Track arriving supplier transport trucks, verify statutory documents (Delivery Challans, Tax Invoices, Indian GST E-Way Bills, and Lorry Receipts), record gross and tare weighbridge calibration weights, register declared item packages, authorize physical material unloading into plant stores, and record security outward clearance upon truck departure.
+* **Prerequisites:**
+  * Active Company & Plant Branch context.
+  * Receiving Plant / Warehouse Master (`tbl_inv_warehouse`).
+  * Registered vendor suppliers (`tbl_crm_party` where `is_supplier = true`).
+  * Item SKU catalog (`tbl_inv_item`) with UOMs.
+  * Optional: Commercially Released Purchase Orders (`tbl_po_header` where `status = 'RELEASED'`) for 1-click PO item import.
+* **Step-by-Step Usage:**
+  1. **Accessing Gate Inward Register:**
+     * Navigate to **PROCUREMENT & SOURCING** $\rightarrow$ **Gate Inward & Security** (`/procurement/gate-inward`).
+     * Inspect 4 real-time KPI metric cards: **Total Inward Entries**, **Vehicles Inside Plant** (Arrived at gate & currently offloading at receiving bays), **Ready for Stores GRN** (Offloaded materials awaiting Goods Receipt Note voucher generation), and **Departed / Completed** (Vehicles cleared through outward gate).
+     * Filter dynamically using quick status pills (`All Inwards`, `At Gate`, `Unloaded`, `GRN Pending`, `Completed`, `Voided`), Destination Plant, and Supplier dropdowns.
+     * Group rows by Inward Status, Supplier, Receiving Plant, or Transporter Agency using the table grouping menu.
+  2. **Registering Vehicle Inward at Security Gate:**
+     * When a supplier truck arrives at the factory gate, security officers click **+ New Gate Entry** to open the register modal:
+     * **PO Synchronization Toolbar:**
+       * Click **Import Released PO Items** to select from active purchase orders (`status = 'RELEASED'`). Selecting a PO auto-fills the vendor, receiving plant, and all open ordered line items!
+     * **Vehicle & Transport Logistics:**
+       * **Vehicle Registration Number:** Enter truck number (e.g. `GJ-01-BX-4421`). Automatically formatted in uppercase.
+       * **Transporter, Driver & Contact:** Enter transporter agency name, driver full name, and mobile number.
+       * **Entry Date & Time:** Auto-populated with current gate timestamp.
+       * **Destination Plant:** Select receiving warehouse/plant stores.
+     * **Supplier Inward Documents:**
+       * **Supplier Challan / Invoice No & Date:** Mandatory delivery challan identifiers.
+       * **Statutory Logistics:** 12-digit Indian GST E-Way Bill Number, Lorry Receipt (LR) No and Date.
+     * **Weighbridge & Package Inspection:**
+       * **Gross Weight (kg):** Truck scale reading with full material load.
+       * **Tare Weight (kg):** Empty vehicle weight (initial or estimated). Net material weight is computed in real time (`gross - tare`).
+       * **Total Packages:** Count of crates, bundles, barrels, or boxes.
+     * **Declared Consignment Items:**
+       * Line items grid capturing Item SKU, Description, UOM, declared Challan Quantity, package count, and bundle tag remarks.
+     * Click **Register Gate Inward**. The system saves the record in `INWARDED` status with an automatic sequence code (e.g. `GIN-AHM-2627-0001`).
+  3. **Marking Consignment Unloaded at Plant Bays:**
+     * Once the vehicle docks at the assigned store bay and goods are physically transferred, store personnel click the box icon (**Mark Consignment Unloaded**).
+     * Record the post-unloading empty vehicle tare weight from the weighbridge (updating net material weight) and input offload bay/stacking remarks.
+     * Click **Confirm Consignment Unloaded**. Status transitions to `GRN_PENDING`, signaling store officers to issue an official Goods Receipt Note (GRN).
+  4. **Authorizing Vehicle Gate Exit:**
+     * After unloading is confirmed and delivery documents are stamped, the driver proceeds to the exit gate.
+     * Security officers click the exit door icon (**Authorize Vehicle Gate Exit**).
+     * Enter outward remarks and click **Authorize Exit & Depart**. Status transitions to `COMPLETED`, recording the outward departure timestamp.
+  5. **Printing Security Inward Gate Passes:**
+     * On any gate record, click the printer icon (**Print Inward Pass**).
+     * Preview the official manufacturing gate pass formatted for clean `@media print` printing:
+       * Company branding: Kashvira Infotech Private Limited, Plant Gate Security.
+       * Large GIN Number and Barcode header.
+       * Vehicle No, Entry Timestamp, Transporter, Driver details.
+       * Supplier Name, Delivery Challan No & Date, E-Way Bill No.
+       * Weighbridge Calibration Certificate: Gross, Tare, and Net Weight in kg.
+       * Item lines breakdown with declared challan quantities and package counts.
+       * Triple signature sign-off blocks: Security Gate Officer, Weighbridge Operator, and Stores Receiving Clerk.
+     * Click **Print Pass** to trigger high-fidelity browser print/PDF export. Logged in `tbl_sec_audit_log` as `PRINT` action.
+  6. **Voiding / Turning Back a Vehicle:**
+     * If goods are damaged in transit, documentation is invalid, or the consignment is addressed to the wrong plant unit, click the red cross icon (**Void / Turn Back Vehicle**).
+     * Input mandatory **Reason for Cancellation** (e.g. *Challan addressed to wrong plant unit / seal broken*).
+     * Status transitions to `CANCELLED`.
+  7. **Safe Deletion:**
+     * Click the **Trash icon** on any `INWARDED` or `CANCELLED` gate entry.
+     * If downstream Goods Receipt Notes (GRN) are linked to this entry, `DependencyCheckService` blocks deletion with conflict details in `<ConfirmDeleteModal>`.
+* **Action Buttons:** `Print Pass` (`GATE_INWARD -> PRINT`), `Export Register` (`GATE_INWARD -> EXPORT`), `+ New Gate Entry` (`GATE_INWARD -> ADD`), `Edit Entry` (`GATE_INWARD -> EDIT`), `Mark Unloaded` (`GATE_INWARD -> UNLOAD`), `Authorize Exit` (`GATE_INWARD -> EXIT`), `Cancel Entry` (`GATE_INWARD -> CANCEL`), and `Delete Entry` (`GATE_INWARD -> DELETE`).
+
+### 2.21 Step 5.5 — Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`)
+
+* **Screen Code:** `PURCHASE_GRN` (Screen ID: `1020`)
+* **Navigation Path:** `Sidebar -> PROCUREMENT & SOURCING -> Goods Receipt (GRN)`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `QA_HEAD`, `PURCHASE_EXEC`
+* **Operational Capabilities:**
+  1. **Executive Operational KPI Metrics:**
+     * **Total GRNs Logged:** Cumulative count of all goods receipt vouchers recorded across manufacturing plants.
+     * **Quarantine / QC Hold:** Count of receipt batches in `SUBMITTED` or `QC_IN_PROGRESS` status pending metallurgical or dimensional laboratory clearance.
+     * **Store Approved & Cleared:** Count of receipt notes where quality clearance is complete and inventory is put away into storage bins.
+     * **Receipt Valuation (INR):** Total cumulative commercial valuation of active received materials calculated from line item quantities and contracted rates.
+  2. **Fast Sourcing & Logistics Synchronization:**
+     * **1-Click Gate Inward Import:** Select from active security gate entries (`GIN-AHM-2627-XXXX`) in `INWARDED`, `UNLOADED`, or `GRN_PENDING` status. Instantly populates receiving warehouse, supplier, PO reference, delivery challan number, challan date, vehicle number, E-Way Bill, and declared consignment line items.
+     * **Purchase Order Linking:** Select from approved or released POs (`tbl_po_header`). Automatically loads open ordered quantities and contracted purchase rates.
+  3. **Dual-Quantity & Variance Logging:**
+     * Record declared supplier **Challan Quantity** and verified physical **Received Quantity**.
+     * Real-time calculation of **Shortage** (`shortage_qty = challan - received`) and **Excess** (`excess_qty = received - challan`).
+     * Line item commercial valuation dynamically calculated as `received_qty * unit_rate`.
+  4. **Metallurgical Heat / Batch Traceability:**
+     * Capture supplier Heat / Melt / Batch numbers (e.g. `HEAT-JSW-SS316-9812`), manufacturing dates, and expiration dates.
+     * Traceable downstream to quality inspections, work order issues, and finished goods BOM genealogy.
+  5. **Quarantine Staging Bay Put-Away (`QC_IN_PROGRESS`):**
+     * Move uninspected materials or raw alloys requiring spectroscopy/PMI tests into physical quarantine staging cages (e.g. `QC-Z1-R01-S01-B01`).
+     * Assigns inspector user ID, inspection timestamp, and sampling notes. Status advances to `QC_IN_PROGRESS`.
+  6. **Final Store Approval & Upstream Auto-Sync (`APPROVED`):**
+     * Storekeeper or QA supervisor verifies accepted vs rejected quantities and assigns permanent destination storage bins (e.g. `RM-Z1-R01-S01-B01` cantilever bar rack or pallet bin).
+     * Authorizes approval remarks. System automatically:
+       * Marks GRN status as `APPROVED`.
+       * Increments received balance on Purchase Order items (`tbl_po_item.received_qty += received_qty`).
+       * Updates Purchase Order status to `COMPLETED` (if fully fulfilled) or `PARTIALLY_RECEIVED`.
+       * Sets Gate Inward status to `COMPLETED`.
+  7. **Official Goods Receipt Note Voucher Printing:**
+     * High-density industrial voucher designed for `@media print` A4 printing and archiving.
+     * Features Kashvira corporate header, CIN & GSTIN, barcode simulation, supplier address & GSTIN, delivery challan & vehicle info, itemized table with heat numbers, received quantities, valuation in INR, and 3-tier authorized signatures (Prepared By, Inspected By, Store Manager).
+  8. **Controlled Cancellation & Dependency Guard:**
+     * Voids GRN with mandatory cancellation reason.
+     * If previously approved, automatically rolls back PO received quantities and recomputes PO status.
+     * Draft entries can be permanently deleted with `DependencyCheckService` foreign key validation.
+* **Action Buttons:** `Print Voucher` (`PURCHASE_GRN -> PRINT`), `Export Register` (`PURCHASE_GRN -> EXPORT`), `+ Create GRN Indent` (`PURCHASE_GRN -> ADD`), `Edit Indent` (`PURCHASE_GRN -> EDIT`), `Submit for QC` (`PURCHASE_GRN -> SUBMIT`), `Quarantine Put-Away` (`PURCHASE_GRN -> EDIT`), `Store Inward Approval` (`PURCHASE_GRN -> APPROVE`), `Cancel GRN` (`PURCHASE_GRN -> CANCEL`), and `Delete Indent` (`PURCHASE_GRN -> DELETE`).
+### 2.22 Step 5.6 — Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`)
+
+* **Screen Code:** `INWARD_QC` (Screen ID: `1021`)
+* **Navigation Path:** `Sidebar -> QUALITY ASSURANCE & QC -> Inward Material QC`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `QA_HEAD`, `STORE_OFFICER`, `PURCHASE_EXEC`
+* **Operational Capabilities:**
+  1. **Executive Quality KPI Dashboard:**
+     * **Total Inspections:** Cumulative count of all inward goods quality inspection certificates registered across plant locations.
+     * **Pending QC Lab Clearance:** Count of inspection records in `DRAFT` or `UNDER_INSPECTION` state held in quarantine cages pending laboratory tests.
+     * **Accepted Lots:** Cumulative count of incoming consignments meeting engineering tolerances and released to inventory storage bins.
+     * **Rejected / Quarantine Holds:** Cumulative count of non-conforming or quarantined lots flagged for return to vendor (RTV) or rework.
+  2. **1-Click Quarantine GRN Import:**
+     * Direct linking with active Goods Receipt Notes in `SUBMITTED`, `QC_IN_PROGRESS`, or `DRAFT` status (`tbl_inv_grn_header`).
+     * Automatically extracts supplier details, purchase order references, delivery challan numbers, heat/batch numbers, and received line items with inspection sample quantities.
+  3. **Comprehensive Metallurgical & Physical Testing Checklist:**
+     * **Visual & Packaging Verification:** Surface defects, oxidation, dent marks, mill scale, shipping damage, identification tagging, and vendor MTC (Mill Test Certificate) verification.
+     * **Dimensional & Metrology Checks:** Diameter, wall thickness, outer length, machined bores, thread pitch, and profile tolerances against engineering drawings using calibrated vernier calipers/micrometers.
+     * **Chemical & Spectrometry Composition:** PMI (Positive Material Identification) or optical emission spectroscopy logging (% Carbon, % Chromium, % Nickel, % Manganese, % Silicon, % Phosphorus, % Sulfur) against alloy grade specifications (e.g. SS316, EN8, EN19, LM6, IS 2062).
+     * **Hardness & Mechanical Testing:** Rockwell (HRC), Brinell (HBW), or Vickers (HV) indentation readings across core and case depths.
+  4. **Dynamic Observed Parameters Engine:**
+     * Free-form JSON parameter key-value pairs (e.g. `{"cr": "17.4%", "ni": "12.1%", "hrc": "28", "vis_coating": "Uniform"}`) recorded per inspected item.
+     * Stores instrument calibration IDs, test methods (ASTM/IS/DIN), sample sizes, and defect classifications.
+  5. **Traceable Heat / Batch Allocation & Split Dispositions:**
+     * Allocates exact received lots into **Accepted Quantity** (`accepted_qty`) and **Rejected Quantity** (`rejected_qty`).
+     * Direct assignment of approved permanent destination warehouse bins (e.g. `RM-Z1-R01-S01-B01`) and quarantine non-conformance quarantine bins (e.g. `QC-Z1-R01-S01-B01`).
+     * Rejection category tagging: `DIMENSIONAL_OUT_OF_SPEC`, `CHEMICAL_MISMATCH`, `SURFACE_DEFECTS`, `DOCUMENTATION_DEFICIT`, `HARDNESS_FAILURE`, or `TRANSIT_DAMAGE`.
+  6. **Enterprise Upstream Auto-Synchronization (`APPROVE`):**
+     * Executing **Approve & Clear to Stock** completes the inspection certificate (`COMPLETED`, `ACCEPTED`) and automatically:
+       * Releases quarantine holds on linked GRN items (`quarantine_qty = 0`, sets `accepted_qty`, `rejected_qty`, `storage_bin_id`, `batch_no`).
+       * Updates the Goods Receipt Note status to `APPROVED` with quality inspector and clearance timestamps.
+       * Increments `received_qty` on Purchase Order line items (`tbl_po_item.received_qty += accepted_qty`).
+       * Recomputes Purchase Order status to `COMPLETED` or `PARTIALLY_RECEIVED`.
+       * Updates Gate Inward entry status to `COMPLETED`.
+  7. **Quarantine Rejection Workflow (`REJECT`):**
+     * Flags non-compliant items as `REJECTED`, sets non-conformance report (NCR) reference number, logs quarantine holding location, and prevents release into active plant WIP or assembly racks.
+  8. **Official Quality Inspection Certificate & MTC Co-sign:**
+     * Printable A4 quality test certificate (`@media print`) complete with Kashvira plant header, Heat/Melt number tracking, chemical and mechanical test summaries, disposition metrics, vendor MTC attachment references, and dual signature blocks (QA Inspector & Quality Assurance Head).
+  9. **Controlled Cancellation & Security Validation:**
+     * Revokes inspection record with mandatory cancellation remarks.
+     * If linked to upstream GRNs, safely rolls back inspection states.
+* **Action Buttons:** `Print Certificate` (`INWARD_QC -> PRINT`), `Export Register` (`INWARD_QC -> EXPORT`), `+ New QC Inspection` (`INWARD_QC -> ADD`), `Edit Inspection` (`INWARD_QC -> EDIT`), `Submit for Lab Approval` (`INWARD_QC -> SUBMIT`), `Approve & Clear to Stock` (`INWARD_QC -> APPROVE`), `Reject Lot` (`INWARD_QC -> REJECT`), `Cancel QC` (`INWARD_QC -> CANCEL`), and `Delete Inspection` (`INWARD_QC -> DELETE`).
+

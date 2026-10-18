@@ -579,6 +579,528 @@ INSERT INTO tbl_sec_role_action_permission (
     (1005, 1013, 1027, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
 
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 4.1 - Unified Party Master Screen & Action Permissions
+-- ============================================================================
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1002, 1014, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1014, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1014, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1014, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1014, 1006, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1014, 1007, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1014, 1006, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1014, 1007, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1014, 1006, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1014, 1007, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1014, 1006, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1014, 1007, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1014, 1006, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1014, 1007, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
 
 
 
+
+
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 4.2 - Tiered Price Lists & Vendor Rate Contracts Screen & Action Permissions
+-- ============================================================================
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1028, 1015, 'EXPORT', 'Export Price Lists & Rate Cards', TRUE, 1001, 1001, 1001, 1001),
+    (1029, 1015, 'PRINT',  'Print Price List Rate Card',      TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1029) FROM tbl_sec_action), 1029));
+
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1002, 1015, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1015, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1015, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1015, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1015, 1028, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1015, 1029, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1015, 1028, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1015, 1029, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1015, 1028, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1015, 1029, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1015, 1028, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1015, 1029, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1015, 1028, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1015, 1029, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.1 - Material Purchase Requisition (MR) Screen & Actions
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1016, 'PURCHASE_REQ', 'Purchase Requisitions', 'PROCUREMENT', '/procurement/requisitions', 'ClipboardList', 16, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1016) FROM tbl_sec_screen), 1016));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1030, 1016, 'EXPORT',    'Export Purchase Requisitions',     TRUE, 1001, 1001, 1001, 1001),
+    (1031, 1016, 'PRINT',     'Print Requisition Voucher',        TRUE, 1001, 1001, 1001, 1001),
+    (1032, 1016, 'SUBMIT',    'Submit Requisition for Approval',  TRUE, 1001, 1001, 1001, 1001),
+    (1033, 1016, 'AUTHORIZE', 'Approve or Reject Requisitions',   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1033) FROM tbl_sec_action), 1033));
+
+-- Grant screen permissions to roles
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1016, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1016, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1016, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1004, 1016, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1016, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1016, 1030, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1016, 1031, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1016, 1032, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1016, 1033, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (can Authorize)
+    (1002, 1016, 1030, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1016, 1031, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1016, 1032, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1016, 1033, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (can Submit)
+    (1003, 1016, 1030, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1016, 1031, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1016, 1032, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1016, 1033, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (can Submit & Authorize)
+    (1004, 1016, 1030, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1016, 1031, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1016, 1032, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1016, 1033, TRUE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (view only)
+    (1005, 1016, 1030, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1016, 1031, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1016, 1032, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1016, 1033, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.2 - Supplier Request for Quotation (RFQ) & CS Screen & Actions
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1017, 'PROCUREMENT_RFQ', 'Requests for Quotation (RFQ)', 'PROCUREMENT', '/procurement/rfqs', 'FileSpreadsheet', 17, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1017) FROM tbl_sec_screen), 1017));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1034, 1017, 'EXPORT',   'Export RFQs & Quotations',                TRUE, 1001, 1001, 1001, 1001),
+    (1035, 1017, 'PRINT',    'Print RFQ Inquiries & Comparative Sheets', TRUE, 1001, 1001, 1001, 1001),
+    (1036, 1017, 'SEND',     'Send RFQ Inquiries to Vendors',           TRUE, 1001, 1001, 1001, 1001),
+    (1037, 1017, 'FINALIZE', 'Award & Finalize Comparative Statement',  TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1037) FROM tbl_sec_action), 1037));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1017, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1017, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1017, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1004, 1017, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1017, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1017, 1034, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1017, 1035, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1017, 1036, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1017, 1037, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (can Send & Finalize/Award)
+    (1002, 1017, 1034, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1017, 1035, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1017, 1036, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1017, 1037, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER
+    (1003, 1017, 1034, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1017, 1035, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1017, 1036, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1017, 1037, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (can Send & Finalize/Award)
+    (1004, 1017, 1034, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1017, 1035, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1017, 1036, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1017, 1037, TRUE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (view only)
+    (1005, 1017, 1034, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1017, 1035, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1017, 1036, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1017, 1037, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.3 - Purchase Order (PO) Management & Release Screen & Actions
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1018, 'PURCHASE_ORDER', 'Purchase Orders', 'PROCUREMENT', '/procurement/purchase-orders', 'Receipt', 18, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1018) FROM tbl_sec_screen), 1018));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1038, 1018, 'EXPORT',  'Export Purchase Orders',            TRUE, 1001, 1001, 1001, 1001),
+    (1039, 1018, 'PRINT',   'Print Purchase Order Vouchers',     TRUE, 1001, 1001, 1001, 1001),
+    (1040, 1018, 'SUBMIT',  'Submit PO for Release / Approval',  TRUE, 1001, 1001, 1001, 1001),
+    (1041, 1018, 'RELEASE', 'Release & Authorize Purchase Order',TRUE, 1001, 1001, 1001, 1001),
+    (1042, 1018, 'CANCEL',  'Cancel / Close Purchase Order',     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1042) FROM tbl_sec_action), 1042));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1018, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1018, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1018, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1004, 1018, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1018, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1018, 1038, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1018, 1039, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1018, 1040, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1018, 1041, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1018, 1042, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (can Submit, Release, Cancel)
+    (1002, 1018, 1038, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1018, 1039, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1018, 1040, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1018, 1041, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1018, 1042, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (can Submit)
+    (1003, 1018, 1038, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1018, 1039, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1018, 1040, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1018, 1041, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1018, 1042, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (can Submit, Release)
+    (1004, 1018, 1038, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1018, 1039, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1018, 1040, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1018, 1041, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1018, 1042, TRUE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (view only)
+    (1005, 1018, 1038, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1018, 1039, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1018, 1040, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1018, 1041, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1018, 1042, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.4 - Gate Entry & Security Inward Register (GATE_INWARD)
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1019, 'GATE_INWARD', 'Gate Inward & Security Register', 'PROCUREMENT', '/procurement/gate-inward', 'Truck', 19, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1019) FROM tbl_sec_screen), 1019));
+
+-- Screen custom actions for GATE_INWARD
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1043, 1019, 'EXPORT', 'Export Gate Inward Register',  TRUE, 1001, 1001, 1001, 1001),
+    (1044, 1019, 'PRINT',  'Print Gate Inward Pass',        TRUE, 1001, 1001, 1001, 1001),
+    (1045, 1019, 'UNLOAD', 'Mark Consignment Unloaded',    TRUE, 1001, 1001, 1001, 1001),
+    (1046, 1019, 'EXIT',   'Authorize Vehicle Gate Exit',   TRUE, 1001, 1001, 1001, 1001),
+    (1047, 1019, 'CANCEL', 'Cancel / Void Gate Entry',      TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1047) FROM tbl_sec_action), 1047));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1019, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1019, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1019, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (Primary operator)
+    (1004, 1019, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1019, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1019, 1043, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1019, 1044, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1019, 1045, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1019, 1046, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1019, 1047, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All actions)
+    (1002, 1019, 1043, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1019, 1044, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1019, 1045, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1019, 1046, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1019, 1047, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Can print, unload, record exit)
+    (1003, 1019, 1043, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1019, 1044, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1019, 1045, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1019, 1046, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1019, 1047, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (Can view, print, export)
+    (1004, 1019, 1043, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1019, 1044, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1019, 1045, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1019, 1046, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1019, 1047, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (View only)
+    (1005, 1019, 1043, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1019, 1044, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1019, 1045, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1019, 1046, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1019, 1047, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.5 - Goods Receipt Note & Quarantine Put-Away (PURCHASE_GRN)
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1020, 'PURCHASE_GRN', 'Goods Receipt Note & Quarantine Put-Away', 'PROCUREMENT', '/procurement/grn', 'FileCheck2', 20, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1020) FROM tbl_sec_screen), 1020));
+
+-- Screen custom actions for PURCHASE_GRN
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1048, 1020, 'EXPORT',  'Export Goods Receipt Register',  TRUE, 1001, 1001, 1001, 1001),
+    (1049, 1020, 'PRINT',   'Print Goods Receipt Voucher',   TRUE, 1001, 1001, 1001, 1001),
+    (1050, 1020, 'SUBMIT',  'Submit GRN for Inspection',     TRUE, 1001, 1001, 1001, 1001),
+    (1051, 1020, 'APPROVE', 'Approve Store Goods Receipt',   TRUE, 1001, 1001, 1001, 1001),
+    (1052, 1020, 'CANCEL',  'Void / Cancel Goods Receipt',   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1052) FROM tbl_sec_action), 1052));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1020, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1020, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1020, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (Primary operator)
+    (1004, 1020, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1020, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1020, 1048, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1020, 1049, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1020, 1050, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1020, 1051, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1020, 1052, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All actions)
+    (1002, 1020, 1048, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1020, 1049, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1020, 1050, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1020, 1051, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1020, 1052, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Can export, print, submit, approve)
+    (1003, 1020, 1048, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1020, 1049, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1020, 1050, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1020, 1051, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1020, 1052, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, export, print)
+    (1004, 1020, 1048, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1020, 1049, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1020, 1050, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1020, 1051, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1020, 1052, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (View only)
+    (1005, 1020, 1048, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1020, 1049, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1020, 1050, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1020, 1051, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1020, 1052, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.6 - Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (INWARD_QC)
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1021, 'INWARD_QC', 'Inward Material QC Inspection & Quarantine Clearance', 'QUALITY', '/quality/inward-qc', 'ShieldCheck', 21, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1021) FROM tbl_sec_screen), 1021));
+
+-- Screen custom actions for INWARD_QC
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1053, 1021, 'EXPORT',  'Export Inward QC Register',        TRUE, 1001, 1001, 1001, 1001),
+    (1054, 1021, 'PRINT',   'Print QC Inspection Certificate',  TRUE, 1001, 1001, 1001, 1001),
+    (1055, 1021, 'SUBMIT',  'Submit QC Inspection for Review',  TRUE, 1001, 1001, 1001, 1001),
+    (1056, 1021, 'APPROVE', 'Approve & Release Quarantine Stock',TRUE, 1001, 1001, 1001, 1001),
+    (1057, 1021, 'REJECT',  'Reject & Segregate Consignment',   TRUE, 1001, 1001, 1001, 1001),
+    (1058, 1021, 'CANCEL',  'Void / Cancel QC Inspection',      TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1058) FROM tbl_sec_action), 1058));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1021, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1021, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1021, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (View only)
+    (1004, 1021, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC (View only)
+    (1005, 1021, FALSE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1021, 1053, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1021, 1054, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1021, 1055, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1021, 1056, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1021, 1057, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1021, 1058, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All actions)
+    (1002, 1021, 1053, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1021, 1054, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1021, 1055, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1021, 1056, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1021, 1057, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1021, 1058, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Export & Print only)
+    (1003, 1021, 1053, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1021, 1054, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1021, 1055, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1021, 1056, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1021, 1057, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1021, 1058, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (Export & Print only)
+    (1004, 1021, 1053, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1021, 1054, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1021, 1055, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1021, 1056, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1021, 1057, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1021, 1058, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;

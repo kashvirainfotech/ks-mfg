@@ -16,7 +16,15 @@ export type PermissionAction =
   | 'EXPORT'
   | 'AUTHORIZE'
   | 'CANCEL'
-  | 'REOPEN';
+  | 'REOPEN'
+  | 'SUBMIT'
+  | 'SEND'
+  | 'FINALIZE'
+  | 'RELEASE'
+  | 'UNLOAD'
+  | 'EXIT'
+  | 'APPROVE'
+  | 'REJECT';
 
 export interface UserProfile {
   userId: number;

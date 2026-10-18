@@ -845,6 +845,871 @@ export const tblInvItem = pgTable(
   }),
 );
 
+// ============================================================================
+// 11. Unified Customer, Supplier, Subcontractor & Transporter Master (Step 4.1)
+// ============================================================================
+
+export const tblCrmParty = pgTable(
+  'tbl_crm_party',
+  {
+    partyId: bigint('party_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_party_id')`),
+    partyCode: varchar('party_code', { length: 40 }).notNull(),
+    partyName: varchar('party_name', { length: 150 }).notNull(),
+    tradeName: varchar('trade_name', { length: 150 }),
+    isCustomer: boolean('is_customer').notNull().default(true),
+    isSupplier: boolean('is_supplier').notNull().default(false),
+    isJobWorker: boolean('is_job_worker').notNull().default(false),
+    isTransporter: boolean('is_transporter').notNull().default(false),
+    partyGroup: varchar('party_group', { length: 50 })
+      .notNull()
+      .default('OEM_AUTOMOTIVE'),
+    panNo: varchar('pan_no', { length: 15 }),
+    msmeRegNo: varchar('msme_reg_no', { length: 30 }),
+    primaryContactName: varchar('primary_contact_name', { length: 100 }).notNull(),
+    primaryEmail: varchar('primary_email', { length: 150 }),
+    primaryPhone: varchar('primary_phone', { length: 25 }).notNull(),
+    website: varchar('website', { length: 150 }),
+    creditLimit: numeric('credit_limit', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    creditDays: integer('credit_days').notNull().default(30),
+    paymentTerms: varchar('payment_terms', { length: 40 })
+      .notNull()
+      .default('NET_30'),
+    currencyCode: varchar('currency_code', { length: 5 })
+      .notNull()
+      .default('INR'),
+    gstTreatmentType: varchar('gst_treatment_type', { length: 30 })
+      .notNull()
+      .default('REGISTERED_REGULAR'),
+    isActive: boolean('is_active').notNull().default(true),
+    remarks: varchar('remarks', { length: 350 }),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqCrmPartyCode: unique('uq_crm_party_code').on(table.compId, table.partyCode),
+  }),
+);
+
+export const tblCrmPartyAddress = pgTable('tbl_crm_party_address', {
+  addressId: bigint('address_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_party_address_id')`),
+  partyId: bigint('party_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblCrmParty.partyId),
+  addressLabel: varchar('address_label', { length: 80 })
+    .notNull()
+    .default('Head Office / Billing'),
+  addressType: varchar('address_type', { length: 30 })
+    .notNull()
+    .default('BOTH'),
+  gstin: varchar('gstin', { length: 20 }),
+  stateCode: varchar('state_code', { length: 5 }).notNull().default('24'),
+  stateName: varchar('state_name', { length: 80 }).notNull().default('Gujarat'),
+  addressLine1: varchar('address_line1', { length: 200 }).notNull(),
+  addressLine2: varchar('address_line2', { length: 200 }),
+  city: varchar('city', { length: 80 }).notNull(),
+  pincode: varchar('pincode', { length: 15 }).notNull(),
+  contactPerson: varchar('contact_person', { length: 100 }),
+  phone: varchar('phone', { length: 25 }),
+  email: varchar('email', { length: 150 }),
+  isDefaultBilling: boolean('is_default_billing').notNull().default(false),
+  isDefaultShipping: boolean('is_default_shipping').notNull().default(false),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
 
 
 
+
+
+
+
+// ============================================================================
+// 19. Tiered Price Lists, Volume Discounts & Vendor Rate Contracts (Step 4.2)
+// ============================================================================
+
+export const tblCrmPriceList = pgTable(
+  'tbl_crm_price_list',
+  {
+    priceListId: bigint('price_list_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_price_list_id')`),
+    priceListCode: varchar('price_list_code', { length: 50 }).notNull(),
+    priceListName: varchar('price_list_name', { length: 150 }).notNull(),
+    priceListType: varchar('price_list_type', { length: 30 })
+      .notNull()
+      .default('SALES'), // 'SALES', 'PURCHASE', 'JOB_WORK'
+    currencyCode: varchar('currency_code', { length: 10 })
+      .notNull()
+      .default('INR'),
+    effectiveFrom: date('effective_from').notNull(),
+    effectiveTo: date('effective_to'),
+    isDefault: boolean('is_default').notNull().default(false),
+    description: varchar('description', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqCrmPriceListCode: unique('uq_crm_price_list_code').on(
+      table.compId,
+      table.priceListCode,
+    ),
+  }),
+);
+
+export const tblCrmPriceListItem = pgTable(
+  'tbl_crm_price_list_item',
+  {
+    priceListItemId: bigint('price_list_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_price_list_item_id')`),
+    priceListId: bigint('price_list_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmPriceList.priceListId),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    minQty: numeric('min_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('1.000'),
+    maxQty: numeric('max_qty', { precision: 14, scale: 3 }),
+    baseRate: numeric('base_rate', { precision: 14, scale: 4 }).notNull(),
+    discountPct: numeric('discount_pct', { precision: 5, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    effectiveRate: numeric('effective_rate', { precision: 14, scale: 4 }).notNull(),
+    leadTimeDays: integer('lead_time_days').notNull().default(0),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqCrmPriceListItem: unique('uq_crm_price_list_item').on(
+      table.priceListId,
+      table.itemId,
+      table.minQty,
+    ),
+  }),
+);
+
+export const tblCrmPartyPriceList = pgTable(
+  'tbl_crm_party_price_list',
+  {
+    partyPriceListId: bigint('party_price_list_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_party_price_list_id')`),
+    partyId: bigint('party_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    priceListId: bigint('price_list_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmPriceList.priceListId),
+    isPrimary: boolean('is_primary').notNull().default(true),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqCrmPartyPriceList: unique('uq_crm_party_price_list').on(
+      table.partyId,
+      table.priceListId,
+    ),
+  }),
+);
+
+
+// ============================================================================
+// 20. Material Purchase Requisition (MR) & Authorization (Step 5.1)
+// ============================================================================
+
+export const tblPrHeader = pgTable(
+  'tbl_pr_header',
+  {
+    prId: bigint('pr_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_pr_id')`),
+    prNo: varchar('pr_no', { length: 50 }).notNull(),
+    prDate: date('pr_date').notNull(),
+    requiredByDate: date('required_by_date').notNull(),
+    departmentId: bigint('department_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblHrDepartment.deptId),
+    requesterUserId: bigint('requester_user_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblSecUser.userId),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    priority: varchar('priority', { length: 20 })
+      .notNull()
+      .default('MEDIUM'), // 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL_URGENT'
+    prType: varchar('pr_type', { length: 30 })
+      .notNull()
+      .default('RAW_MATERIAL'), // 'RAW_MATERIAL', 'CAPITAL_ASSET', 'CONSUMABLE_MRO', 'TOOLING_SPARE', 'JOB_WORK_SERVICE'
+    status: varchar('status', { length: 20 })
+      .notNull()
+      .default('DRAFT'), // 'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CONVERTED', 'CANCELLED'
+    totalEstimatedAmount: numeric('total_estimated_amount', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    purpose: varchar('purpose', { length: 350 }).notNull(),
+    approvalRemarks: varchar('approval_remarks', { length: 350 }),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvedDate: timestamp('approved_date', { withTimezone: true }),
+    rejectedBy: bigint('rejected_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    rejectedDate: timestamp('rejected_date', { withTimezone: true }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqPrHeaderNo: unique('uq_pr_header_no').on(table.compId, table.prNo),
+  }),
+);
+
+export const tblPrItem = pgTable(
+  'tbl_pr_item',
+  {
+    prItemId: bigint('pr_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_pr_item_id')`),
+    prId: bigint('pr_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblPrHeader.prId),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    requiredQty: numeric('required_qty', { precision: 14, scale: 3 }).notNull(),
+    approvedQty: numeric('approved_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    orderedQty: numeric('ordered_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    estimatedRate: numeric('estimated_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    estimatedAmount: numeric('estimated_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    suggestedVendorId: bigint('suggested_vendor_id', {
+      mode: 'number',
+    }).references(() => tblCrmParty.partyId),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqPrItem: unique('uq_pr_item').on(table.prId, table.itemId),
+  }),
+);
+
+// ============================================================================
+// 12. Supplier Request for Quotation (RFQ) & Comparative Statement (Step 5.2)
+// ============================================================================
+
+export const tblRfqHeader = pgTable(
+  'tbl_rfq_header',
+  {
+    rfqId: bigint('rfq_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_rfq_id')`),
+    rfqNo: varchar('rfq_no', { length: 50 }).notNull(),
+    rfqDate: date('rfq_date').notNull().defaultNow(),
+    dueDate: date('due_date').notNull(),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    paymentTerms: varchar('payment_terms', { length: 150 }),
+    deliveryTerms: varchar('delivery_terms', { length: 150 }),
+    remarks: varchar('remarks', { length: 350 }),
+    awardedVendorId: bigint('awarded_vendor_id', { mode: 'number' }).references(
+      () => tblCrmParty.partyId,
+    ),
+    awardedDate: timestamp('awarded_date', { withTimezone: true }),
+    awardedRemarks: varchar('awarded_remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqRfqHeaderNo: unique('uq_rfq_header_no').on(table.compId, table.rfqNo),
+  }),
+);
+
+export const tblRfqItem = pgTable(
+  'tbl_rfq_item',
+  {
+    rfqItemId: bigint('rfq_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_rfq_item_id')`),
+    rfqId: bigint('rfq_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblRfqHeader.rfqId),
+    prItemId: bigint('pr_item_id', { mode: 'number' }).references(
+      () => tblPrItem.prItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    requiredQty: numeric('required_qty', { precision: 14, scale: 3 }).notNull(),
+    targetRate: numeric('target_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    technicalSpecs: varchar('technical_specs', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqRfqItem: unique('uq_rfq_item').on(table.rfqId, table.itemId),
+  }),
+);
+
+export const tblRfqVendor = pgTable(
+  'tbl_rfq_vendor',
+  {
+    rfqVendorId: bigint('rfq_vendor_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_rfq_vendor_id')`),
+    rfqId: bigint('rfq_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblRfqHeader.rfqId),
+    partyId: bigint('party_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    invitationDate: timestamp('invitation_date', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    status: varchar('status', { length: 25 }).notNull().default('INVITED'),
+    vendorQuoteRef: varchar('vendor_quote_ref', { length: 100 }),
+    quoteDate: date('quote_date'),
+    totalQuoteAmount: numeric('total_quote_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    paymentTerms: varchar('payment_terms', { length: 150 }),
+    deliveryLeadTimeDays: integer('delivery_lead_time_days').default(0),
+    vendorRemarks: varchar('vendor_remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqRfqVendor: unique('uq_rfq_vendor').on(table.rfqId, table.partyId),
+  }),
+);
+
+export const tblRfqVendorItem = pgTable(
+  'tbl_rfq_vendor_item',
+  {
+    rfqVendorItemId: bigint('rfq_vendor_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_rfq_vendor_item_id')`),
+    rfqVendorId: bigint('rfq_vendor_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblRfqVendor.rfqVendorId),
+    rfqItemId: bigint('rfq_item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblRfqItem.rfqItemId),
+    offeredQty: numeric('offered_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    quotedRate: numeric('quoted_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    discountPct: numeric('discount_pct', { precision: 5, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    netRate: numeric('net_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    taxPct: numeric('tax_pct', { precision: 5, scale: 2 })
+      .notNull()
+      .default('18.00'),
+    totalAmount: numeric('total_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    isL1: boolean('is_l1').notNull().default(false),
+    isAwarded: boolean('is_awarded').notNull().default(false),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqRfqVendorItem: unique('uq_rfq_vendor_item').on(
+      table.rfqVendorId,
+      table.rfqItemId,
+    ),
+  }),
+);
+
+// ============================================================================
+// 13. Purchase Order Management & Line Items (Step 5.3)
+// ============================================================================
+
+export const tblPoHeader = pgTable(
+  'tbl_po_header',
+  {
+    poId: bigint('po_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_po_id')`),
+    poNo: varchar('po_no', { length: 50 }).notNull(),
+    poDate: date('po_date').notNull().defaultNow(),
+    deliveryDueDate: date('delivery_due_date').notNull(),
+    vendorId: bigint('vendor_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    vendorAddressId: bigint('vendor_address_id', { mode: 'number' }).references(
+      () => tblCrmPartyAddress.addressId,
+    ),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    rfqId: bigint('rfq_id', { mode: 'number' }).references(
+      () => tblRfqHeader.rfqId,
+    ),
+    prId: bigint('pr_id', { mode: 'number' }).references(
+      () => tblPrHeader.prId,
+    ),
+    poType: varchar('po_type', { length: 30 })
+      .notNull()
+      .default('STANDARD_PO'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    paymentTerms: varchar('payment_terms', { length: 150 }),
+    deliveryTerms: varchar('delivery_terms', { length: 150 }),
+    freightTerms: varchar('freight_terms', { length: 100 }),
+    subtotalAmount: numeric('subtotal_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    discountAmount: numeric('discount_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    taxAmount: numeric('tax_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    roundoffAmount: numeric('roundoff_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    netTotalAmount: numeric('net_total_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    notes: varchar('notes', { length: 500 }),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvedDate: timestamp('approved_date', { withTimezone: true }),
+    releasedBy: bigint('released_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    releasedDate: timestamp('released_date', { withTimezone: true }),
+    cancellationReason: varchar('cancellation_reason', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqPoHeaderNo: unique('uq_po_header_no').on(table.compId, table.poNo),
+  }),
+);
+
+export const tblPoItem = pgTable(
+  'tbl_po_item',
+  {
+    poItemId: bigint('po_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_po_item_id')`),
+    poId: bigint('po_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblPoHeader.poId),
+    prItemId: bigint('pr_item_id', { mode: 'number' }).references(
+      () => tblPrItem.prItemId,
+    ),
+    rfqItemId: bigint('rfq_item_id', { mode: 'number' }).references(
+      () => tblRfqItem.rfqItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    orderQty: numeric('order_qty', { precision: 14, scale: 3 }).notNull(),
+    unitRate: numeric('unit_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    discountPct: numeric('discount_pct', { precision: 5, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    discountAmount: numeric('discount_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    taxPct: numeric('tax_pct', { precision: 5, scale: 2 })
+      .notNull()
+      .default('18.00'),
+    taxAmount: numeric('tax_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    netAmount: numeric('net_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    receivedQty: numeric('received_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    billedQty: numeric('billed_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    deliveryDate: date('delivery_date'),
+    technicalSpecs: varchar('technical_specs', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqPoItem: unique('uq_po_item').on(table.poId, table.itemId),
+  }),
+);
+
+export const tblGateInwardHeader = pgTable(
+  'tbl_gate_inward_header',
+  {
+    gateInwardId: bigint('gate_inward_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_gate_inward_id')`),
+    gateInwardNo: varchar('gate_inward_no', { length: 50 }).notNull(),
+    inwardDate: date('inward_date').notNull(),
+    inwardTime: varchar('inward_time', { length: 10 }).notNull(),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    vendorId: bigint('vendor_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    poId: bigint('po_id', { mode: 'number' }).references(
+      () => tblPoHeader.poId,
+    ),
+    challanNo: varchar('challan_no', { length: 100 }).notNull(),
+    challanDate: date('challan_date').notNull(),
+    vehicleNo: varchar('vehicle_no', { length: 50 }).notNull(),
+    transporterName: varchar('transporter_name', { length: 150 }),
+    driverName: varchar('driver_name', { length: 100 }),
+    driverPhone: varchar('driver_phone', { length: 30 }),
+    ewayBillNo: varchar('eway_bill_no', { length: 50 }),
+    lrNo: varchar('lr_no', { length: 50 }),
+    lrDate: date('lr_date'),
+    grossWeight: numeric('gross_weight', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    tareWeight: numeric('tare_weight', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    netWeight: numeric('net_weight', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    totalPackages: integer('total_packages').notNull().default(1),
+    status: varchar('status', { length: 25 }).notNull().default('INWARDED'),
+    securityRemarks: varchar('security_remarks', { length: 350 }),
+    unloadedDate: timestamp('unloaded_date', { withTimezone: true }),
+    unloadedBy: bigint('unloaded_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    unloadingRemarks: varchar('unloading_remarks', { length: 350 }),
+    exitDate: timestamp('exit_date', { withTimezone: true }),
+    exitRemarks: varchar('exit_remarks', { length: 350 }),
+    cancelReason: varchar('cancel_reason', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqGateInwardHeaderNo: unique('uq_gate_inward_header_no').on(
+      table.compId,
+      table.gateInwardNo,
+    ),
+  }),
+);
+
+export const tblGateInwardItem = pgTable(
+  'tbl_gate_inward_item',
+  {
+    gateInwardItemId: bigint('gate_inward_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_gate_inward_item_id')`),
+    gateInwardId: bigint('gate_inward_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblGateInwardHeader.gateInwardId),
+    poItemId: bigint('po_item_id', { mode: 'number' }).references(
+      () => tblPoItem.poItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    challanQty: numeric('challan_qty', { precision: 14, scale: 3 }).notNull(),
+    packageCount: integer('package_count').notNull().default(1),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqGateInwardItem: unique('uq_gate_inward_item').on(
+      table.gateInwardId,
+      table.itemId,
+    ),
+  }),
+);
+
+export const tblInvGrnHeader = pgTable(
+  'tbl_inv_grn_header',
+  {
+    grnId: bigint('grn_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_grn_id')`),
+    grnNo: varchar('grn_no', { length: 50 }).notNull(),
+    grnDate: date('grn_date').notNull(),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    vendorId: bigint('vendor_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    poId: bigint('po_id', { mode: 'number' }).references(
+      () => tblPoHeader.poId,
+    ),
+    gateInwardId: bigint('gate_inward_id', { mode: 'number' }).references(
+      () => tblGateInwardHeader.gateInwardId,
+    ),
+    challanNo: varchar('challan_no', { length: 100 }).notNull(),
+    challanDate: date('challan_date').notNull(),
+    invoiceNo: varchar('invoice_no', { length: 100 }),
+    invoiceDate: date('invoice_date'),
+    vehicleNo: varchar('vehicle_no', { length: 50 }),
+    ewayBillNo: varchar('eway_bill_no', { length: 50 }),
+    lrNo: varchar('lr_no', { length: 50 }),
+    lrDate: date('lr_date'),
+    totalReceivedAmount: numeric('total_received_amount', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    storeRemarks: varchar('store_remarks', { length: 350 }),
+    inspectedBy: bigint('inspected_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    inspectionDate: timestamp('inspection_date', { withTimezone: true }),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvalDate: timestamp('approval_date', { withTimezone: true }),
+    approvalRemarks: varchar('approval_remarks', { length: 350 }),
+    cancelReason: varchar('cancel_reason', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvGrnHeaderNo: unique('uq_inv_grn_header_no').on(
+      table.compId,
+      table.grnNo,
+    ),
+  }),
+);
+
+export const tblInvGrnItem = pgTable(
+  'tbl_inv_grn_item',
+  {
+    grnItemId: bigint('grn_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_grn_item_id')`),
+    grnId: bigint('grn_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvGrnHeader.grnId),
+    poItemId: bigint('po_item_id', { mode: 'number' }).references(
+      () => tblPoItem.poItemId,
+    ),
+    gateInwardItemId: bigint('gate_inward_item_id', { mode: 'number' }).references(
+      () => tblGateInwardItem.gateInwardItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    orderQty: numeric('order_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    challanQty: numeric('challan_qty', { precision: 14, scale: 3 }).notNull(),
+    receivedQty: numeric('received_qty', { precision: 14, scale: 3 }).notNull(),
+    acceptedQty: numeric('accepted_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    rejectedQty: numeric('rejected_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    quarantineQty: numeric('quarantine_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    shortageQty: numeric('shortage_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    excessQty: numeric('excess_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    unitRate: numeric('unit_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    receivedAmount: numeric('received_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    batchNo: varchar('batch_no', { length: 100 }),
+    mfgDate: date('mfg_date'),
+    expiryDate: date('expiry_date'),
+    quarantineBinId: bigint('quarantine_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    storageBinId: bigint('storage_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    isQcRequired: boolean('is_qc_required').notNull().default(true),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvGrnItem: unique('uq_inv_grn_item').on(table.grnId, table.itemId),
+  }),
+);
+
+// ============================================================================
+// 34. Inward Material QC Inspection Tables
+// ============================================================================
+
+export const tblQcInwardInspectionHeader = pgTable(
+  'tbl_qc_inward_inspection_header',
+  {
+    qcId: bigint('qc_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_inward_id')`),
+    qcNo: varchar('qc_no', { length: 50 }).notNull(),
+    qcDate: date('qc_date').notNull(),
+    grnId: bigint('grn_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvGrnHeader.grnId),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    vendorId: bigint('vendor_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    poId: bigint('po_id', { mode: 'number' }).references(
+      () => tblPoHeader.poId,
+    ),
+    gateInwardId: bigint('gate_inward_id', { mode: 'number' }).references(
+      () => tblGateInwardHeader.gateInwardId,
+    ),
+    sampleSize: numeric('sample_size', { precision: 14, scale: 3 })
+      .notNull()
+      .default('1.000'),
+    inspectionType: varchar('inspection_type', { length: 50 })
+      .notNull()
+      .default('INCOMING_RAW_MATERIAL'),
+    overallResult: varchar('overall_result', { length: 30 })
+      .notNull()
+      .default('PENDING'),
+    inspectorId: bigint('inspector_id', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    inspectionDate: timestamp('inspection_date', { withTimezone: true }),
+    approverId: bigint('approver_id', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvalDate: timestamp('approval_date', { withTimezone: true }),
+    remarks: varchar('remarks', { length: 350 }),
+    deviationReason: varchar('deviation_reason', { length: 350 }),
+    testCertNo: varchar('test_cert_no', { length: 100 }),
+    testCertDate: date('test_cert_date'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqQcInwardHeaderNo: unique('uq_qc_inward_header_no').on(
+      table.compId,
+      table.qcNo,
+    ),
+  }),
+);
+
+export const tblQcInwardInspectionItem = pgTable(
+  'tbl_qc_inward_inspection_item',
+  {
+    qcItemId: bigint('qc_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_inward_item_id')`),
+    qcId: bigint('qc_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblQcInwardInspectionHeader.qcId),
+    grnItemId: bigint('grn_item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvGrnItem.grnItemId),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    receivedQty: numeric('received_qty', { precision: 14, scale: 3 }).notNull(),
+    sampleQty: numeric('sample_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('1.000'),
+    acceptedQty: numeric('accepted_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    rejectedQty: numeric('rejected_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    disposition: varchar('disposition', { length: 30 })
+      .notNull()
+      .default('ACCEPTED'),
+    defectCode: varchar('defect_code', { length: 50 }),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    mfgDate: date('mfg_date'),
+    expiryDate: date('expiry_date'),
+    quarantineBinId: bigint('quarantine_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    destinationBinId: bigint('destination_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    visualCheck: varchar('visual_check', { length: 20 }).default('PASS'),
+    dimensionCheck: varchar('dimension_check', { length: 20 }).default('PASS'),
+    chemicalTest: varchar('chemical_test', { length: 20 }).default('PASS'),
+    hardnessTest: varchar('hardness_test', { length: 20 }).default('PASS'),
+    observedParameters: jsonb('observed_parameters'),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqQcInwardItem: unique('uq_qc_inward_item').on(table.qcId, table.grnItemId),
+  }),
+);

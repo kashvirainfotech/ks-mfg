@@ -116,6 +116,102 @@ CREATE TRIGGER trg_inv_item_updated_date
 BEFORE UPDATE ON tbl_inv_item
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
 
+DROP TRIGGER IF EXISTS trg_crm_party_updated_date ON tbl_crm_party;
+CREATE TRIGGER trg_crm_party_updated_date
+BEFORE UPDATE ON tbl_crm_party
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_crm_party_address_updated_date ON tbl_crm_party_address;
+CREATE TRIGGER trg_crm_party_address_updated_date
+BEFORE UPDATE ON tbl_crm_party_address
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
 
 
 
+
+
+
+DROP TRIGGER IF EXISTS trg_crm_price_list_updated_date ON tbl_crm_price_list;
+CREATE TRIGGER trg_crm_price_list_updated_date
+BEFORE UPDATE ON tbl_crm_price_list
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_crm_price_list_item_updated_date ON tbl_crm_price_list_item;
+CREATE TRIGGER trg_crm_price_list_item_updated_date
+BEFORE UPDATE ON tbl_crm_price_list_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_crm_party_price_list_updated_date ON tbl_crm_party_price_list;
+CREATE TRIGGER trg_crm_party_price_list_updated_date
+BEFORE UPDATE ON tbl_crm_party_price_list
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_pr_header_updated_date ON tbl_pr_header;
+CREATE TRIGGER trg_pr_header_updated_date
+BEFORE UPDATE ON tbl_pr_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_pr_item_updated_date ON tbl_pr_item;
+CREATE TRIGGER trg_pr_item_updated_date
+BEFORE UPDATE ON tbl_pr_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_rfq_header_updated_date ON tbl_rfq_header;
+CREATE TRIGGER trg_rfq_header_updated_date
+BEFORE UPDATE ON tbl_rfq_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_rfq_item_updated_date ON tbl_rfq_item;
+CREATE TRIGGER trg_rfq_item_updated_date
+BEFORE UPDATE ON tbl_rfq_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_rfq_vendor_updated_date ON tbl_rfq_vendor;
+CREATE TRIGGER trg_rfq_vendor_updated_date
+BEFORE UPDATE ON tbl_rfq_vendor
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_rfq_vendor_item_updated_date ON tbl_rfq_vendor_item;
+CREATE TRIGGER trg_rfq_vendor_item_updated_date
+BEFORE UPDATE ON tbl_rfq_vendor_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_po_header_updated_date ON tbl_po_header;
+CREATE TRIGGER trg_po_header_updated_date
+BEFORE UPDATE ON tbl_po_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_po_item_updated_date ON tbl_po_item;
+CREATE TRIGGER trg_po_item_updated_date
+BEFORE UPDATE ON tbl_po_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_gate_inward_header_updated_date ON tbl_gate_inward_header;
+CREATE TRIGGER trg_gate_inward_header_updated_date
+BEFORE UPDATE ON tbl_gate_inward_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_gate_inward_item_updated_date ON tbl_gate_inward_item;
+CREATE TRIGGER trg_gate_inward_item_updated_date
+BEFORE UPDATE ON tbl_gate_inward_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_grn_header_updated_date ON tbl_inv_grn_header;
+CREATE TRIGGER trg_inv_grn_header_updated_date
+BEFORE UPDATE ON tbl_inv_grn_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_grn_item_updated_date ON tbl_inv_grn_item;
+CREATE TRIGGER trg_inv_grn_item_updated_date
+BEFORE UPDATE ON tbl_inv_grn_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_inward_header_updated_date ON tbl_qc_inward_inspection_header;
+CREATE TRIGGER trg_qc_inward_header_updated_date
+BEFORE UPDATE ON tbl_qc_inward_inspection_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_inward_item_updated_date ON tbl_qc_inward_inspection_item;
+CREATE TRIGGER trg_qc_inward_item_updated_date
+BEFORE UPDATE ON tbl_qc_inward_inspection_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

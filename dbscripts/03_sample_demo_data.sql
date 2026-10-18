@@ -663,6 +663,755 @@ ON CONFLICT (item_id) DO NOTHING;
 
 SELECT setval('seq_item_id', GREATEST((SELECT COALESCE(MAX(item_id), 1011) FROM tbl_inv_item), 1011));
 
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 4.1 - Sample Unified Parties & Multi-Locations (tbl_crm_party)
+-- ============================================================================
+INSERT INTO tbl_crm_party (
+    party_id, party_code, party_name, trade_name,
+    is_customer, is_supplier, is_job_worker, is_transporter,
+    party_group, pan_no, msme_reg_no,
+    primary_contact_name, primary_email, primary_phone, website,
+    credit_limit, credit_days, payment_terms, currency_code, gst_treatment_type,
+    is_active, remarks,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'CUST-MARUTI-01', 'Maruti Suzuki India Limited', 'Maruti Suzuki - Powertrain Division',
+     TRUE, FALSE, FALSE, FALSE,
+     'OEM_AUTOMOTIVE', 'AAACM1234F', NULL,
+     'Rakesh Sharma (Head of SCM)', 'rakesh.sharma@maruti.co.in', '+91-9811012345', 'https://www.marutisuzuki.com',
+     5000000.00, 45, 'NET_45', 'INR', 'REGISTERED_REGULAR',
+     TRUE, 'Tier-1 OEM Automotive Engine Mount and Sub-Assembly Contract',
+     1001, 1001, 1001, 1001),
+
+    (1002, 'CUST-LNT-VALVE-01', 'Larsen & Toubro Limited - Heavy Engineering Division', 'L&T Valves Hazira Works',
+     TRUE, FALSE, FALSE, FALSE,
+     'HEAVY_ENGINEERING', 'AAACL5678G', NULL,
+     'Suresh Narayanan (VP Procurement)', 'suresh.n@lntvalves.com', '+91-9820054321', 'https://www.larsentoubro.com',
+     3500000.00, 30, 'NET_30', 'INR', 'REGISTERED_REGULAR',
+     TRUE, 'Class 150/300 Stainless Steel Flanged Gate Valves Supply Agreement',
+     1001, 1001, 1001, 1001),
+
+    (1003, 'SUPP-JSW-STEEL-01', 'JSW Steel Coated Products Limited', 'JSW Steel',
+     FALSE, TRUE, FALSE, FALSE,
+     'RAW_MATERIAL_VENDOR', 'AAACJ9012H', NULL,
+     'Anand Verma (Key Account Manager)', 'anand.verma@jsw.in', '+91-9822067890', 'https://www.jsw.in',
+     0.00, 30, 'NET_30', 'INR', 'REGISTERED_REGULAR',
+     TRUE, 'Prime Supplier for Cold Rolled (CR) Precision Steel Coils & Sheets',
+     1001, 1001, 1001, 1001),
+
+    (1004, 'SUPP-SANDVIK-01', 'Sandvik Coromant India Private Limited', 'Sandvik Tooling Systems',
+     FALSE, TRUE, FALSE, FALSE,
+     'CONSUMABLE_VENDOR', 'AAACS3456K', NULL,
+     'Priya Kulkarni (Technical Sales Engineer)', 'priya.kulkarni@sandvik.com', '+91-9823011223', 'https://www.sandvik.coromant.com',
+     500000.00, 15, 'NET_15', 'INR', 'REGISTERED_REGULAR',
+     TRUE, 'Carbide Cutting Inserts, End Mills & Toolholders Rate Contract',
+     1001, 1001, 1001, 1001),
+
+    (1005, 'JW-MICRO-PRECISION', 'Micro Precision Job-Works & Heat Treatment', 'Micro Precision Works',
+     FALSE, TRUE, TRUE, FALSE,
+     'JOB_WORK_CONTRACTOR', 'ABCFM7890L', 'UDYAM-GJ-01-0012345',
+     'Bhavesh Panchal (Managing Partner)', 'bhavesh@microprecision.co.in', '+91-9824099887', NULL,
+     300000.00, 15, 'NET_15', 'INR', 'REGISTERED_REGULAR',
+     TRUE, 'Outsourced induction hardening, CNC turning and precision cylindrical grinding',
+     1001, 1001, 1001, 1001),
+
+    (1006, 'TRANS-VRL-LOGISTICS', 'VRL Logistics Limited', 'VRL Surface Cargo',
+     FALSE, TRUE, FALSE, TRUE,
+     'LOGISTICS_PARTNER', 'AAACV1234M', NULL,
+     'Manoj Hegde (Regional Logistics Manager)', 'manoj.hegde@vrllogistics.com', '+91-9845012345', 'https://www.vrllogistics.com',
+     200000.00, 15, 'NET_15', 'INR', 'REGISTERED_REGULAR',
+     TRUE, 'Dedicated surface fleet for multi-plant raw material pickup and finished dispatch',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (party_id) DO NOTHING;
+
+SELECT setval('seq_party_id', GREATEST((SELECT COALESCE(MAX(party_id), 1006) FROM tbl_crm_party), 1006));
+
+-- Multi-Location Billing & Shipping Addresses (tbl_crm_party_address)
+INSERT INTO tbl_crm_party_address (
+    address_id, party_id, address_label, address_type,
+    gstin, state_code, state_name,
+    address_line1, address_line2, city, pincode,
+    contact_person, phone, email,
+    is_default_billing, is_default_shipping, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 'Maruti Corporate Headquarters', 'BILLING',
+     '07AAACM1234F1Z1', '07', 'Delhi',
+     '1, Nelson Mandela Road, Vasant Kunj', 'Phase II', 'New Delhi', '110070',
+     'Finance & Accounts Dept', '+91-11-46781000', 'accounts@maruti.co.in',
+     TRUE, FALSE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 'Gurugram Powertrain Plant Dock 4', 'SHIPPING',
+     '06AAACM1234F1Z3', '06', 'Haryana',
+     'Palam Gurgaon Road, Sector 18', 'Automotive Manufacturing Zone', 'Gurugram', '122015',
+     'Inward Receiving Dock #4', '+91-124-2346700', 'receiving.dock4@maruti.co.in',
+     FALSE, TRUE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1002, 'L&T Hazira Manufacturing Complex', 'BOTH',
+     '24AAACL5678G1Z5', '24', 'Gujarat',
+     'Surat-Hazira Road, Post Bhatha', 'Heavy Engineering Division', 'Surat', '394510',
+     'Suresh Narayanan', '+91-9820054321', 'suresh.n@lntvalves.com',
+     TRUE, TRUE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1004, 1003, 'JSW Bandra Kurla Corporate Office', 'BILLING',
+     '27AAACJ9012H1ZD', '27', 'Maharashtra',
+     'JSW Centre, Bandra Kurla Complex', 'Bandra East', 'Mumbai', '400051',
+     'Commercial Billing Desk', '+91-22-42861000', 'commercial.steel@jsw.in',
+     TRUE, FALSE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 1003, 'JSW Dolvi Steel Works Plant Gate', 'SHIPPING',
+     '27AAACJ9012H1ZD', '27', 'Maharashtra',
+     'Geetapuram, Dolvi, Pen Tehsil', 'Coated Steel Dispatch Bay', 'Raigad', '402107',
+     'Dispatch Yard Incharge', '+91-2143-277500', 'dolvi.dispatch@jsw.in',
+     FALSE, TRUE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1006, 1004, 'Sandvik Dapodi Tech Center', 'BOTH',
+     '27AAACS3456K1ZV', '27', 'Maharashtra',
+     'Mumbai-Pune Road, Dapodi', 'Tooling Application Center', 'Pune', '411012',
+     'Priya Kulkarni', '+91-9823011223', 'priya.kulkarni@sandvik.com',
+     TRUE, TRUE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1007, 1005, 'Micro Precision Changodar Workshop', 'BOTH',
+     '24ABCFM7890L1ZQ', '24', 'Gujarat',
+     'Plot 45, GIDC Phase II, Changodar', 'Near Sanand Highway Junction', 'Ahmedabad', '382213',
+     'Bhavesh Panchal', '+91-9824099887', 'bhavesh@microprecision.co.in',
+     TRUE, TRUE, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1008, 1006, 'VRL Logistics Ahmedabad Hub', 'BOTH',
+     '24AAACV1234M1Z2', '24', 'Gujarat',
+     'Transport Nagar, Aslali Ring Road', 'Survey 112/A, National Highway 48', 'Ahmedabad', '382427',
+     'Manoj Hegde', '+91-9845012345', 'manoj.hegde@vrllogistics.com',
+     TRUE, TRUE, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (address_id) DO NOTHING;
+
+SELECT setval('seq_party_address_id', GREATEST((SELECT COALESCE(MAX(address_id), 1008) FROM tbl_crm_party_address), 1008));
 
 
 
+
+
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 4.2 - Sample Tiered Price Lists, Rate Cards & Volume Tiers
+--          (tbl_crm_price_list, tbl_crm_price_list_item, tbl_crm_party_price_list)
+-- ============================================================================
+INSERT INTO tbl_crm_price_list (
+    price_list_id, price_list_code, price_list_name, price_list_type,
+    currency_code, effective_from, effective_to, is_default, description, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'PL-OEM-MARUTI-2026', 'Maruti Suzuki OEM Tier-1 Powertrain Rate Card', 'SALES',
+     'INR', '2026-04-01', '2027-03-31', FALSE,
+     'Dedicated Tier-1 automotive rate contract for engine hydromounts with volume-based brackets', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 'PL-VALVES-STD-2026', 'Standard Industrial Process Valves Wholesale Price List', 'SALES',
+     'INR', '2026-04-01', '2027-03-31', TRUE,
+     'Default benchmark price list for gate, globe, and check valves distributed pan-India', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 'VRC-JSW-STEEL-2026', 'JSW Steel Annual Prime CR Coil Procurement Contract', 'PURCHASE',
+     'INR', '2026-04-01', '2027-03-31', FALSE,
+     'Long-term steel supply agreement for Cold Rolled 2.00mm sheet coils with tonnage rebate', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1004, 'VRC-SANDVIK-TOOL-2026', 'Sandvik Coromant CNC Tooling & Inserts Rate Contract', 'PURCHASE',
+     'INR', '2026-04-01', '2027-03-31', FALSE,
+     'Fixed pricing on carbide turning and milling inserts with volume discount tiers', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 'JWC-PREC-HEAT-2026', 'Micro Precision Machining & Induction Hardening Job-Work Card', 'JOB_WORK',
+     'INR', '2026-04-01', '2027-03-31', FALSE,
+     'Subcontracting machining rates per piece for valve body castings and spindle shafts', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (price_list_id) DO NOTHING;
+
+SELECT setval('seq_price_list_id', GREATEST((SELECT COALESCE(MAX(price_list_id), 1005) FROM tbl_crm_price_list), 1005));
+
+-- Price List Line Items with Volume Brackets (tbl_crm_price_list_item)
+INSERT INTO tbl_crm_price_list_item (
+    price_list_item_id, price_list_id, item_id, uom_id,
+    min_qty, max_qty, base_rate, discount_pct, effective_rate,
+    lead_time_days, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- PL-OEM-MARUTI-2026: FG-AUTO-MNT-DRV (Item 1009, NOS 1003)
+    (1001, 1001, 1009, 1003, 1.000, 99.000, 1950.0000, 0.00, 1950.0000, 2, 'Tier 1 Standard Batch (< 100 pcs)', TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1001, 1009, 1003, 100.000, 499.000, 1950.0000, 5.00, 1852.5000, 2, 'Tier 2 Production Run (100 - 499 pcs)', TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1001, 1009, 1003, 500.000, NULL, 1950.0000, 10.00, 1755.0000, 3, 'Tier 3 Monthly Bulk Commitment (>= 500 pcs)', TRUE, 1001, 1001, 1001, 1001),
+
+    -- PL-VALVES-STD-2026: FG-GATE-VALVE-50 (Item 1008, NOS 1003)
+    (1004, 1002, 1008, 1003, 1.000, 9.000, 8500.0000, 0.00, 8500.0000, 5, 'Spot / Retail Valve Orders', TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1002, 1008, 1003, 10.000, NULL, 8500.0000, 8.00, 7820.0000, 7, 'Commercial Project Wholesale Lot (>= 10 valves)', TRUE, 1001, 1001, 1001, 1001),
+
+    -- VRC-JSW-STEEL-2026: RM-CR-COIL-2MM (Item 1002, TON 1002)
+    (1006, 1003, 1002, 1002, 1.000, 19.999, 64000.0000, 0.00, 64000.0000, 10, 'Single Coil Procurement (< 20 Tons)', TRUE, 1001, 1001, 1001, 1001),
+    (1007, 1003, 1002, 1002, 20.000, NULL, 64000.0000, 3.50, 61760.0000, 12, 'Truckload / Rail Rake Lot (>= 20 Tons)', TRUE, 1001, 1001, 1001, 1001),
+
+    -- VRC-SANDVIK-TOOL-2026: MRO-CNMG-120408 (Item 1011, NOS 1003)
+    (1008, 1004, 1011, 1003, 10.000, 49.000, 240.0000, 0.00, 240.0000, 2, 'Standard Pack of 10 Inserts', TRUE, 1001, 1001, 1001, 1001),
+    (1009, 1004, 1011, 1003, 50.000, 199.000, 240.0000, 7.50, 222.0000, 3, 'Quarterly Replenishment Pack (50 - 199 inserts)', TRUE, 1001, 1001, 1001, 1001),
+    (1010, 1004, 1011, 1003, 200.000, NULL, 240.0000, 12.00, 211.2000, 5, 'Annual Plant Blanket Pack (>= 200 inserts)', TRUE, 1001, 1001, 1001, 1001),
+
+    -- JWC-PREC-HEAT-2026: WIP-VALVE-BODY-MCH (Item 1005, NOS 1003)
+    (1011, 1005, 1005, 1003, 1.000, NULL, 450.0000, 0.00, 450.0000, 3, 'Precision CNC Turning + Induction Hardening per casting', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (price_list_item_id) DO NOTHING;
+
+SELECT setval('seq_price_list_item_id', GREATEST((SELECT COALESCE(MAX(price_list_item_id), 1011) FROM tbl_crm_price_list_item), 1011));
+
+-- Party & Price List Association Mapping (tbl_crm_party_price_list)
+INSERT INTO tbl_crm_party_price_list (
+    party_price_list_id, party_id, price_list_id, is_primary, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, TRUE, TRUE, 1001, 1001, 1001, 1001), -- Maruti -> PL-OEM-MARUTI-2026
+    (1002, 1002, 1002, TRUE, TRUE, 1001, 1001, 1001, 1001), -- L&T Valves -> PL-VALVES-STD-2026
+    (1003, 1003, 1003, TRUE, TRUE, 1001, 1001, 1001, 1001), -- JSW Steel -> VRC-JSW-STEEL-2026
+    (1004, 1004, 1004, TRUE, TRUE, 1001, 1001, 1001, 1001), -- Sandvik Coromant -> VRC-SANDVIK-TOOL-2026
+    (1005, 1005, 1005, TRUE, TRUE, 1001, 1001, 1001, 1001)  -- Micro Precision -> JWC-PREC-HEAT-2026
+ON CONFLICT (party_id, price_list_id) DO NOTHING;
+
+SELECT setval('seq_party_price_list_id', GREATEST((SELECT COALESCE(MAX(party_price_list_id), 1005) FROM tbl_crm_party_price_list), 1005));
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.1 - Sample Material Purchase Requisitions (MR) & Items
+--          (tbl_pr_header, tbl_pr_item)
+-- ============================================================================
+INSERT INTO tbl_pr_header (
+    pr_id, pr_no, pr_date, required_by_date, department_id, requester_user_id,
+    warehouse_id, priority, pr_type, status, total_estimated_amount,
+    purpose, approval_remarks, approved_by, approved_date, rejected_by, rejected_date, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'PR-AHM-2627-0001', '2026-04-10', '2026-04-20', 1002, 1001,
+     1001, 'HIGH', 'RAW_MATERIAL', 'APPROVED', 182500.00,
+     'Urgent replenishment of SS-316 round bar stock for API 600 gate valve body machining batch',
+     'Approved for full quantity; standard order lead time applies', 1001, '2026-04-11 10:30:00+05:30', NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 'PR-AHM-2627-0002', '2026-04-15', '2026-04-22', 1002, 1001,
+     1001, 'CRITICAL_URGENT', 'TOOLING_SPARE', 'SUBMITTED', 46000.00,
+     'Critical line-side CNC turning inserts stock depleted below safety threshold for line #3',
+     NULL, NULL, NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 'PR-RJK-2627-0003', '2026-04-12', '2026-05-01', 1004, 1001,
+     1006, 'MEDIUM', 'RAW_MATERIAL', 'APPROVED', 650000.00,
+     'Foundry raw material prime CR steel coil blanket stock for Q1 production run',
+     'Verified against JSW annual rate contract', 1001, '2026-04-13 14:15:00+05:30', NULL, NULL, TRUE,
+     1001, 1002, 1001, 1001),
+
+    (1004, 'PR-AHM-2627-0004', '2026-04-16', '2026-04-28', 1002, 1001,
+     1001, 'LOW', 'CONSUMABLE_MRO', 'DRAFT', 70000.00,
+     'Semi-annual coolant concentrate top-up for 5-axis CNC machining bays',
+     NULL, NULL, NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 'PR-PNQ-2627-0005', '2026-04-05', '2026-04-15', 1003, 1001,
+     1007, 'MEDIUM', 'RAW_MATERIAL', 'REJECTED', 132000.00,
+     'Polypropylene injection molding polymer stock',
+     'Existing stock in WH-PNQ-RM01 is sufficient for next 45 days. Re-requisition next month.', NULL, NULL, 1001, '2026-04-06 09:45:00+05:30', TRUE,
+     1002, 1005, 1001, 1001)
+ON CONFLICT (pr_id) DO NOTHING;
+
+SELECT setval('seq_pr_id', GREATEST((SELECT COALESCE(MAX(pr_id), 1005) FROM tbl_pr_header), 1005));
+
+-- Purchase Requisition Line Items (tbl_pr_item)
+INSERT INTO tbl_pr_item (
+    pr_item_id, pr_id, item_id, uom_id, required_qty, approved_qty, ordered_qty,
+    estimated_rate, estimated_amount, suggested_vendor_id, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 500.000, 500.000, 0.000,
+     365.0000, 182500.00, 1003, 'SS-316 50mm dia for gate valve stem & bonnet', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1011, 1003, 200.000, 0.000, 0.000,
+     230.0000, 46000.00, 1004, 'Sandvik CNMG 120408 inserts for tough turning', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1003, 1002, 1002, 10.000, 10.000, 0.000,
+     65000.0000, 650000.00, 1003, '2.00mm CR Prime Coils under annual rate agreement', TRUE,
+     1001, 1002, 1001, 1001),
+
+    (1004, 1004, 1010, 1007, 400.000, 0.000, 0.000,
+     175.0000, 70000.00, NULL, 'Biostable synthetic cutting fluid concentrate', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 1005, 1004, 1001, 1000.000, 0.000, 0.000,
+     132.0000, 132000.00, NULL, 'Injection molding grade PP copolymer granules', TRUE,
+     1002, 1005, 1001, 1001)
+ON CONFLICT (pr_item_id) DO NOTHING;
+
+SELECT setval('seq_pr_item_id', GREATEST((SELECT COALESCE(MAX(pr_item_id), 1005) FROM tbl_pr_item), 1005));
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.2 - Supplier Request for Quotation (RFQ) & CS Sample Demo Data
+-- ============================================================================
+
+-- 1. RFQ Headers
+INSERT INTO tbl_rfq_header (
+    rfq_id, rfq_no, rfq_date, due_date, warehouse_id, status,
+    payment_terms, delivery_terms, remarks,
+    awarded_vendor_id, awarded_date, awarded_remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'RFQ-AHM-2627-0001', '2026-04-12', '2026-04-20', 1001, 'AWARDED',
+     '30 Days Net from GRN', 'FOR Ahmedabad Plant', 'Inward SS316 Round Bars for Valve Stem batch manufacturing',
+     1003, '2026-04-21 14:30:00+05:30', 'Selected L1 bidder with verified mill test certificate and 7-day delivery.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 'RFQ-AHM-2627-0002', '2026-04-14', '2026-04-25', 1002, 'COMPARISON_DONE',
+     'Immediate Against Invoice', 'Ex-Works Supplier Store', 'Precision Tooling & CNC coolant fluid replenishment',
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 'RFQ-RJK-2627-0003', '2026-04-16', '2026-04-28', 1001, 'QUOTES_RECEIVED',
+     '45 Days LC at Sight', 'FOR Rajkot Unit', 'Cold-rolled coil procurement against approved PR-RJK-2627-0003',
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 'RFQ-AHM-2627-0004', '2026-04-17', '2026-05-02', 1001, 'SENT',
+     '30 Days Net', 'Door Delivery', 'HPDC Aluminum Ingot LM24 bulk tender inquiry',
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 'RFQ-AHM-2627-0005', '2026-04-18', '2026-05-10', 1001, 'DRAFT',
+     '30 Days Net', 'FOR Ahmedabad Plant', 'Polypropylene granules buffer stock indents',
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (rfq_id) DO NOTHING;
+
+SELECT setval('seq_rfq_id', GREATEST((SELECT COALESCE(MAX(rfq_id), 1005) FROM tbl_rfq_header), 1005));
+
+-- 2. RFQ Line Items
+INSERT INTO tbl_rfq_item (
+    rfq_item_id, rfq_id, pr_item_id, item_id, uom_id, required_qty, target_rate,
+    technical_specs, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 1001, 500.000, 365.0000, 'ASTM A276 Grade 316 Annealed & Cold Drawn Dia 50mm (+0/-0.05mm)', TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1002, 1004, 1010, 1007, 400.000, 175.0000, 'Fully synthetic high lubricity fluid for CNC hard metal machining', TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1003, 1003, 1002, 1001,  10.000, 65000.0000, 'IS 513 CR2 Deep Drawing Grade Cold Rolled Precision Steel Coil 1.2mm x 1250mm', TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1004, NULL, 1003, 1001, 2000.000, 210.0000, 'IS 617 LM24 High Pressure Die Casting Aluminum Ingot with spectro test cert', TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1005, NULL, 1004, 1001, 1500.000, 102.5000, 'Injection Molding Grade PP Copolymer Natural Granules MFI 12', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (rfq_item_id) DO NOTHING;
+
+SELECT setval('seq_rfq_item_id', GREATEST((SELECT COALESCE(MAX(rfq_item_id), 1005) FROM tbl_rfq_item), 1005));
+
+-- 3. RFQ Invited Vendors
+INSERT INTO tbl_rfq_vendor (
+    rfq_vendor_id, rfq_id, party_id, invitation_date, status,
+    vendor_quote_ref, quote_date, total_quote_amount, payment_terms,
+    delivery_lead_time_days, vendor_remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- RFQ 1001: JSW Steel (Quoted & Selected) and Sandvik Coromant (Quoted)
+    (1001, 1001, 1003, '2026-04-12 10:00:00+05:30', 'SELECTED',
+     'JSW-QT-2026-4410', '2026-04-16', 205261.00, '30 Days Net', 7, 'Offered direct from Tarapur stockyard.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 1001, 1004, '2026-04-12 10:00:00+05:30', 'QUOTED',
+     'SVK-INQ-0992', '2026-04-18', 221250.00, '15 Days Net', 14, 'Imported European bar stock.', TRUE,
+     1001, 1001, 1001, 1001),
+    -- RFQ 1002: Sandvik Coromant (Quoted) and Micro Precision (Quoted)
+    (1003, 1002, 1004, '2026-04-14 11:30:00+05:30', 'QUOTED',
+     'SVK-FL-8812', '2026-04-18', 77880.00, '30 Days Net', 5, 'Specialized coolant batch for alloy steel.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 1002, 1005, '2026-04-14 11:30:00+05:30', 'QUOTED',
+     'MP-QT-7721', '2026-04-20', 82600.00, 'Immediate', 10, 'Standard hydraulic coolant blend.', TRUE,
+     1001, 1001, 1001, 1001),
+    -- RFQ 1003: JSW Steel (Quoted) and Sandvik Coromant (Invited)
+    (1005, 1003, 1003, '2026-04-16 09:15:00+05:30', 'QUOTED',
+     'JSW-CR-9921', '2026-04-22', 743400.00, '45 Days LC', 12, 'Includes mill test certificate.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1006, 1003, 1004, '2026-04-16 09:15:00+05:30', 'INVITED',
+     NULL, NULL, 0.00, NULL, 0, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    -- RFQ 1004: JSW Steel and Micro Precision (Invited)
+    (1007, 1004, 1003, '2026-04-17 14:00:00+05:30', 'INVITED',
+     NULL, NULL, 0.00, NULL, 0, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1008, 1004, 1005, '2026-04-17 14:00:00+05:30', 'INVITED',
+     NULL, NULL, 0.00, NULL, 0, NULL, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (rfq_vendor_id) DO NOTHING;
+
+SELECT setval('seq_rfq_vendor_id', GREATEST((SELECT COALESCE(MAX(rfq_vendor_id), 1008) FROM tbl_rfq_vendor), 1008));
+
+-- 4. RFQ Vendor Item Quotations (For Comparative Statement)
+INSERT INTO tbl_rfq_vendor_item (
+    rfq_vendor_item_id, rfq_vendor_id, rfq_item_id, offered_qty, quoted_rate,
+    discount_pct, net_rate, tax_pct, total_amount, is_l1, is_awarded,
+    remarks, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- RFQ 1001 / Item 1001: JSW Steel (L1, Awarded) vs Sandvik Coromant (L2)
+    (1001, 1001, 1001, 500.000, 355.0000, 2.00, 347.9000, 18.00, 205261.00, TRUE,  TRUE,  'L1 Lowest Quoted Rate with 2% volume cash discount.', TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1002, 1001, 500.000, 375.0000, 0.00, 375.0000, 18.00, 221250.00, FALSE, FALSE, 'L2 Quote - Higher base price and longer lead time.',   TRUE, 1001, 1001, 1001, 1001),
+    -- RFQ 1002 / Item 1002: Sandvik Coromant (L1) vs Micro Precision (L2)
+    (1003, 1003, 1002, 400.000, 165.0000, 0.00, 165.0000, 18.00,  77880.00, TRUE,  FALSE, 'L1 Preferred OEM cutting lubricant.',                TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1004, 1002, 400.000, 175.0000, 0.00, 175.0000, 18.00,  82600.00, FALSE, FALSE, 'L2 Standard hydraulic fluid option.',                TRUE, 1001, 1001, 1001, 1001),
+    -- RFQ 1003 / Item 1003: JSW Steel (Only quote received so far)
+    (1005, 1005, 1003,  10.000, 63000.0000, 0.00, 63000.0000, 18.00, 743400.00, TRUE, FALSE, 'Direct mill quote per metric ton.',                TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (rfq_vendor_item_id) DO NOTHING;
+
+SELECT setval('seq_rfq_vendor_item_id', GREATEST((SELECT COALESCE(MAX(rfq_vendor_item_id), 1005) FROM tbl_rfq_vendor_item), 1005));
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 5.3 - Purchase Order (PO) Management & Release Sample Demo Data
+-- ============================================================================
+
+-- 1. PO Headers
+INSERT INTO tbl_po_header (
+    po_id, po_no, po_date, delivery_due_date, vendor_id, vendor_address_id, warehouse_id,
+    rfq_id, pr_id, po_type, status, payment_terms, delivery_terms, freight_terms,
+    subtotal_amount, discount_amount, tax_amount, roundoff_amount, net_total_amount,
+    notes, approved_by, approved_date, released_by, released_date, cancellation_reason, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'PO-AHM-2627-0001', '2026-04-22', '2026-04-30', 1003, NULL, 1001,
+     1001, 1001, 'STANDARD_PO', 'RELEASED', '30 Days Net from GRN', 'FOR Destination Plant', 'Paid by Vendor',
+     177500.00, 3550.00, 31311.00, 0.00, 205261.00,
+     'Order issued against awarded RFQ-AHM-2627-0001 and approved indent PR-AHM-2627-0001. Chemical & physical test certificates mandatory.',
+     1001, '2026-04-22 09:30:00+05:30', 1001, '2026-04-22 10:15:00+05:30', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 'PO-AHM-2627-0002', '2026-04-21', '2026-04-28', 1004, NULL, 1002,
+     1002, NULL, 'STANDARD_PO', 'APPROVED', 'Immediate Against Invoice', 'Ex-Works Supplier Store', 'Extra at actuals',
+     66000.00, 0.00, 11880.00, 0.00, 77880.00,
+     'Synthetic cutting fluid replenishment. Batch COA inspection required prior to unloading.',
+     1001, '2026-04-21 16:00:00+05:30', NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 'PO-RJK-2627-0003', '2026-04-23', '2026-05-05', 1005, NULL, 1001,
+     NULL, NULL, 'JOB_WORK_PO', 'SUBMITTED', '15 Days Net from Delivery', 'Door Delivery', 'Included in Job Rate',
+     125000.00, 0.00, 22500.00, 0.00, 147500.00,
+     'Subcontracting CNC machining and induction hardening of valve body castings.',
+     NULL, NULL, NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 'PO-AHM-2627-0004', '2026-04-24', '2026-05-15', 1003, NULL, 1001,
+     NULL, NULL, 'STANDARD_PO', 'DRAFT', '30 Days Net', 'FOR Ahmedabad Plant', 'Included',
+     162500.00, 2437.50, 28811.25, -0.75, 188873.00,
+     'Direct contract order under master vendor rate contract VRC-JSW-STEEL-2026.',
+     NULL, NULL, NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 'PO-PNQ-2627-0005', '2026-04-10', '2026-05-01', 1004, NULL, 1003,
+     NULL, NULL, 'BLANKET_PO', 'PARTIALLY_RECEIVED', '45 Days LC at Sight', 'FOR Pune Plant', 'Paid by Vendor',
+     270000.00, 0.00, 48600.00, 0.00, 318600.00,
+     'Blanket purchase contract for high pressure die casting ingots with scheduled monthly deliveries.',
+     1001, '2026-04-10 10:00:00+05:30', 1001, '2026-04-10 11:00:00+05:30', NULL, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (po_id) DO NOTHING;
+
+SELECT setval('seq_po_id', GREATEST((SELECT COALESCE(MAX(po_id), 1005) FROM tbl_po_header), 1005));
+
+-- 2. PO Line Items
+INSERT INTO tbl_po_item (
+    po_item_id, po_id, pr_item_id, rfq_item_id, item_id, uom_id,
+    order_qty, unit_rate, discount_pct, discount_amount, tax_pct, tax_amount, net_amount,
+    received_qty, billed_qty, delivery_date, technical_specs, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 1001, 1001,
+     500.000, 355.0000, 2.00, 3550.00, 18.00, 31311.00, 205261.00,
+     0.000, 0.000, '2026-04-30', 'ASTM A276 Grade 316 Annealed & Cold Drawn Dia 50mm (+0/-0.05mm)', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 1002, NULL, 1002, 1010, 1007,
+     400.000, 165.0000, 0.00, 0.00, 18.00, 11880.00, 77880.00,
+     0.000, 0.000, '2026-04-28', 'Fully synthetic high lubricity fluid for CNC hard metal machining', TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 1003, NULL, NULL, 1005, 1003,
+     250.000, 500.0000, 0.00, 0.00, 18.00, 22500.00, 147500.00,
+     0.000, 0.000, '2026-05-05', 'Machining & induction hardening to 52 HRC per drawing DWG-VLV-50-B', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 1004, NULL, NULL, 1002, 1001,
+      2.500, 65000.0000, 1.50, 2437.50, 18.00, 28811.25, 188873.00,
+     0.000, 0.000, '2026-05-15', 'IS 513 CR2 Deep Drawing Grade Cold Rolled Precision Steel Coil 1.2mm x 1250mm', TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 1005, NULL, NULL, 1003, 1001,
+     1200.000, 225.0000, 0.00, 0.00, 18.00, 48600.00, 318600.00,
+     600.000, 0.000, '2026-05-01', 'IS 617 LM24 High Pressure Die Casting Aluminum Ingot with spectro test cert', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (po_item_id) DO NOTHING;
+
+SELECT setval('seq_po_item_id', GREATEST((SELECT COALESCE(MAX(po_item_id), 1005) FROM tbl_po_item), 1005));
+
+-- Synchronize ordered_qty on tbl_pr_item for PO 1001
+UPDATE tbl_pr_item
+SET ordered_qty = 500.000
+WHERE pr_item_id = 1001;
+
+-- ============================================================================
+-- FEATURE: Step 5.4 - Gate Entry & Security Inward Register Demo Data
+-- ============================================================================
+
+-- 1. Gate Inward Headers
+INSERT INTO tbl_gate_inward_header (
+    gate_inward_id, gate_inward_no, inward_date, inward_time, warehouse_id, vendor_id, po_id,
+    challan_no, challan_date, vehicle_no, transporter_name, driver_name, driver_phone,
+    eway_bill_no, lr_no, lr_date, gross_weight, tare_weight, net_weight, total_packages,
+    status, security_remarks, unloaded_date, unloaded_by, unloading_remarks,
+    exit_date, exit_remarks, cancel_reason, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'GIN-AHM-2627-0001', '2026-04-24', '09:45 AM', 1001, 1003, 1001,
+     'CH-JSW-2026-0891', '2026-04-23', 'GJ-01-BX-4421', 'Gujarat Roadlines Logistics', 'Rameshwar Yadav', '+91 98250 11223',
+     '241829304912', 'LR-GRL-8891', '2026-04-23', 8450.000, 4200.000, 4250.000, 25,
+     'INWARDED', 'Vehicle arrived at Gate 1. Initial weighbridge gross weight logged. Mill test cert attached with driver.', NULL, NULL, NULL,
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 'GIN-AHM-2627-0002', '2026-04-24', '11:15 AM', 1002, 1004, 1002,
+     'INV-BPCL-6621', '2026-04-23', 'GJ-06-ZZ-7812', 'Western Express Transport', 'Sukhwinder Singh', '+91 97120 44556',
+     '241829304955', 'LR-WET-1022', '2026-04-23', 4500.000, 4100.000, 400.000, 2,
+     'UNLOADED', '2 Barrels of 200L cutting fluid. Unloaded at Chemical Store Bay 3.', '2026-04-24 12:30:00+05:30', 1001, 'Barrels placed on spill containment pallets.',
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 'GIN-AHM-2627-0003', '2026-04-23', '14:20 PM', 1001, 1005, 1003,
+     'JW-DC-2026-0112', '2026-04-23', 'GJ-03-TC-5511', 'Saurashtra Freight Carriers', 'Kiritbhai Patel', '+91 99042 33441',
+     '241829305101', 'LR-SFC-4491', '2026-04-23', 3800.000, 2550.000, 1250.000, 10,
+     'GRN_PENDING', 'Subcontracting job-work inward. Offloaded at receiving inspection hold bay.', '2026-04-23 15:00:00+05:30', 1001, 'Hardness test samples taken by QA.',
+     NULL, NULL, NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 'GIN-PNQ-2627-0004', '2026-04-22', '08:30 AM', 1003, 1004, 1005,
+     'CH-VED-9921', '2026-04-21', 'MH-12-PQ-9081', 'Maharashtra Express Freight', 'Dnyaneshwar Shinde', '+91 98220 77881',
+     '271928301122', 'LR-MEF-9901', '2026-04-21', 12500.000, 11900.000, 600.000, 30,
+     'COMPLETED', 'Aluminum ingots consignment completed. GRN issued and truck cleared security exit.', '2026-04-22 10:00:00+05:30', 1001, 'All 30 bundles stacked in Foundry raw material yard.',
+     '2026-04-22 17:45:00+05:30', 'Security outward clearance verified with Stores stamp.', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 'GIN-AHM-2627-0005', '2026-04-21', '16:45 PM', 1001, 1005, NULL,
+     'CH-SRT-0441', '2026-04-21', 'GJ-01-KL-9122', 'Direct Supplier Transport', 'Mahesh Solanki', '+91 98790 66551',
+     NULL, NULL, NULL, 1200.000, 1200.000, 0.000, 4,
+     'CANCELLED', 'Entry voided. Delivery challan addressed to wrong plant unit.', NULL, NULL, NULL,
+     NULL, NULL, 'Challan addressed to Plant 2 instead of Plant 1. Vehicle turned back without offloading.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (gate_inward_id) DO NOTHING;
+
+SELECT setval('seq_gate_inward_id', GREATEST((SELECT COALESCE(MAX(gate_inward_id), 1005) FROM tbl_gate_inward_header), 1005));
+
+-- 2. Gate Inward Consignment Items
+INSERT INTO tbl_gate_inward_item (
+    gate_inward_item_id, gate_inward_id, po_item_id, item_id, item_description, uom_id,
+    challan_qty, package_count, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 'SS-316 Round Bar Dia 50mm x 6000mm length', 1001,
+     500.000, 25, 'Bundle tags verified with delivery challan', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 1002, 1002, 1010, 'Synthetic High Pressure CNC Cutting Fluid 200L Drum', 1007,
+     400.000, 2, '2 sealed steel barrels with batch numbers', TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 1003, 1003, 1005, 'Cast Steel Flanged Valve Body Class 150 (Hardened)', 1003,
+     250.000, 10, '10 wooden crates of 25 pieces each', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 1004, 1005, 1003, 'IS 617 LM24 High Pressure Die Casting Aluminum Ingot', 1001,
+     600.000, 30, 'Strapped ingot bundles of 20kg each', TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 1005, NULL, 1004, 'Carbide Milling Insert CNMG 120408 Grade TN60', 1003,
+     50.000, 4, 'Boxes intact but delivery rejected at gate', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (gate_inward_item_id) DO NOTHING;
+
+SELECT setval('seq_gate_inward_item_id', GREATEST((SELECT COALESCE(MAX(gate_inward_item_id), 1005) FROM tbl_gate_inward_item), 1005));
+
+
+-- ============================================================================
+-- FEATURE: Step 5.5 - Goods Receipt Note (GRN) & Quarantine Put-Away Demo Data
+-- ============================================================================
+
+-- 1. GRN Headers
+INSERT INTO tbl_inv_grn_header (
+    grn_id, grn_no, grn_date, warehouse_id, vendor_id, po_id, gate_inward_id,
+    challan_no, challan_date, invoice_no, invoice_date, vehicle_no,
+    eway_bill_no, lr_no, lr_date, total_received_amount, status,
+    store_remarks, inspected_by, inspection_date, approved_by, approval_date, approval_remarks,
+    cancel_reason, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'GRN-AHM-2627-0001', '2026-04-24', 1001, 1003, 1001, 1001,
+     'CH-JSW-2026-0891', '2026-04-23', 'INV-JSW-4091', '2026-04-23', 'GJ-01-BX-4421',
+     '241829304912', 'LR-GRL-8891', '2026-04-23', 177500.00, 'QC_IN_PROGRESS',
+     'SS-316 bars unloaded at Receiving Bay. Awaiting PMI test report and metallurgy sign-off.',
+     1001, '2026-04-24 10:30:00+05:30', NULL, NULL, NULL,
+     NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 'GRN-AHM-2627-0002', '2026-04-24', 1001, 1004, 1002, 1002,
+     'INV-BPCL-6621', '2026-04-23', 'INV-BPCL-6621', '2026-04-23', 'GJ-06-ZZ-7812',
+     '241829304955', 'LR-WET-1022', '2026-04-23', 66000.00, 'APPROVED',
+     'Synthetic coolant drums received intact with tamper-proof seals.',
+     1001, '2026-04-24 13:00:00+05:30', 1001, '2026-04-24 14:15:00+05:30', 'COA verified, viscosity and pH conform to spec.',
+     NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 'GRN-AHM-2627-0003', '2026-04-23', 1001, 1005, 1003, 1003,
+     'JW-DC-2026-0112', '2026-04-23', 'TI-RJK-2026-091', '2026-04-23', 'GJ-03-TC-5511',
+     '241829305101', 'LR-SFC-4491', '2026-04-23', 125000.00, 'SUBMITTED',
+     'Job-work valve bodies received from heat treatment and machining vendor.',
+     NULL, NULL, NULL, NULL, NULL,
+     NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 'GRN-PNQ-2627-0004', '2026-04-22', 1007, 1004, 1005, 1004,
+     'CH-VED-9921', '2026-04-21', 'INV-VED-8812', '2026-04-21', 'MH-12-PQ-9081',
+     '271928301122', 'LR-MEF-9901', '2026-04-21', 135000.00, 'APPROVED',
+     'Consignment of 600 kg aluminum ingots received and cleared.',
+     1001, '2026-04-22 11:30:00+05:30', 1001, '2026-04-22 14:00:00+05:30', 'Spectro analysis verified against LM24 spec. Fully cleared for foundry.',
+     NULL, TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 'GRN-AHM-2627-0005', '2026-04-25', 1001, 1003, 1004, NULL,
+     'CH-DRAFT-001', '2026-04-25', NULL, NULL, 'GJ-01-AB-1234',
+     NULL, NULL, NULL, 162500.00, 'DRAFT',
+     'Draft receipt note for cold rolled steel coil trial batch.',
+     NULL, NULL, NULL, NULL, NULL,
+     NULL, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (grn_id) DO NOTHING;
+
+SELECT setval('seq_grn_id', GREATEST((SELECT COALESCE(MAX(grn_id), 1005) FROM tbl_inv_grn_header), 1005));
+
+-- 2. GRN Line Items
+INSERT INTO tbl_inv_grn_item (
+    grn_item_id, grn_id, po_item_id, gate_inward_item_id, item_id, item_description, uom_id,
+    order_qty, challan_qty, received_qty, accepted_qty, rejected_qty, quarantine_qty, shortage_qty, excess_qty,
+    unit_rate, received_amount, batch_no, mfg_date, expiry_date,
+    quarantine_bin_id, storage_bin_id, is_qc_required, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 1001, 'SS-316 Round Bar Dia 50mm x 6000mm length', 1001,
+     500.000, 500.000, 500.000, 0.000, 0.000, 500.000, 0.000, 0.000,
+     355.0000, 177500.00, 'HEAT-JSW-SS316-9812', '2026-04-10', NULL,
+     1005, 1001, TRUE, 'Samples drawn for spectro chemical composition check', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 1002, 1002, 1002, 1010, 'Synthetic High Pressure CNC Cutting Fluid 200L Drum', 1007,
+     400.000, 400.000, 400.000, 400.000, 0.000, 0.000, 0.000, 0.000,
+     165.0000, 66000.00, 'BPCL-SYN-26D-04', '2026-03-25', '2028-03-24',
+     NULL, 1004, FALSE, 'Accepted directly based on supplier Certificate of Analysis', TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 1003, 1003, 1003, 1005, 'Cast Steel Flanged Valve Body Class 150 (Hardened)', 1003,
+     250.000, 250.000, 250.000, 0.000, 0.000, 250.000, 0.000, 0.000,
+     500.0000, 125000.00, 'RJK-JW-26-04', '2026-04-22', NULL,
+     1005, 1003, TRUE, 'Awaiting CMM dimensional inspection and hardness test', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 1004, 1005, 1004, 1003, 'IS 617 LM24 High Pressure Die Casting Aluminum Ingot', 1001,
+     1200.000, 600.000, 600.000, 600.000, 0.000, 0.000, 0.000, 0.000,
+     225.0000, 135000.00, 'VED-LM24-B882', '2026-04-18', NULL,
+     NULL, 1008, TRUE, 'Lot 1 of blanket PO accepted into foundry charge floor', TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 1005, 1004, NULL, 1002, 'IS 513 CR2 Deep Drawing Grade Cold Rolled Precision Steel Coil 1.2mm x 1250mm', 1001,
+     2.500, 2.500, 2.500, 0.000, 0.000, 2.500, 0.000, 0.000,
+     65000.0000, 162500.00, 'COIL-JSW-26A-01', '2026-04-20', NULL,
+     1005, 1002, TRUE, 'Draft entry prepared before weighment slip verification', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (grn_item_id) DO NOTHING;
+
+SELECT setval('seq_grn_item_id', GREATEST((SELECT COALESCE(MAX(grn_item_id), 1005) FROM tbl_inv_grn_item), 1005));
+
+-- Sync Gate Inward status to GRN_PENDING or COMPLETED for inward consignments processed
+UPDATE tbl_gate_inward_header
+SET status = 'COMPLETED'
+WHERE gate_inward_id IN (1002, 1004);
+
+
+-- ============================================================================
+-- FEATURE: Step 5.6 - Inward Material QC Inspection & Quarantine Clearance Demo Data
+-- ============================================================================
+
+-- 1. QC Inward Inspection Headers
+INSERT INTO tbl_qc_inward_inspection_header (
+    qc_id, qc_no, qc_date, grn_id, warehouse_id, vendor_id, po_id, gate_inward_id,
+    sample_size, inspection_type, overall_result, inspector_id, inspection_date,
+    approver_id, approval_date, remarks, deviation_reason, test_cert_no, test_cert_date,
+    status, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'QC-AHM-2627-0001', '2026-04-24', 1001, 1001, 1003, 1001, 1001,
+     5.000, 'INCOMING_RAW_MATERIAL', 'ACCEPTED', 1001, '2026-04-24 14:00:00+05:30',
+     1001, '2026-04-24 16:30:00+05:30', 'Positive Material Identification (PMI) and optical emission spectrometry passed ASTM A276 standard.',
+     NULL, 'MTC-JSW-2026-7789', '2026-04-22',
+     'COMPLETED', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 'QC-AHM-2627-0002', '2026-04-24', 1002, 1001, 1004, 1002, 1002,
+     2.000, 'CONSUMABLE_CHEMICAL', 'ACCEPTED', 1001, '2026-04-24 13:30:00+05:30',
+     1001, '2026-04-24 14:15:00+05:30', 'Emulsion stability test 5% concentration in DM water passed. pH 9.3.',
+     NULL, 'COA-BPCL-SYN-911', '2026-03-25',
+     'COMPLETED', TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 'QC-AHM-2627-0003', '2026-04-23', 1003, 1001, 1005, 1003, 1003,
+     15.000, 'SUBCONTRACT_JOBWORK', 'PENDING', 1001, '2026-04-23 16:00:00+05:30',
+     NULL, NULL, 'CMM dimensional inspection in progress. Initial 5 pieces show hardness 51-53 HRC.',
+     NULL, 'HT-RJK-2026-041', '2026-04-22',
+     'IN_PROGRESS', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 'QC-PNQ-2627-0004', '2026-04-22', 1004, 1007, 1004, 1005, 1004,
+     10.000, 'INCOMING_RAW_MATERIAL', 'ACCEPTED', 1001, '2026-04-22 12:30:00+05:30',
+     1001, '2026-04-22 14:00:00+05:30', 'LM24 alloy composition verified. Silicon 8.6%, Copper 3.4%, Iron 0.85%.',
+     NULL, 'VED-CERT-LM24-882', '2026-04-18',
+     'COMPLETED', TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 'QC-AHM-2627-0005', '2026-04-25', 1005, 1001, 1003, 1004, NULL,
+     1.000, 'INCOMING_RAW_MATERIAL', 'PENDING', NULL, NULL,
+     NULL, NULL, 'Awaiting thickness gauge micrometer inspection across coil width.',
+     NULL, 'MTC-JSW-CR2-441', '2026-04-20',
+     'DRAFT', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (qc_id) DO NOTHING;
+
+SELECT setval('seq_qc_inward_id', GREATEST((SELECT COALESCE(MAX(qc_id), 1005) FROM tbl_qc_inward_inspection_header), 1005));
+
+-- 2. QC Inward Inspection Items
+INSERT INTO tbl_qc_inward_inspection_item (
+    qc_item_id, qc_id, grn_item_id, item_id, uom_id,
+    received_qty, sample_qty, accepted_qty, rejected_qty, disposition,
+    defect_code, batch_no, heat_no, mfg_date, expiry_date,
+    quarantine_bin_id, destination_bin_id,
+    visual_check, dimension_check, chemical_test, hardness_test,
+    observed_parameters, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 1001,
+     500.000, 5.000, 500.000, 0.000, 'ACCEPTED',
+     NULL, 'HEAT-JSW-SS316-9812', 'MELT-9812-C', '2026-04-10', NULL,
+     1005, 1001,
+     'PASS', 'PASS', 'PASS', 'PASS',
+     '{"carbon_pct": 0.045, "chromium_pct": 16.82, "nickel_pct": 10.25, "molybdenum_pct": 2.15, "hardness_hrb": 88.5, "diameter_mm": 50.02}'::jsonb,
+     'All 5 samples within dia 50mm (+0/-0.05mm) tolerance and chemistry meets SS316.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 1002, 1002, 1010, 1007,
+     400.000, 2.000, 400.000, 0.000, 'ACCEPTED',
+     NULL, 'BPCL-SYN-26D-04', NULL, '2026-03-25', '2028-03-24',
+     NULL, 1004,
+     'PASS', 'NA', 'PASS', 'NA',
+     '{"ph_level": 9.3, "brix_pct": 5.2, "refractometer_factor": 1.05}'::jsonb,
+     'Viscosity and concentration conform to CNC hard milling specification.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 1003, 1003, 1005, 1003,
+     250.000, 15.000, 0.000, 0.000, 'ACCEPTED',
+     NULL, 'RJK-JW-26-04', 'CAST-LOT-551', '2026-04-22', NULL,
+     1005, 1003,
+     'PASS', 'PASS', 'NA', 'PASS',
+     '{"hardness_hrc": 52.1, "flange_thickness_mm": 18.02, "bore_dia_mm": 50.81}'::jsonb,
+     'Initial 5 pieces pass CMM; remaining 10 undergoing ultrasonic porosity scan.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 1004, 1004, 1003, 1001,
+     600.000, 10.000, 600.000, 0.000, 'ACCEPTED',
+     NULL, 'VED-LM24-B882', 'HPDC-M901', '2026-04-18', NULL,
+     NULL, 1008,
+     'PASS', 'PASS', 'PASS', 'PASS',
+     '{"silicon_pct": 8.62, "copper_pct": 3.41, "iron_pct": 0.85, "zinc_pct": 0.92, "magnesium_pct": 0.28}'::jsonb,
+     'Cleared for foundry charge floor. Low iron content within HPDC limit.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 1005, 1005, 1002, 1001,
+     2.500, 1.000, 0.000, 0.000, 'ACCEPTED',
+     NULL, 'COIL-JSW-26A-01', 'CR-MELT-1022', '2026-04-20', NULL,
+     1005, 1002,
+     'PASS', 'PASS', 'PASS', 'NA',
+     '{"thickness_mm": 1.204, "width_mm": 1250.2, "yield_strength_mpa": 245}'::jsonb,
+     'Draft inspection record created upon offloading.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (qc_item_id) DO NOTHING;
+
+SELECT setval('seq_qc_inward_item_id', GREATEST((SELECT COALESCE(MAX(qc_item_id), 1005) FROM tbl_qc_inward_inspection_item), 1005));

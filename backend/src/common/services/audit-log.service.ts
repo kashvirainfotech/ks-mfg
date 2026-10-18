@@ -13,7 +13,15 @@ export type AuditActionType =
   | 'CANCEL'
   | 'REOPEN'
   | 'LOGIN'
-  | 'LOGOUT';
+  | 'LOGOUT'
+  | 'SUBMIT'
+  | 'SEND'
+  | 'FINALIZE'
+  | 'RELEASE'
+  | 'UNLOAD'
+  | 'EXIT'
+  | 'APPROVE'
+  | 'REJECT';
 
 export interface RecordAuditLogParams {
   userId: number;
