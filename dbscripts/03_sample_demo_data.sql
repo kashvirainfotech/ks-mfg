@@ -1415,3 +1415,282 @@ INSERT INTO tbl_qc_inward_inspection_item (
 ON CONFLICT (qc_item_id) DO NOTHING;
 
 SELECT setval('seq_qc_inward_item_id', GREATEST((SELECT COALESCE(MAX(qc_item_id), 1005) FROM tbl_qc_inward_inspection_item), 1005));
+
+
+-- ============================================================================
+-- FEATURE: Step 5.7 - Warehouse Bin Put-Away & Stock Allocation Demo Data
+-- ============================================================================
+INSERT INTO tbl_inv_putaway_header (
+    putaway_id, comp_id, branch_id, fyear_id,
+    putaway_no, putaway_date, warehouse_id, grn_id, qc_id,
+    assigned_to, putaway_type, status,
+    total_items, total_qty, completed_date, completed_by,
+    remarks, is_active, created_by
+) VALUES
+    (1001, 1001, 1001, 1001,
+     'PUT-AHM-2627-0001', '2026-04-18', 1001, 1001, 1001,
+     1003, 'QC_RELEASE', 'COMPLETED',
+     1, 500.000, '2026-04-18 16:30:00+05:30', 1003,
+     'Moved from QC quarantine cage to heavy cantilever bar rack RM-Z1-R01-S01-B01.', TRUE, 1001),
+    (1002, 1001, 1001, 1001,
+     'PUT-AHM-2627-0002', '2026-04-19', 1001, 1002, 1002,
+     1003, 'QC_RELEASE', 'COMPLETED',
+     1, 4.000, '2026-04-19 14:15:00+05:30', 1003,
+     'Cutting oil drums transferred to Chemical Ground Bay CHEM-Z2-R01-S01-B01 on spill containment pallet.', TRUE, 1001),
+    (1003, 1001, 1001, 1001,
+     'PUT-AHM-2627-0003', '2026-04-20', 1001, 1004, 1004,
+     1003, 'QC_RELEASE', 'IN_PROGRESS',
+     1, 600.000, NULL, NULL,
+     'Forklift operator transferring Aluminum ingots to Foundry charge bay.', TRUE, 1001),
+    (1004, 1001, 1001, 1001,
+     'PUT-AHM-2627-0004', '2026-04-21', 1001, 1003, 1003,
+     1003, 'GRN_INWARD', 'ASSIGNED',
+     1, 250.000, NULL, NULL,
+     'Subcontracted valve bodies assigned for put-away pending final QC ultrasonic clearance.', TRUE, 1001),
+    (1005, 1001, 1001, 1001,
+     'PUT-AHM-2627-0005', '2026-04-22', 1001, 1005, 1005,
+     1003, 'GRN_INWARD', 'DRAFT',
+     1, 2.500, NULL, NULL,
+     'CRCA steel coils staged at receiving dock pending crane allocation.', TRUE, 1001)
+ON CONFLICT (putaway_id) DO NOTHING;
+
+SELECT setval('seq_putaway_id', GREATEST((SELECT COALESCE(MAX(putaway_id), 1005) FROM tbl_inv_putaway_header), 1005));
+
+INSERT INTO tbl_inv_putaway_item (
+    putaway_item_id, putaway_id, grn_item_id, qc_item_id,
+    item_id, item_description, uom_id,
+    source_bin_id, destination_bin_id,
+    allocated_qty, putaway_qty, batch_no, heat_no,
+    status, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001,
+     1001, 'Stainless Steel 316 Round Bar Ø50mm', 1001,
+     1003, 1001,
+     500.000, 500.000, 'HEAT-JSW-SS316-9812', 'MELT-8821',
+     'COMPLETED', 'Put-away completed into cantilever rack A1.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1002, 1002, 1002, 1002,
+     1002, 'Industrial Semi-Synthetic Cutting Coolant 200L Drum', 1002,
+     1003, 1004,
+     4.000, 4.000, 'CAST-SYN-2026-B04', NULL,
+     'COMPLETED', 'Placed on bunded pallet bay.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1003, 1003, 1004, 1004,
+     1004, 'Aluminum Alloy Ingot LM6 (High Silicon Grade)', 1001,
+     1003, 1006,
+     600.000, 300.000, 'VED-LM24-B882', 'HPDC-M901',
+     'PENDING', 'Partial transfer of 300kg completed; balance in progress.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1004, 1004, 1003, 1003,
+     1003, 'Machined Stainless Steel 3-Way Valve Body Castings', 1003,
+     1003, 1005,
+     250.000, 0.000, 'RJK-JW-26-04', 'CAST-LOT-551',
+     'PENDING', 'Staged at bin entrance.', TRUE,
+     1001, 1001, 1001, 1001),
+    (1005, 1005, 1005, 1005,
+     1005, 'Cold Rolled Close Annealed (CRCA) Steel Coil 2.0mm', 1001,
+     1003, 1002,
+     2.500, 0.000, 'COIL-JSW-26A-01', 'CR-MELT-1022',
+     'PENDING', 'Awaiting overhead crane transfer.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (putaway_item_id) DO NOTHING;
+
+SELECT setval('seq_putaway_item_id', GREATEST((SELECT COALESCE(MAX(putaway_item_id), 1005) FROM tbl_inv_putaway_item), 1005));
+
+-- Initial Active Bin Stock Balances
+INSERT INTO tbl_inv_bin_stock (
+    bin_stock_id, comp_id, branch_id, fyear_id,
+    warehouse_id, bin_id, item_id, uom_id,
+    batch_no, heat_no,
+    on_hand_qty, reserved_qty, available_qty,
+    unit_cost, total_valuation, last_stock_date,
+    is_active, created_by
+) VALUES
+    (1001, 1001, 1001, 1001,
+     1001, 1001, 1001, 1001,
+     'HEAT-JSW-SS316-9812', 'MELT-8821',
+     500.000, 0.000, 500.000,
+     320.0000, 160000.00, '2026-04-18 16:30:00+05:30',
+     TRUE, 1001),
+    (1002, 1001, 1001, 1001,
+     1001, 1004, 1002, 1002,
+     'CAST-SYN-2026-B04', NULL,
+     4.000, 0.000, 4.000,
+     45000.0000, 180000.00, '2026-04-19 14:15:00+05:30',
+     TRUE, 1001)
+ON CONFLICT (bin_stock_id) DO NOTHING;
+
+SELECT setval('seq_bin_stock_id', GREATEST((SELECT COALESCE(MAX(bin_stock_id), 1002) FROM tbl_inv_bin_stock), 1002));
+
+-- Immutable Stock Ledger Transactions
+INSERT INTO tbl_inv_stock_ledger (
+    ledger_id, comp_id, branch_id, fyear_id,
+    transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, from_bin_id, to_bin_id,
+    item_id, uom_id, batch_no, heat_no,
+    qty_in, qty_out, unit_cost, total_cost,
+    closing_balance, remarks, is_active, created_by
+) VALUES
+    (1001, 1001, 1001, 1001,
+     '2026-04-18 16:30:00+05:30', 'PUTAWAY_INWARD',
+     'PUTAWAY', 1001, 'PUT-AHM-2627-0001',
+     1001, 1003, 1001,
+     1001, 1001, 'HEAT-JSW-SS316-9812', 'MELT-8821',
+     500.000, 0.000, 320.0000, 160000.00,
+     500.000, 'Put-away confirmed from quarantine to rack RM-Z1-R01-S01-B01', TRUE, 1001),
+    (1002, 1001, 1001, 1001,
+     '2026-04-19 14:15:00+05:30', 'PUTAWAY_INWARD',
+     'PUTAWAY', 1002, 'PUT-AHM-2627-0002',
+     1001, 1003, 1004,
+     1002, 1002, 'CAST-SYN-2026-B04', NULL,
+     4.000, 0.000, 45000.0000, 180000.00,
+     4.000, 'Put-away confirmed for 4 coolant drums into Chemical Ground Bay', TRUE, 1001)
+ON CONFLICT (ledger_id) DO NOTHING;
+
+SELECT setval('seq_stock_ledger_id', GREATEST((SELECT COALESCE(MAX(ledger_id), 1002) FROM tbl_inv_stock_ledger), 1002));
+
+
+-- ============================================================================
+-- FEATURE: Step 5.8 - Purchase Invoices & 3-Way Matching Demo Data
+-- ============================================================================
+INSERT INTO tbl_pur_invoice_header (
+    invoice_id, comp_id, branch_id, fyear_id,
+    invoice_no, invoice_date, vendor_id, po_id, grn_id, qc_id,
+    vendor_invoice_no, vendor_invoice_date, vendor_gstin,
+    payment_terms_days, due_date,
+    subtotal_amount, discount_amount, taxable_amount,
+    cgst_amount, sgst_amount, igst_amount, total_tax_amount,
+    freight_charges, insurance_charges, packaging_charges,
+    tds_rate, tds_amount, round_off,
+    net_payable_amount, paid_amount, balance_amount,
+    matching_status, status, payment_status,
+    approved_by, approved_date, approval_remarks,
+    remarks, is_active, created_by
+) VALUES
+    (1001, 1001, 1001, 1001,
+     'PINV-AHM-2627-0001', '2026-04-18', 1001, 1001, 1001, 1001,
+     'INV/JSPL/2026/0892', '2026-04-18', '24AAACJ9812A1Z4',
+     30, '2026-05-18',
+     160000.00, 0.00, 160000.00,
+     14400.00, 14400.00, 0.00, 28800.00,
+     1500.00, 0.00, 0.00,
+     0.100, 160.00, 0.00,
+     190140.00, 0.00, 190140.00,
+     'MATCHED', 'APPROVED', 'UNPAID',
+     1002, '2026-04-19 11:30:00+05:30', '3-way match verified against PO-0001 and GRN-0001. Cleared for payment.',
+     'Standard commercial billing for SS316 round bars.', TRUE, 1001),
+
+    (1002, 1001, 1001, 1001,
+     'PINV-AHM-2627-0002', '2026-04-19', 1002, 1002, 1002, 1002,
+     'CIL/MH/2627/4401', '2026-04-19', '27AAACC2026B1Z8',
+     30, '2026-05-19',
+     180000.00, 0.00, 180000.00,
+     0.00, 0.00, 32400.00, 32400.00,
+     0.00, 0.00, 0.00,
+     0.000, 0.00, 0.00,
+     212400.00, 0.00, 212400.00,
+     'MATCHED', 'APPROVED', 'UNPAID',
+     1002, '2026-04-20 10:15:00+05:30', 'IGST 18% interstate match confirmed. Cleared for AP disbursement.',
+     'Coolant barrels delivery invoice.', TRUE, 1001),
+
+    (1003, 1001, 1001, 1001,
+     'PINV-AHM-2627-0003', '2026-04-20', 1003, 1003, 1003, 1003,
+     'RPMW/JW/26-091', '2026-04-20', '24AAACR5512C1Z2',
+     15, '2026-05-05',
+     287500.00, 0.00, 287500.00,
+     25875.00, 25875.00, 0.00, 51750.00,
+     0.00, 0.00, 0.00,
+     0.000, 0.00, 0.00,
+     339250.00, 0.00, 339250.00,
+     'MATCHED', 'SUBMITTED', 'UNPAID',
+     NULL, NULL, NULL,
+     'Machined valve bodies job-work invoice pending final finance review.', TRUE, 1001),
+
+    (1004, 1001, 1001, 1001,
+     'PINV-AHM-2627-0004', '2026-04-21', 1004, 1004, 1004, 1004,
+     'VED/OD/2627/0119', '2026-04-21', '21AAACV9012D1Z6',
+     30, '2026-05-21',
+     159000.00, 0.00, 159000.00,
+     0.00, 0.00, 28620.00, 28620.00,
+     0.00, 0.00, 0.00,
+     0.000, 0.00, 0.00,
+     187620.00, 0.00, 187620.00,
+     'MATCHED', 'APPROVED', 'UNPAID',
+     1002, '2026-04-22 09:45:00+05:30', 'Interstate aluminium invoice approved.',
+     'Aluminium alloy ingots shipment.', TRUE, 1001),
+
+    (1005, 1001, 1001, 1001,
+     'PINV-AHM-2627-0005', '2026-04-22', 1005, 1005, 1005, 1005,
+     'JSW/GJ/2026/991', '2026-04-22', '24AAACJ1022E1Z0',
+     30, '2026-05-22',
+     156250.00, 0.00, 156250.00,
+     14062.50, 14062.50, 0.00, 28125.00,
+     0.00, 0.00, 0.00,
+     0.000, 0.00, 0.00,
+     184375.00, 0.00, 184375.00,
+     'PRICE_VARIANCE', 'DRAFT', 'UNPAID',
+     NULL, NULL, NULL,
+     'Vendor invoiced @ 62,500/MT vs PO contracted rate of 62,000/MT. Price variance detected.', TRUE, 1001)
+ON CONFLICT (invoice_id) DO NOTHING;
+
+SELECT setval('seq_pur_invoice_id', GREATEST((SELECT COALESCE(MAX(invoice_id), 1005) FROM tbl_pur_invoice_header), 1005));
+
+INSERT INTO tbl_pur_invoice_item (
+    invoice_item_id, invoice_id, po_item_id, grn_item_id, qc_item_id,
+    item_id, item_description, hsn_code, uom_id,
+    po_qty, received_qty, accepted_qty, billed_qty,
+    po_rate, invoiced_rate, rate_variance, item_amount,
+    discount_percent, discount_amount, taxable_amount,
+    gst_rate, cgst_rate, cgst_amount, sgst_rate, sgst_amount,
+    igst_rate, igst_amount, total_item_amount, batch_no,
+    remarks, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 1001,
+     1001, 'Stainless Steel 316 Round Bar Ø50mm', '7222', 1001,
+     500.000, 500.000, 500.000, 500.000,
+     320.0000, 320.0000, 0.0000, 160000.00,
+     0.00, 0.00, 160000.00,
+     18.00, 9.00, 14400.00, 9.00, 14400.00,
+     0.00, 0.00, 188800.00, 'HEAT-JSW-SS316-9812',
+     'Matched 100% against PO-0001 line 1.', TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1002, 1002, 1002,
+     1002, 'Industrial Semi-Synthetic Cutting Coolant 200L Drum', '2710', 1002,
+     4.000, 4.000, 4.000, 4.000,
+     45000.0000, 45000.0000, 0.0000, 180000.00,
+     0.00, 0.00, 180000.00,
+     18.00, 0.00, 0.00, 0.00, 0.00,
+     18.00, 32400.00, 212400.00, 'CAST-SYN-2026-B04',
+     'Matched 100% against PO-0002 line 1.', TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 1003, 1003, 1003, 1003,
+     1003, 'Machined Stainless Steel 3-Way Valve Body Castings', '8481', 1003,
+     250.000, 250.000, 250.000, 250.000,
+     1150.0000, 1150.0000, 0.0000, 287500.00,
+     0.00, 0.00, 287500.00,
+     18.00, 9.00, 25875.00, 9.00, 25875.00,
+     0.00, 0.00, 339250.00, 'RJK-JW-26-04',
+     'Matched 100% against PO-0003 line 1.', TRUE, 1001, 1001, 1001, 1001),
+
+    (1004, 1004, 1004, 1004, 1004,
+     1004, 'Aluminum Alloy Ingot LM6 (High Silicon Grade)', '7601', 1001,
+     600.000, 600.000, 600.000, 600.000,
+     265.0000, 265.0000, 0.0000, 159000.00,
+     0.00, 0.00, 159000.00,
+     18.00, 0.00, 0.00, 0.00, 0.00,
+     18.00, 28620.00, 187620.00, 'VED-LM24-B882',
+     'Matched 100% against PO-0004 line 1.', TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 1005, 1005, 1005, 1005,
+     1005, 'Cold Rolled Close Annealed (CRCA) Steel Coil 2.0mm', '7209', 1001,
+     2.500, 2.500, 2.500, 2.500,
+     62000.0000, 62500.0000, 500.0000, 156250.00,
+     0.00, 0.00, 156250.00,
+     18.00, 9.00, 14062.50, 9.00, 14062.50,
+     0.00, 0.00, 184375.00, 'COIL-JSW-26A-01',
+     'Rate variance of +500/MT detected; requires commercial approval.', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (invoice_item_id) DO NOTHING;
+
+SELECT setval('seq_pur_invoice_item_id', GREATEST((SELECT COALESCE(MAX(invoice_item_id), 1005) FROM tbl_pur_invoice_item), 1005));

@@ -25,7 +25,9 @@ export type PermissionAction =
   | 'UNLOAD'
   | 'EXIT'
   | 'APPROVE'
-  | 'REJECT';
+  | 'REJECT'
+  | 'ASSIGN'
+  | 'CONFIRM';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

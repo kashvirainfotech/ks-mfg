@@ -138,6 +138,8 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 - **Step 5.4 — Gate Entry & Security Inward Register (`/procurement/gate-inward`)**: Factory perimeter security checkpoints (`tbl_gate_inward_header` & `tbl_gate_inward_item`) tracking incoming supplier transport trucks, delivery challans, Indian GST E-Way Bills, LR consignment notes, weighbridge gross/tare/net weight verification, stores offloading clearance (`UNLOAD`), and security outward departure passes (`EXIT`).
 - **Step 5.5 — Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`)**: Dock receiving vouchers (`tbl_inv_grn_header` & `tbl_inv_grn_item`) with 1-click Gate Inward / PO sync, shortage/excess variance logging, supplier heat/batch number tracking, quarantine staging cage put-away (`QC_IN_PROGRESS`), store approval (`APPROVED`) with automatic PO received balance increments, and printable official GRN vouchers.
 - **Step 5.6 — Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`)**: Full metallurgical and physical laboratory testing (`tbl_qc_inward_inspection_header` & `tbl_qc_inward_inspection_item`) with 1-click Quarantine GRN import, 4-pillar testing checklist (Visual, Dimensional, Chemical/Spectro, Hardness), JSON observed parameters tracking, split accepted vs rejected lot disposition, upstream PO and GRN synchronization on approval, and printable official QC certificates.
+- **Step 5.7 — Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`)**: WMS execution (`tbl_inv_putaway_header` & `tbl_inv_putaway_item`) transferring accepted materials from quarantine staging to permanent storage racks, operator dispatching (`ASSIGN`), and real-time on-hand stock balance updates in `tbl_inv_bin_stock` and immutable transactions in `tbl_inv_stock_ledger`.
+- **Step 5.8 — Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`)**: Commercial finance 3-way matching engine (`tbl_pur_invoice_header` & `tbl_pur_invoice_item`) comparing PO rates, GRN received quantities, and QC accepted quantities, automated price/quantity variance detection, GST Input Tax Credit (ITC) breakdown, TDS/TCS withholding tax calculations, AP clearance approvals, payment disbursements, and printable commercial vouchers.
 
 ---
 
@@ -145,16 +147,16 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 
 Development proceeds strictly **one screen/feature at a time**, completely implemented end-to-end (PostgreSQL DDL/DML $\rightarrow$ NestJS API $\rightarrow$ React UI $\rightarrow$ Living Manuals):
 
-- **Phase 5 — Procurement, Inward GRN, Quality Inspection & Put-Away (`PROCUREMENT`)**:
-  - **Step 5.1**: Material Purchase Requisition (MR) & Multi-Level Authorization (`/procurement/requisitions`).
-  - **Step 5.2**: Request for Quotation (RFQ) & Vendor Rate Comparison Matrix (`/procurement/rfq`).
-  - **Step 5.3**: Purchase Order (PO) with GST Tax Calculation & Multi-Plant Delivery Schedule (`/procurement/purchase-orders`).
-  - **Step 5.4**: Gate Entry & Security Inward Register (`/procurement/gate-inward`).
-  - **Step 5.5**: Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`).
-  - **Step 5.6**: Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`).
-  - **Step 5.7**: Warehouse Bin Put-Away & Purchase Invoice Matching (`/inventory/put-away`).
-  - Material Requisition (MR) $\rightarrow$ RFQ & Vendor Comparison $\rightarrow$ Purchase Order (PO) with multi-level authorization.
-  - Gate Entry $\rightarrow$ Goods Receipt Note (GRN) $\rightarrow$ Incoming QC Quarantine & Inspection $\rightarrow$ Bin Put-Away & Purchase Invoice matching.
+- **Phase 5 — Procurement, Inward GRN, Quality Inspection, Put-Away & Commercial Matching (`PROCUREMENT`) (✅ 100% Complete)**:
+  - ✅ **Step 5.1**: Material Purchase Requisition (MR) & Multi-Level Authorization (`/procurement/requisitions`).
+  - ✅ **Step 5.2**: Request for Quotation (RFQ) & Vendor Rate Comparison Matrix (`/procurement/rfqs`).
+  - ✅ **Step 5.3**: Purchase Order (PO) with GST Tax Calculation & Multi-Plant Delivery Schedule (`/procurement/purchase-orders`).
+  - ✅ **Step 5.4**: Gate Entry & Security Inward Register (`/procurement/gate-inward`).
+  - ✅ **Step 5.5**: Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`).
+  - ✅ **Step 5.6**: Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`).
+  - ✅ **Step 5.7**: Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`).
+  - ✅ **Step 5.8**: Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`).
+  - Complete Procure-to-Pay (P2P) closed loop: Material Requisition $\rightarrow$ RFQ Bidding $\rightarrow$ Purchase Order $\rightarrow$ Gate Security $\rightarrow$ Goods Receipt $\rightarrow$ Quality Lab Inspection $\rightarrow$ Bin Put-Away $\rightarrow$ Purchase Invoice 3-Way Matching & AP Clearance.
 - **Phase 6 — Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`)**:
   - Multi-Level Bill of Materials (BOM) with versions, scrap factors, and co-products/by-products.
   - Work Centers, Machines, Shift Calendars & Production Routings.

@@ -21,7 +21,9 @@ export type AuditActionType =
   | 'UNLOAD'
   | 'EXIT'
   | 'APPROVE'
-  | 'REJECT';
+  | 'REJECT'
+  | 'ASSIGN'
+  | 'CONFIRM';
 
 export interface RecordAuditLogParams {
   userId: number;

@@ -726,3 +726,77 @@ When a new screen is released, this manual provides:
      * If linked to upstream GRNs, safely rolls back inspection states.
 * **Action Buttons:** `Print Certificate` (`INWARD_QC -> PRINT`), `Export Register` (`INWARD_QC -> EXPORT`), `+ New QC Inspection` (`INWARD_QC -> ADD`), `Edit Inspection` (`INWARD_QC -> EDIT`), `Submit for Lab Approval` (`INWARD_QC -> SUBMIT`), `Approve & Clear to Stock` (`INWARD_QC -> APPROVE`), `Reject Lot` (`INWARD_QC -> REJECT`), `Cancel QC` (`INWARD_QC -> CANCEL`), and `Delete Inspection` (`INWARD_QC -> DELETE`).
 
+### 2.23 Step 5.7 — Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`)
+
+* **Screen Code:** `BIN_PUTAWAY` (Screen ID: `1022`)
+* **Navigation Path:** `Sidebar -> INVENTORY & WMS -> Bin Put-Away & Stock`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `PURCHASE_EXEC`
+* **Operational Capabilities:**
+  1. **Executive WMS Operational KPIs:**
+     * **Total Put-Away Tasks:** Cumulative count of all warehouse put-away orders registered across plant facilities.
+     * **Pending Assignment:** Count of material movements in `DRAFT` or `ASSIGNED` state awaiting forklift operator dispatch.
+     * **In-Progress Moves:** Real-time active material transport tasks between receiving staging docks and racking aisles.
+     * **Completed & Stock Posted:** Count of fulfilled put-away orders where items have been verified and credited to live on-hand stock ledgers.
+  2. **1-Click Sourcing from Approved QC Clearance:**
+     * Direct import from QC Inspection certificates in `COMPLETED` and `ACCEPTED` status (`tbl_qc_inward_inspection_header`).
+     * Automatically pulls approved items, accepted quantities, supplier heat/batch numbers, quarantine source bins, and target storage bins.
+  3. **Multi-Type Put-Away Execution:**
+     * **QC Inspection Release (`QC_RELEASE`):** Transfer from quarantine inspection bays (`QC-Z1-R01-S01-B01`) to permanent storage racks.
+     * **Direct GRN Inward (`GRN_INWARD`):** For fast-track standard consumables or non-QC items moving directly from dock to bin.
+     * **Internal Relocation (`INTERNAL_TRANSFER`):** Inter-bay or inter-rack optimization and replenishment.
+     * **Rework Stock Return (`REWORK_RETURN`):** Restocking post-rework or inspection deviation clearance.
+  4. **Forklift & Store Operator Task Dispatch (`ASSIGN`):**
+     * Assign specific material relocation tasks to registered plant storekeepers or forklift operators.
+     * Provides bay instructions, aisle stacking rules, and crane requirements.
+  5. **Physical Put-Away Confirmation & Real-Time Stock Ledger Posting (`CONFIRM`):**
+     * Operator verifies physical destination bin (e.g. `RM-Z1-R01-S01-B01` cantilever rack or `CHEM-Z2-R01-S01-B01` chemical ground bay) and confirmed put-away quantity.
+     * Upon confirmation, system atomically:
+       * Transitions put-away task and line items to `COMPLETED`.
+       * Upserts live on-hand and available balance in `tbl_inv_bin_stock` for `(warehouse_id, bin_id, item_id, batch_no)`.
+       * Inserts an immutable transaction row into `tbl_inv_stock_ledger` recording transaction type `PUTAWAY_INWARD`, reference voucher, source/destination bins, quantity in, unit cost, and closing balance.
+  6. **Official Put-Away Voucher & Stock Transfer Slip:**
+     * Printable A4 transfer sheet (`@media print`) complete with Kashvira manufacturing header, CIN/GSTIN, task barcode, source document references, itemized movement table (Material, Heat/Batch, Source Bay, Target Storage Bin, Verified Qty), special bay handling instructions, and dual sign-off blocks (Forklift Operator & Warehouse Manager).
+  7. **Controlled Task Cancellation & Safe Deletion:**
+     * Voids uncompleted tasks with mandatory cancellation reason.
+     * Prevents deletion of completed tasks; draft tasks verified through `DependencyCheckService`.
+* **Action Buttons:** `Print Task Sheet` (`BIN_PUTAWAY -> PRINT`), `Export Register` (`BIN_PUTAWAY -> EXPORT`), `+ Create Put-Away Task` (`BIN_PUTAWAY -> ADD`), `Edit Task` (`BIN_PUTAWAY -> EDIT`), `Assign Operator` (`BIN_PUTAWAY -> ASSIGN`), `Start Put-Away` (`BIN_PUTAWAY -> EDIT`), `Confirm & Post Stock` (`BIN_PUTAWAY -> CONFIRM`), `Void Task` (`BIN_PUTAWAY -> CANCEL`), and `Delete Task` (`BIN_PUTAWAY -> DELETE`).
+
+
+
+### 2.24 Step 5.8 — Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`)
+
+* **Screen Code:** `PURCHASE_INVOICE` (Screen ID: `1023`)
+* **Navigation Path:** `Sidebar -> PROCUREMENT & SOURCING -> Invoices & 3-Way Match`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `PURCHASE_EXEC`, `STORE_OFFICER`
+* **Operational Capabilities:**
+  1. **Executive Accounts Payable & 3-Way Match KPIs:**
+     * **Total Invoices Logged:** Cumulative count of all vendor commercial invoices registered in the ERP across plant locations with total gross booking valuation (₹).
+     * **3-Way Clean Matched:** Total count and percentage of commercial bills with zero discrepancy between purchase order unit rates, goods receipt received quantities, and laboratory QC accepted quantities.
+     * **Variances Flagged:** Total count of purchase bills placed on commercial hold due to price variance (invoiced unit rate exceeds PO contracted rate) or quantity variance (billed quantity exceeds QC accepted quantity).
+     * **Accounts Payable & Liabilities:** Real-time outstanding accounts payable balance due to suppliers vs cumulative cleared disbursements.
+  2. **1-Click Sourcing & 3-Way Import Acceleration:**
+     * **1-Click Import from Approved GRN/QC:** Select any pending inward consignment (`GRN-AHM-2627-XXXX`). The system automatically extracts the vendor, GSTIN, PO contract reference, challan reference, line items, contracted PO rates, and QC accepted quantities.
+     * **Direct Purchase Order Linking:** Select active purchase orders (`tbl_po_header`) for direct commercial invoicing or progress billing.
+  3. **Automated 3-Way Variance Detection Engine:**
+     * **Rate Variance ($\Delta$):** Real-time line item comparison `rate_variance = invoiced_rate - po_rate`. Automatically highlights positive discrepancies and assigns `PRICE_VARIANCE` matching status.
+     * **Quantity Variance ($\Delta$):** Compares `billed_qty` against `accepted_qty`. If billed quantity exceeds accepted material quantity, flags the invoice as `QTY_VARIANCE`.
+     * **Clean Matching (`MATCHED`):** When all unit rates and quantities align within tolerance, tags invoice as `MATCHED` and marks the lot clean for AP approval.
+  4. **GST Input Tax Credit (ITC) & Withholding Tax Architecture:**
+     * Automatically breaks down HSN-wise CGST (9%), SGST (9%), or inter-state IGST (18%) on net taxable material values.
+     * **TDS Withholding u/s 194Q:** Configurable tax deduction at source (0.1% on purchase of goods) deducted from gross payable.
+     * **TCS Withholding u/s 206C:** Configurable tax collection at source added to final payable amount.
+     * Computes ancillary freight, transit insurance, packaging charges, and mathematical round-off to derive net AP liability.
+  5. **Commercial Accounts Payable Approval Workflow (`APPROVE`):**
+     * Authorized finance/commercial officers review the 3-way match audit comparison.
+     * Approving transitions status from `SUBMITTED` to `APPROVED`, timestamps `approved_date`, records approver user ID, and establishes final AP balance liability.
+  6. **AP Payment Clearance & Disbursement Tracking (`record-payment`):**
+     * Finance officers record bank payments against approved invoices.
+     * Captures payment amount, clearance mode (`NEFT`, `RTGS`, `CHEQUE`, `UPI`), bank UTR / reference number, payment date, and remittance notes.
+     * Real-time calculation of remaining balance: updates payment status to `PARTIALLY_PAID` or `PAID`.
+  7. **Official Commercial AP Voucher Printing (`PRINT`):**
+     * High-fidelity A4 printable voucher (`@media print`) complete with Kashvira Infotech corporate branding, vendor details, cross-references (Bill No, PO No, GRN No, QC No), tri-party line item audit table, GST ITC summary, TDS deduction breakdown, and 3-tier authorized signatures (Prepared By, Tax Auditor, AP Approver).
+  8. **Controlled Cancellation & Referential Integrity Guard:**
+     * Voids commercial invoices with mandatory cancellation reasoning (`CANCEL`).
+     * Prohibits cancellation if bank payments have already been recorded.
+     * Draft invoices can be permanently deleted with `DependencyCheckService` validation (`DELETE`).
+* **Action Buttons:** `Print AP Voucher` (`PURCHASE_INVOICE -> PRINT`), `Export Register` (`PURCHASE_INVOICE -> EXPORT`), `+ New Purchase Invoice` (`PURCHASE_INVOICE -> ADD`), `Edit Draft` (`PURCHASE_INVOICE -> EDIT`), `Submit for Approval` (`PURCHASE_INVOICE -> SUBMIT`), `Approve Accounts Payable` (`PURCHASE_INVOICE -> APPROVE`), `Record AP Payment` (`PURCHASE_INVOICE -> APPROVE`), `Cancel Invoice` (`PURCHASE_INVOICE -> CANCEL`), and `Delete Invoice` (`PURCHASE_INVOICE -> DELETE`).

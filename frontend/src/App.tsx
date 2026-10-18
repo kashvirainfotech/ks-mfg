@@ -25,11 +25,13 @@ import { SystemConfigPage } from './pages/admin/SystemConfigPage';
 import { WarehouseMasterPage } from './pages/inventory/WarehouseMasterPage';
 import { UomMasterPage } from './pages/inventory/UomMasterPage';
 import { ItemMasterPage } from './pages/inventory/ItemMasterPage';
+import { PutAwayMasterPage } from './pages/inventory/PutAwayMasterPage';
 import { RequisitionMasterPage } from './pages/procurement/RequisitionMasterPage';
 import { RfqMasterPage } from './pages/procurement/RfqMasterPage';
 import { PurchaseOrderMasterPage } from './pages/procurement/PurchaseOrderMasterPage';
 import { GateInwardMasterPage } from './pages/procurement/GateInwardMasterPage';
 import { GrnMasterPage } from './pages/procurement/GrnMasterPage';
+import { PurchaseInvoiceMasterPage } from './pages/procurement/PurchaseInvoiceMasterPage';
 import { InwardQcMasterPage } from './pages/quality/InwardQcMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
@@ -183,6 +185,14 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/inventory/put-away"
+              element={
+                <ProtectedLayout>
+                  <PutAwayMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
               path="/parties/customers"
               element={
                 <ProtectedLayout>
@@ -243,6 +253,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <GrnMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/procurement/invoices"
+              element={
+                <ProtectedLayout>
+                  <PurchaseInvoiceMasterPage />
                 </ProtectedLayout>
               }
             />

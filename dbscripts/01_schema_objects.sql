@@ -1522,3 +1522,286 @@ CREATE INDEX IF NOT EXISTS idx_qc_inward_item_qc ON tbl_qc_inward_inspection_ite
 CREATE INDEX IF NOT EXISTS idx_qc_inward_item_grn_item ON tbl_qc_inward_inspection_item (grn_item_id);
 CREATE INDEX IF NOT EXISTS idx_qc_inward_item_batch ON tbl_qc_inward_inspection_item (batch_no);
 CREATE INDEX IF NOT EXISTS idx_qc_inward_item_heat ON tbl_qc_inward_inspection_item (heat_no);
+
+
+-- ============================================================================
+-- 36. WAREHOUSE BIN PUT-AWAY HEADER (tbl_inv_putaway_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_putaway_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_putaway_header (
+    putaway_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_putaway_id'),
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    putaway_no                  VARCHAR(50)     NOT NULL,
+    putaway_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    grn_id                      BIGINT          REFERENCES tbl_inv_grn_header(grn_id),
+    qc_id                       BIGINT          REFERENCES tbl_qc_inward_inspection_header(qc_id),
+    assigned_to                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    putaway_type                VARCHAR(50)     NOT NULL DEFAULT 'GRN_INWARD'
+                                                CHECK (putaway_type IN ('GRN_INWARD', 'QC_RELEASE', 'INTERNAL_TRANSFER', 'REWORK_RETURN')),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
+    total_items                 INT             NOT NULL DEFAULT 0,
+    total_qty                   NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    completed_date              TIMESTAMPTZ,
+    completed_by                BIGINT          REFERENCES tbl_sec_user(user_id),
+    remarks                     VARCHAR(350),
+    cancel_reason               VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_putaway_no UNIQUE (comp_id, putaway_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_header_comp_status ON tbl_inv_putaway_header (comp_id, branch_id, status);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_header_warehouse ON tbl_inv_putaway_header (warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_header_grn ON tbl_inv_putaway_header (grn_id);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_header_qc ON tbl_inv_putaway_header (qc_id);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_header_dates ON tbl_inv_putaway_header (putaway_date);
+
+
+-- ============================================================================
+-- 37. WAREHOUSE BIN PUT-AWAY LINE ITEMS (tbl_inv_putaway_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_putaway_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_putaway_item (
+    putaway_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_putaway_item_id'),
+    putaway_id                  BIGINT          NOT NULL REFERENCES tbl_inv_putaway_header(putaway_id) ON DELETE CASCADE,
+    grn_item_id                 BIGINT          REFERENCES tbl_inv_grn_item(grn_item_id),
+    qc_item_id                  BIGINT          REFERENCES tbl_qc_inward_inspection_item(qc_item_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_description            VARCHAR(250),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    source_bin_id               BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    destination_bin_id          BIGINT          NOT NULL REFERENCES tbl_inv_storage_bin(bin_id),
+    allocated_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    putaway_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    mfg_date                    DATE,
+    expiry_date                 DATE,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (status IN ('PENDING', 'COMPLETED')),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_item_putaway ON tbl_inv_putaway_item (putaway_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_item_item ON tbl_inv_putaway_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_item_dest_bin ON tbl_inv_putaway_item (destination_bin_id);
+CREATE INDEX IF NOT EXISTS idx_inv_putaway_item_batch ON tbl_inv_putaway_item (batch_no);
+
+
+-- ============================================================================
+-- 38. ITEM BIN STOCK BALANCE (tbl_inv_bin_stock)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_bin_stock_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_bin_stock (
+    bin_stock_id                BIGINT          PRIMARY KEY DEFAULT nextval('seq_bin_stock_id'),
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    bin_id                      BIGINT          NOT NULL REFERENCES tbl_inv_storage_bin(bin_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    on_hand_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    reserved_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    available_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  DEFAULT 0.0000,
+    total_valuation             NUMERIC(14, 2)  DEFAULT 0.00,
+    last_stock_date             TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_bin_stock_unique UNIQUE (warehouse_id, bin_id, item_id, batch_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_bin_stock_wh_bin ON tbl_inv_bin_stock (warehouse_id, bin_id);
+CREATE INDEX IF NOT EXISTS idx_inv_bin_stock_item ON tbl_inv_bin_stock (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_bin_stock_batch ON tbl_inv_bin_stock (batch_no);
+
+
+-- ============================================================================
+-- 39. INVENTORY STOCK LEDGER (tbl_inv_stock_ledger)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_stock_ledger_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_stock_ledger (
+    ledger_id                   BIGINT          PRIMARY KEY DEFAULT nextval('seq_stock_ledger_id'),
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    transaction_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    transaction_type            VARCHAR(50)     NOT NULL
+                                                CHECK (transaction_type IN ('PUTAWAY_INWARD', 'QUARANTINE_HOLD', 'QC_RELEASE', 'INTERNAL_TRANSFER', 'PRODUCTION_ISSUE', 'SCRAP_WRITE_OFF', 'ADJUSTMENT')),
+    reference_doc_type          VARCHAR(50)     NOT NULL
+                                                CHECK (reference_doc_type IN ('GRN', 'QC_INSPECTION', 'PUTAWAY', 'TRANSFER', 'WORK_ORDER', 'ADJUSTMENT')),
+    reference_doc_id            BIGINT          NOT NULL,
+    reference_doc_no            VARCHAR(50)     NOT NULL,
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    from_bin_id                 BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    to_bin_id                   BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    qty_in                      NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    qty_out                     NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  DEFAULT 0.0000,
+    total_cost                  NUMERIC(14, 2)  DEFAULT 0.00,
+    closing_balance             NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_stock_ledger_comp ON tbl_inv_stock_ledger (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_inv_stock_ledger_item_date ON tbl_inv_stock_ledger (item_id, transaction_date);
+CREATE INDEX IF NOT EXISTS idx_inv_stock_ledger_wh_bin ON tbl_inv_stock_ledger (warehouse_id, to_bin_id);
+CREATE INDEX IF NOT EXISTS idx_inv_stock_ledger_ref ON tbl_inv_stock_ledger (reference_doc_type, reference_doc_id);
+
+
+-- ============================================================================
+-- 40. PURCHASE INVOICE & 3-WAY MATCHING (tbl_pur_invoice_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_pur_invoice_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_pur_invoice_header (
+    invoice_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_pur_invoice_id'),
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    invoice_no                  VARCHAR(50)     NOT NULL,
+    invoice_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    vendor_id                   BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    po_id                       BIGINT          REFERENCES tbl_po_header(po_id),
+    grn_id                      BIGINT          REFERENCES tbl_inv_grn_header(grn_id),
+    qc_id                       BIGINT          REFERENCES tbl_qc_inward_inspection_header(qc_id),
+    vendor_invoice_no           VARCHAR(100)    NOT NULL,
+    vendor_invoice_date         DATE            NOT NULL,
+    vendor_gstin                VARCHAR(20),
+    payment_terms_days          INT             NOT NULL DEFAULT 30,
+    due_date                    DATE            NOT NULL,
+    subtotal_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    freight_charges             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    insurance_charges           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    packaging_charges           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    tds_rate                    NUMERIC(6, 3)   NOT NULL DEFAULT 0.000,
+    tds_amount                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    tcs_rate                    NUMERIC(6, 3)   NOT NULL DEFAULT 0.000,
+    tcs_amount                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    round_off                   NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    net_payable_amount          NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    paid_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    balance_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    matching_status             VARCHAR(30)     NOT NULL DEFAULT 'MATCHED'
+                                                CHECK (matching_status IN ('MATCHED', 'PRICE_VARIANCE', 'QTY_VARIANCE', 'TAX_VARIANCE', 'PENDING_REVIEW')),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'SUBMITTED', 'APPROVED', 'PAID', 'PARTIALLY_PAID', 'CANCELLED')),
+    payment_status              VARCHAR(25)     NOT NULL DEFAULT 'UNPAID'
+                                                CHECK (payment_status IN ('UNPAID', 'PARTIALLY_PAID', 'PAID')),
+    approved_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approved_date               TIMESTAMPTZ,
+    approval_remarks            VARCHAR(350),
+    cancel_reason               VARCHAR(350),
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_pur_invoice_no UNIQUE (comp_id, invoice_no),
+    CONSTRAINT uq_pur_vendor_bill UNIQUE (comp_id, vendor_id, vendor_invoice_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_header_comp_status ON tbl_pur_invoice_header (comp_id, branch_id, status);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_header_vendor ON tbl_pur_invoice_header (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_header_po ON tbl_pur_invoice_header (po_id);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_header_grn ON tbl_pur_invoice_header (grn_id);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_header_dates ON tbl_pur_invoice_header (invoice_date, due_date);
+
+
+-- ============================================================================
+-- 41. PURCHASE INVOICE LINE ITEMS (tbl_pur_invoice_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_pur_invoice_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_pur_invoice_item (
+    invoice_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_pur_invoice_item_id'),
+    invoice_id                  BIGINT          NOT NULL REFERENCES tbl_pur_invoice_header(invoice_id) ON DELETE CASCADE,
+    po_item_id                  BIGINT          REFERENCES tbl_po_item(po_item_id),
+    grn_item_id                 BIGINT          REFERENCES tbl_inv_grn_item(grn_item_id),
+    qc_item_id                  BIGINT          REFERENCES tbl_qc_inward_inspection_item(qc_item_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_description            VARCHAR(250),
+    hsn_code                    VARCHAR(20),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    po_qty                      NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    received_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    accepted_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    billed_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    po_rate                     NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    invoiced_rate               NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    rate_variance               NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    item_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_percent            NUMERIC(6, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    gst_rate                    NUMERIC(6, 2)   NOT NULL DEFAULT 18.00,
+    cgst_rate                   NUMERIC(6, 2)   NOT NULL DEFAULT 9.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_rate                   NUMERIC(6, 2)   NOT NULL DEFAULT 9.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_rate                   NUMERIC(6, 2)   NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_item_amount           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    batch_no                    VARCHAR(100),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_invoice ON tbl_pur_invoice_item (invoice_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_item ON tbl_pur_invoice_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_po_item ON tbl_pur_invoice_item (po_item_id);
+CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_grn_item ON tbl_pur_invoice_item (grn_item_id);

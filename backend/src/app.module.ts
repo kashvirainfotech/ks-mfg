@@ -26,6 +26,8 @@ import { PurchaseOrderModule } from './modules/procurement/purchase-order/purcha
 import { GateInwardModule } from './modules/procurement/gate-inward/gate-inward.module';
 import { GrnModule } from './modules/procurement/grn/grn.module';
 import { InwardQcModule } from './modules/quality/inward-qc/inward-qc.module';
+import { PutAwayModule } from './modules/inventory/put-away/put-away.module';
+import { InvoiceModule } from './modules/procurement/invoice/invoice.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -62,6 +64,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     GateInwardModule,
     GrnModule,
     InwardQcModule,
+    PutAwayModule,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [

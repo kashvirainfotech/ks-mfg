@@ -24,7 +24,9 @@ export type PermissionAction =
   | 'UNLOAD'
   | 'EXIT'
   | 'APPROVE'
-  | 'REJECT';
+  | 'REJECT'
+  | 'ASSIGN'
+  | 'CONFIRM';
 
 export interface UserProfile {
   userId: number;

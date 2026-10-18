@@ -215,3 +215,28 @@ DROP TRIGGER IF EXISTS trg_qc_inward_item_updated_date ON tbl_qc_inward_inspecti
 CREATE TRIGGER trg_qc_inward_item_updated_date
 BEFORE UPDATE ON tbl_qc_inward_inspection_item
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_putaway_header_updated_date ON tbl_inv_putaway_header;
+CREATE TRIGGER trg_inv_putaway_header_updated_date
+BEFORE UPDATE ON tbl_inv_putaway_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_putaway_item_updated_date ON tbl_inv_putaway_item;
+CREATE TRIGGER trg_inv_putaway_item_updated_date
+BEFORE UPDATE ON tbl_inv_putaway_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_bin_stock_updated_date ON tbl_inv_bin_stock;
+CREATE TRIGGER trg_inv_bin_stock_updated_date
+BEFORE UPDATE ON tbl_inv_bin_stock
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_pur_invoice_header_updated_date ON tbl_pur_invoice_header;
+CREATE TRIGGER trg_pur_invoice_header_updated_date
+BEFORE UPDATE ON tbl_pur_invoice_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_pur_invoice_item_updated_date ON tbl_pur_invoice_item;
+CREATE TRIGGER trg_pur_invoice_item_updated_date
+BEFORE UPDATE ON tbl_pur_invoice_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

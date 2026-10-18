@@ -1713,3 +1713,368 @@ export const tblQcInwardInspectionItem = pgTable(
     uqQcInwardItem: unique('uq_qc_inward_item').on(table.qcId, table.grnItemId),
   }),
 );
+
+export const tblInvPutawayHeader = pgTable(
+  'tbl_inv_putaway_header',
+  {
+    putawayId: bigint('putaway_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_putaway_id')`),
+    compId: bigint('comp_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgCompany.compId),
+    branchId: bigint('branch_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgBranch.branchId),
+    fyearId: bigint('fyear_id', { mode: 'number' }).references(
+      () => tblOrgFinancialYear.fyearId,
+    ),
+    putawayNo: varchar('putaway_no', { length: 50 }).notNull(),
+    putawayDate: date('putaway_date').notNull().default(sql`CURRENT_DATE`),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    grnId: bigint('grn_id', { mode: 'number' }).references(
+      () => tblInvGrnHeader.grnId,
+    ),
+    qcId: bigint('qc_id', { mode: 'number' }).references(
+      () => tblQcInwardInspectionHeader.qcId,
+    ),
+    assignedTo: bigint('assigned_to', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    putawayType: varchar('putaway_type', { length: 50 })
+      .notNull()
+      .default('GRN_INWARD'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    totalItems: integer('total_items').notNull().default(0),
+    totalQty: numeric('total_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    completedDate: timestamp('completed_date', { withTimezone: true }),
+    completedBy: bigint('completed_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    remarks: varchar('remarks', { length: 350 }),
+    cancelReason: varchar('cancel_reason', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvPutawayNo: unique('uq_inv_putaway_no').on(table.compId, table.putawayNo),
+  }),
+);
+
+export const tblInvPutawayItem = pgTable(
+  'tbl_inv_putaway_item',
+  {
+    putawayItemId: bigint('putaway_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_putaway_item_id')`),
+    putawayId: bigint('putaway_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvPutawayHeader.putawayId),
+    grnItemId: bigint('grn_item_id', { mode: 'number' }).references(
+      () => tblInvGrnItem.grnItemId,
+    ),
+    qcItemId: bigint('qc_item_id', { mode: 'number' }).references(
+      () => tblQcInwardInspectionItem.qcItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    sourceBinId: bigint('source_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    destinationBinId: bigint('destination_bin_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvStorageBin.binId),
+    allocatedQty: numeric('allocated_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    putawayQty: numeric('putaway_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    mfgDate: date('mfg_date'),
+    expiryDate: date('expiry_date'),
+    status: varchar('status', { length: 25 }).notNull().default('PENDING'),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);
+
+export const tblInvBinStock = pgTable(
+  'tbl_inv_bin_stock',
+  {
+    binStockId: bigint('bin_stock_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_bin_stock_id')`),
+    compId: bigint('comp_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgCompany.compId),
+    branchId: bigint('branch_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgBranch.branchId),
+    fyearId: bigint('fyear_id', { mode: 'number' }).references(
+      () => tblOrgFinancialYear.fyearId,
+    ),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    binId: bigint('bin_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvStorageBin.binId),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    onHandQty: numeric('on_hand_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    reservedQty: numeric('reserved_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    availableQty: numeric('available_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    unitCost: numeric('unit_cost', { precision: 14, scale: 4 }).default('0.0000'),
+    totalValuation: numeric('total_valuation', { precision: 14, scale: 2 }).default('0.00'),
+    lastStockDate: timestamp('last_stock_date', { withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvBinStockUnique: unique('uq_inv_bin_stock_unique').on(
+      table.warehouseId,
+      table.binId,
+      table.itemId,
+      table.batchNo,
+    ),
+  }),
+);
+
+export const tblInvStockLedger = pgTable(
+  'tbl_inv_stock_ledger',
+  {
+    ledgerId: bigint('ledger_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_stock_ledger_id')`),
+    compId: bigint('comp_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgCompany.compId),
+    branchId: bigint('branch_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgBranch.branchId),
+    fyearId: bigint('fyear_id', { mode: 'number' }).references(
+      () => tblOrgFinancialYear.fyearId,
+    ),
+    transactionDate: timestamp('transaction_date', { withTimezone: true })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    transactionType: varchar('transaction_type', { length: 50 }).notNull(),
+    referenceDocType: varchar('reference_doc_type', { length: 50 }).notNull(),
+    referenceDocId: bigint('reference_doc_id', { mode: 'number' }).notNull(),
+    referenceDocNo: varchar('reference_doc_no', { length: 50 }).notNull(),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    fromBinId: bigint('from_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    toBinId: bigint('to_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    qtyIn: numeric('qty_in', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    qtyOut: numeric('qty_out', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    unitCost: numeric('unit_cost', { precision: 14, scale: 4 }).default('0.0000'),
+    totalCost: numeric('total_cost', { precision: 14, scale: 2 }).default('0.00'),
+    closingBalance: numeric('closing_balance', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);
+
+export const tblPurInvoiceHeader = pgTable(
+  'tbl_pur_invoice_header',
+  {
+    invoiceId: bigint('invoice_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_pur_invoice_id')`),
+    compId: bigint('comp_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgCompany.compId),
+    branchId: bigint('branch_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgBranch.branchId),
+    fyearId: bigint('fyear_id', { mode: 'number' }).references(
+      () => tblOrgFinancialYear.fyearId,
+    ),
+    invoiceNo: varchar('invoice_no', { length: 50 }).notNull(),
+    invoiceDate: date('invoice_date').notNull().default(sql`CURRENT_DATE`),
+    vendorId: bigint('vendor_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    poId: bigint('po_id', { mode: 'number' }).references(
+      () => tblPoHeader.poId,
+    ),
+    grnId: bigint('grn_id', { mode: 'number' }).references(
+      () => tblInvGrnHeader.grnId,
+    ),
+    qcId: bigint('qc_id', { mode: 'number' }).references(
+      () => tblQcInwardInspectionHeader.qcId,
+    ),
+    vendorInvoiceNo: varchar('vendor_invoice_no', { length: 100 }).notNull(),
+    vendorInvoiceDate: date('vendor_invoice_date').notNull(),
+    vendorGstin: varchar('vendor_gstin', { length: 20 }),
+    paymentTermsDays: integer('payment_terms_days').notNull().default(30),
+    dueDate: date('due_date').notNull(),
+    subtotalAmount: numeric('subtotal_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    discountAmount: numeric('discount_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    taxableAmount: numeric('taxable_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    cgstAmount: numeric('cgst_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    sgstAmount: numeric('sgst_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    igstAmount: numeric('igst_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalTaxAmount: numeric('total_tax_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    freightCharges: numeric('freight_charges', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    insuranceCharges: numeric('insurance_charges', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    packagingCharges: numeric('packaging_charges', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    tdsRate: numeric('tds_rate', { precision: 6, scale: 3 }).notNull().default('0.000'),
+    tdsAmount: numeric('tds_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    tcsRate: numeric('tcs_rate', { precision: 6, scale: 3 }).notNull().default('0.000'),
+    tcsAmount: numeric('tcs_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    roundOff: numeric('round_off', { precision: 8, scale: 2 }).notNull().default('0.00'),
+    netPayableAmount: numeric('net_payable_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    paidAmount: numeric('paid_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    balanceAmount: numeric('balance_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    matchingStatus: varchar('matching_status', { length: 30 })
+      .notNull()
+      .default('MATCHED'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    paymentStatus: varchar('payment_status', { length: 25 })
+      .notNull()
+      .default('UNPAID'),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvedDate: timestamp('approved_date', { withTimezone: true }),
+    approvalRemarks: varchar('approval_remarks', { length: 350 }),
+    cancelReason: varchar('cancel_reason', { length: 350 }),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqPurInvoiceNo: unique('uq_pur_invoice_no').on(table.compId, table.invoiceNo),
+    uqPurVendorBill: unique('uq_pur_vendor_bill').on(
+      table.compId,
+      table.vendorId,
+      table.vendorInvoiceNo,
+    ),
+  }),
+);
+
+export const tblPurInvoiceItem = pgTable(
+  'tbl_pur_invoice_item',
+  {
+    invoiceItemId: bigint('invoice_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_pur_invoice_item_id')`),
+    invoiceId: bigint('invoice_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblPurInvoiceHeader.invoiceId),
+    poItemId: bigint('po_item_id', { mode: 'number' }).references(
+      () => tblPoItem.poItemId,
+    ),
+    grnItemId: bigint('grn_item_id', { mode: 'number' }).references(
+      () => tblInvGrnItem.grnItemId,
+    ),
+    qcItemId: bigint('qc_item_id', { mode: 'number' }).references(
+      () => tblQcInwardInspectionItem.qcItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    hsnCode: varchar('hsn_code', { length: 20 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    poQty: numeric('po_qty', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    receivedQty: numeric('received_qty', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    acceptedQty: numeric('accepted_qty', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    billedQty: numeric('billed_qty', { precision: 14, scale: 3 }).notNull().default('0.000'),
+    poRate: numeric('po_rate', { precision: 14, scale: 4 }).notNull().default('0.0000'),
+    invoicedRate: numeric('invoiced_rate', { precision: 14, scale: 4 }).notNull().default('0.0000'),
+    rateVariance: numeric('rate_variance', { precision: 14, scale: 4 }).notNull().default('0.0000'),
+    itemAmount: numeric('item_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    discountPercent: numeric('discount_percent', { precision: 6, scale: 2 }).notNull().default('0.00'),
+    discountAmount: numeric('discount_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    taxableAmount: numeric('taxable_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    gstRate: numeric('gst_rate', { precision: 6, scale: 2 }).notNull().default('18.00'),
+    cgstRate: numeric('cgst_rate', { precision: 6, scale: 2 }).notNull().default('9.00'),
+    cgstAmount: numeric('cgst_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    sgstRate: numeric('sgst_rate', { precision: 6, scale: 2 }).notNull().default('9.00'),
+    sgstAmount: numeric('sgst_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    igstRate: numeric('igst_rate', { precision: 6, scale: 2 }).notNull().default('0.00'),
+    igstAmount: numeric('igst_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    totalItemAmount: numeric('total_item_amount', { precision: 14, scale: 2 }).notNull().default('0.00'),
+    batchNo: varchar('batch_no', { length: 100 }),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);
