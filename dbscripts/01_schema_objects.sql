@@ -1805,3 +1805,123 @@ CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_invoice ON tbl_pur_invoice_item 
 CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_item ON tbl_pur_invoice_item (item_id);
 CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_po_item ON tbl_pur_invoice_item (po_item_id);
 CREATE INDEX IF NOT EXISTS idx_pur_invoice_item_grn_item ON tbl_pur_invoice_item (grn_item_id);
+
+
+-- ============================================================================
+-- 42. MANUFACTURING BILL OF MATERIALS (BOM) HEADER (tbl_mfg_bom_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_bom_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_bom_header (
+    bom_id                      BIGINT          PRIMARY KEY DEFAULT nextval('seq_bom_id'),
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    bom_code                    VARCHAR(50)     NOT NULL,
+    bom_name                    VARCHAR(150)    NOT NULL,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    output_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    version_no                  VARCHAR(20)     NOT NULL DEFAULT '1.0',
+    bom_type                    VARCHAR(30)     NOT NULL DEFAULT 'MANUFACTURING'
+                                                CHECK (bom_type IN ('MANUFACTURING', 'SUBCONTRACTING', 'ASSEMBLY', 'DISASSEMBLY', 'PROTOTYPE')),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'ACTIVE', 'OBSOLETE', 'UNDER_REVIEW')),
+    is_default                  BOOLEAN         NOT NULL DEFAULT TRUE,
+    effective_from              DATE            NOT NULL DEFAULT CURRENT_DATE,
+    effective_to                DATE,
+    routing_id                  BIGINT,
+    total_material_cost         NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_labour_cost           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_overhead_cost         NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_byproduct_recovery    NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    net_unit_cost               NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    approved_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approved_date               TIMESTAMPTZ,
+    approval_remarks            VARCHAR(350),
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_bom_code UNIQUE (comp_id, bom_code),
+    CONSTRAINT uq_mfg_bom_version UNIQUE (comp_id, item_id, version_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_header_item ON tbl_mfg_bom_header (comp_id, item_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_header_status ON tbl_mfg_bom_header (comp_id, status, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_header_type ON tbl_mfg_bom_header (comp_id, bom_type);
+
+
+-- ============================================================================
+-- 43. MANUFACTURING BOM COMPONENTS & SCRAP FACTORS (tbl_mfg_bom_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_bom_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_bom_item (
+    bom_item_id                 BIGINT          PRIMARY KEY DEFAULT nextval('seq_bom_item_id'),
+    bom_id                      BIGINT          NOT NULL REFERENCES tbl_mfg_bom_header(bom_id) ON DELETE CASCADE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_description            VARCHAR(250),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    quantity                    NUMERIC(14, 4)  NOT NULL DEFAULT 1.0000,
+    scrap_factor_percent        NUMERIC(6, 2)   NOT NULL DEFAULT 0.00,
+    gross_quantity              NUMERIC(14, 4)  NOT NULL DEFAULT 1.0000,
+    child_bom_id                BIGINT          REFERENCES tbl_mfg_bom_header(bom_id),
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    line_cost                   NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    source_type                 VARCHAR(30)     NOT NULL DEFAULT 'PURCHASED'
+                                                CHECK (source_type IN ('PURCHASED', 'MANUFACTURED', 'SUBCONTRACTED', 'CUSTOMER_SUPPLIED')),
+    operation_seq               INT             NOT NULL DEFAULT 10,
+    operation_name              VARCHAR(100)    DEFAULT 'Component Assembly',
+    is_critical                 BOOLEAN         NOT NULL DEFAULT FALSE,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_item_bom ON tbl_mfg_bom_item (bom_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_item_item ON tbl_mfg_bom_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_item_child_bom ON tbl_mfg_bom_item (child_bom_id);
+
+
+-- ============================================================================
+-- 44. MANUFACTURING BOM CO-PRODUCTS & RECOVERABLE SCRAP (tbl_mfg_bom_byproduct)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_bom_byproduct_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_bom_byproduct (
+    bom_byproduct_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_bom_byproduct_id'),
+    bom_id                      BIGINT          NOT NULL REFERENCES tbl_mfg_bom_header(bom_id) ON DELETE CASCADE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_description            VARCHAR(250),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    quantity                    NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    product_type                VARCHAR(30)     NOT NULL DEFAULT 'RECOVERABLE_SCRAP'
+                                                CHECK (product_type IN ('CO_PRODUCT', 'BY_PRODUCT', 'RECOVERABLE_SCRAP', 'HAZARDOUS_WASTE')),
+    cost_allocation_percent     NUMERIC(6, 2)   NOT NULL DEFAULT 0.00,
+    estimated_recovery_rate     NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    estimated_recovery_value    NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_byproduct_bom ON tbl_mfg_bom_byproduct (bom_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_bom_byproduct_item ON tbl_mfg_bom_byproduct (item_id);

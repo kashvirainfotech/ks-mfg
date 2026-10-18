@@ -1694,3 +1694,171 @@ INSERT INTO tbl_pur_invoice_item (
 ON CONFLICT (invoice_item_id) DO NOTHING;
 
 SELECT setval('seq_pur_invoice_item_id', GREATEST((SELECT COALESCE(MAX(invoice_item_id), 1005) FROM tbl_pur_invoice_item), 1005));
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.1 - Sample Multi-Level Bill of Materials (BOM), Scrap & Byproducts
+--          (tbl_mfg_bom_header, tbl_mfg_bom_item, tbl_mfg_bom_byproduct)
+-- ============================================================================
+
+INSERT INTO tbl_mfg_bom_header (
+    bom_id, comp_id, branch_id, fyear_id, bom_code, bom_name,
+    item_id, uom_id, output_qty, version_no, bom_type, status,
+    is_default, effective_from, effective_to,
+    total_material_cost, total_labour_cost, total_overhead_cost,
+    total_byproduct_recovery, net_unit_cost, approved_by, approved_date,
+    approval_remarks, remarks, is_active, created_by
+) VALUES
+    -- 1. Sub-Assembly 1: Stamped Outer Shell (Child of 1001 & 1005)
+    (1003, 1001, 1001, 1001, 'BOM-SA-STAMP-SHL-01', 'Stamped Outer Shell Sub-Assembly (V1.0)',
+     1007, 1003, 20.000, '1.0', 'MANUFACTURING', 'ACTIVE',
+     TRUE, '2026-04-01', NULL,
+     2289.60, 600.00, 400.00,
+     126.00, 158.1800, 1001, CURRENT_TIMESTAMP,
+     'Approved for high-speed mechanical press line', 'Sub-assembly for hydromount powertrain', TRUE, 1001),
+
+    -- 2. Sub-Assembly 2: Machined Valve Body (Child of 1002)
+    (1004, 1001, 1001, 1001, 'BOM-SA-VLV-BODY-01', 'Machined SS-316 Gate Valve Body 2" (V1.0)',
+     1005, 1003, 5.000, '1.0', 'MANUFACTURING', 'ACTIVE',
+     TRUE, '2026-04-01', NULL,
+     7964.40, 1500.00, 900.00,
+     525.00, 1967.8800, 1001, CURRENT_TIMESTAMP,
+     'CNC turning & multi-axis milling verified', 'Machined body sub-assembly', TRUE, 1001),
+
+    -- 3. Top-Level Assembly 1: Automotive Hydromount Assembly (V1.0)
+    (1001, 1001, 1001, 1001, 'BOM-FG-AUTO-MNT-01', 'Automotive Hydromount Powertrain Assembly (V1.0)',
+     1009, 1003, 10.000, '1.0', 'ASSEMBLY', 'ACTIVE',
+     TRUE, '2026-04-01', NULL,
+     5633.25, 1200.00, 800.00,
+     17.50, 761.5750, 1001, CURRENT_TIMESTAMP,
+     'Production engineering baseline released', 'Primary OEM production BOM for Maruti supply', TRUE, 1001),
+
+    -- 4. Top-Level Assembly 2: Industrial Flanged Gate Valve (V1.0)
+    (1002, 1001, 1001, 1001, 'BOM-FG-VALVE-50-01', 'Industrial SS-316 Flanged Gate Valve 2" Class 150 (V1.0)',
+     1008, 1003, 5.000, '1.0', 'ASSEMBLY', 'ACTIVE',
+     TRUE, '2026-04-01', NULL,
+     11101.00, 2500.00, 1500.00,
+     168.00, 2986.6000, 1001, CURRENT_TIMESTAMP,
+     'Class 150 pressure testing specifications verified', 'Heavy duty industrial process valve assembly', TRUE, 1001),
+
+    -- 5. Next Revision: Automotive Hydromount Assembly (V2.0 - Light-Weighting)
+    (1005, 1001, 1001, 1001, 'BOM-FG-AUTO-MNT-02', 'Automotive Hydromount Powertrain Assembly (V2.0 - Light-Weighting)',
+     1009, 1003, 10.000, '2.0', 'ASSEMBLY', 'UNDER_REVIEW',
+     FALSE, '2026-05-01', NULL,
+     5622.15, 1100.00, 750.00,
+     44.00, 742.8150, NULL, NULL,
+     NULL, 'Engineering change request (ECR) for aluminum hybrid shell', TRUE, 1001)
+ON CONFLICT (bom_id) DO NOTHING;
+
+SELECT setval('seq_bom_id', GREATEST((SELECT COALESCE(MAX(bom_id), 1005) FROM tbl_mfg_bom_header), 1005));
+
+-- BOM Component Line Items (tbl_mfg_bom_item)
+INSERT INTO tbl_mfg_bom_item (
+    bom_item_id, bom_id, item_id, item_description, uom_id,
+    quantity, scrap_factor_percent, gross_quantity, child_bom_id,
+    unit_cost, line_cost, source_type, operation_seq, operation_name,
+    is_critical, remarks, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Items for BOM 1003 (Sub-Assembly Shell)
+    (1001, 1003, 1002, 'Cold Rolled Precision Steel Coil 1.2mm x 1250mm', 1001,
+     30.0000, 6.00, 31.8000, NULL,
+     72.0000, 2289.60, 'PURCHASED', 10, 'Blanking & Deep Draw Stamping',
+     TRUE, 'Prime CR coil sheet', TRUE, 1001, 1001, 1001, 1001),
+
+    -- Items for BOM 1004 (Sub-Assembly Valve Body)
+    (1002, 1004, 1001, 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     18.0000, 8.00, 19.4400, NULL,
+     385.0000, 7484.40, 'PURCHASED', 10, 'Rough CNC Turning & Boring',
+     TRUE, 'Forged bar material', TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 1004, 1011, 'Tungsten Carbide Turning Insert CNMG 120408-PM', 1003,
+     2.0000, 0.00, 2.0000, NULL,
+     240.0000, 480.00, 'PURCHASED', 20, 'Precision Finish Turning',
+     FALSE, 'Tooling consumable per batch', TRUE, 1001, 1001, 1001, 1001),
+
+    -- Items for BOM 1001 (Hydromount Assembly V1.0)
+    (1004, 1001, 1007, 'Stamped Sheet Metal Outer Door Panel Shell', 1003,
+     10.0000, 2.00, 10.2000, 1003,
+     420.0000, 4284.00, 'MANUFACTURED', 10, 'Sub-Assembly Insertion',
+     TRUE, 'Multi-level manufactured sub-assembly', TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 1001, 1004, 'Polypropylene Copolymer Granules Injection Grade', 1001,
+     5.0000, 3.00, 5.1500, NULL,
+     105.0000, 540.75, 'PURCHASED', 20, 'Rubber Cushion Injection Molding',
+     FALSE, 'Damping elastomer', TRUE, 1001, 1001, 1001, 1001),
+
+    (1006, 1001, 1001, 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     2.0000, 5.00, 2.1000, NULL,
+     385.0000, 808.50, 'PURCHASED', 30, 'Center Pin Machining & Press Fit',
+     TRUE, 'High tensile core pin', TRUE, 1001, 1001, 1001, 1001),
+
+    -- Items for BOM 1002 (Gate Valve Assembly V1.0)
+    (1007, 1002, 1005, 'Machined SS-316 Gate Valve Body Casting 2" 150#', 1003,
+     5.0000, 1.00, 5.0500, 1004,
+     1850.0000, 9342.50, 'MANUFACTURED', 10, 'Body & Bonnet Assembly',
+     TRUE, 'Multi-level machined valve body', TRUE, 1001, 1001, 1001, 1001),
+
+    (1008, 1002, 1001, 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     4.0000, 2.50, 4.1000, NULL,
+     385.0000, 1578.50, 'PURCHASED', 20, 'Stem & Wedge Machining',
+     TRUE, 'Internal trim component', TRUE, 1001, 1001, 1001, 1001),
+
+    (1009, 1002, 1010, 'Fully Synthetic High-Pressure CNC Cutting Fluid', 1007,
+     1.0000, 0.00, 1.0000, NULL,
+     180.0000, 180.00, 'PURCHASED', 30, 'Hydrostatic Hydro-Testing Medium',
+     FALSE, 'Testing & anti-corrosion flush', TRUE, 1001, 1001, 1001, 1001),
+
+    -- Items for BOM 1005 (Hydromount Assembly V2.0)
+    (1010, 1005, 1007, 'Stamped Sheet Metal Outer Door Panel Shell', 1003,
+     10.0000, 1.50, 10.1500, 1003,
+     420.0000, 4263.00, 'MANUFACTURED', 10, 'Sub-Assembly Insertion',
+     TRUE, 'Multi-level manufactured sub-assembly', TRUE, 1001, 1001, 1001, 1001),
+
+    (1011, 1005, 1003, 'HPDC Aluminum Alloy Ingot LM24', 1001,
+     4.0000, 2.00, 4.0800, NULL,
+     215.0000, 877.20, 'PURCHASED', 20, 'Die-Cast Lightweight Housing',
+     TRUE, 'Weight reduction substitution', TRUE, 1001, 1001, 1001, 1001),
+
+    (1012, 1005, 1004, 'Polypropylene Copolymer Granules Injection Grade', 1001,
+     4.5000, 2.00, 4.5900, NULL,
+     105.0000, 481.95, 'PURCHASED', 30, 'Elastomer Molding',
+     FALSE, 'Optimized compound', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (bom_item_id) DO NOTHING;
+
+SELECT setval('seq_bom_item_id', GREATEST((SELECT COALESCE(MAX(bom_item_id), 1012) FROM tbl_mfg_bom_item), 1012));
+
+-- BOM By-Products & Recoverable Scrap (tbl_mfg_bom_byproduct)
+INSERT INTO tbl_mfg_bom_byproduct (
+    bom_byproduct_id, bom_id, item_id, item_description, uom_id,
+    quantity, product_type, cost_allocation_percent,
+    estimated_recovery_rate, estimated_recovery_value, remarks,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1003, 1002, 'Sheet Metal Stamping Skeleton & Offcuts', 1001,
+     4.5000, 'RECOVERABLE_SCRAP', 0.00,
+     28.0000, 126.00, 'Baled stamping scrap returned to foundry',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 1004, 1001, 'SS-316 CNC Swarf & Turning Chips', 1001,
+     3.5000, 'RECOVERABLE_SCRAP', 0.00,
+     150.0000, 525.00, 'Segregated high-grade alloy scrap',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 1001, 1001, 'Offcut Turning Chips', 1001,
+     0.5000, 'RECOVERABLE_SCRAP', 0.00,
+     35.0000, 17.50, 'Machine shop scrap',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1004, 1002, 1001, 'SS-316 Lathe Scrap', 1001,
+     1.2000, 'RECOVERABLE_SCRAP', 0.00,
+     140.0000, 168.00, 'Valve stem turning scrap',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 1005, 1003, 'Aluminum Die-Cast Trimming Flash', 1001,
+     0.4000, 'RECOVERABLE_SCRAP', 0.00,
+     110.0000, 44.00, 'Remeltable aluminum scrap',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (bom_byproduct_id) DO NOTHING;
+
+SELECT setval('seq_bom_byproduct_id', GREATEST((SELECT COALESCE(MAX(bom_byproduct_id), 1005) FROM tbl_mfg_bom_byproduct), 1005));

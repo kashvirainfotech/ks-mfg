@@ -1246,3 +1246,79 @@ INSERT INTO tbl_sec_role_action_permission (
     (1004, 1023, 1067, TRUE, 1001, 1001, 1001, 1001),
     (1004, 1023, 1068, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.1 - Manufacturing Bill of Materials (BOM) Screen & Actions
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1024, 'MFG_BOM', 'Bill of Materials (BOM) & Engineering Assembly', 'MANUFACTURING', '/manufacturing/boms', 'Layers', 24, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1024) FROM tbl_sec_screen), 1024));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1069, 1024, 'EXPORT',   'Export BOM Register & Multi-Level Lists',    TRUE, 1001, 1001, 1001, 1001),
+    (1070, 1024, 'PRINT',    'Print Engineering Costed BOM Datasheet',     TRUE, 1001, 1001, 1001, 1001),
+    (1071, 1024, 'APPROVE',  'Release & Activate Engineering BOM',         TRUE, 1001, 1001, 1001, 1001),
+    (1072, 1024, 'CLONE',    'Clone BOM to New Revision / Version',        TRUE, 1001, 1001, 1001, 1001),
+    (1073, 1024, 'EXPLODE',  'Explode Indented Multi-Level Tree Hierarchy',TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1073) FROM tbl_sec_action), 1073));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1024, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1024, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1024, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- QA_HEAD
+    (1004, 1024, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1005, 1024, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001) -- PURCHASE_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1024, 1069, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1024, 1070, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1024, 1071, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1024, 1072, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1024, 1073, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All actions)
+    (1002, 1024, 1069, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1024, 1070, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1024, 1071, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1024, 1072, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1024, 1073, TRUE, 1001, 1001, 1001, 1001),
+    -- QA_HEAD (View, Print, Explode)
+    (1003, 1024, 1069, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1024, 1070, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1024, 1071, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1024, 1072, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1024, 1073, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (View, Print, Explode)
+    (1004, 1024, 1069, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1024, 1070, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1024, 1071, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1024, 1072, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1024, 1073, TRUE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Print, Clone, Explode)
+    (1005, 1024, 1069, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1024, 1070, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1024, 1071, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1024, 1072, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1024, 1073, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;

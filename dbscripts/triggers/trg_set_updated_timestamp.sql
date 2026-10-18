@@ -240,3 +240,18 @@ DROP TRIGGER IF EXISTS trg_pur_invoice_item_updated_date ON tbl_pur_invoice_item
 CREATE TRIGGER trg_pur_invoice_item_updated_date
 BEFORE UPDATE ON tbl_pur_invoice_item
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_bom_header_updated_date ON tbl_mfg_bom_header;
+CREATE TRIGGER trg_mfg_bom_header_updated_date
+BEFORE UPDATE ON tbl_mfg_bom_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_bom_item_updated_date ON tbl_mfg_bom_item;
+CREATE TRIGGER trg_mfg_bom_item_updated_date
+BEFORE UPDATE ON tbl_mfg_bom_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_bom_byproduct_updated_date ON tbl_mfg_bom_byproduct;
+CREATE TRIGGER trg_mfg_bom_byproduct_updated_date
+BEFORE UPDATE ON tbl_mfg_bom_byproduct
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

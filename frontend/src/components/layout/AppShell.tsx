@@ -175,6 +175,18 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    groupLabel: 'MANUFACTURING & PRODUCTION',
+    items: [
+      {
+        code: 'MFG_BOM',
+        label: 'Bill of Materials (BOM)',
+        path: '/manufacturing/boms',
+        icon: Layers,
+        badge: 'Live',
+      },
+    ],
+  },
+  {
     groupLabel: 'ORGANIZATION',
     items: [
       {

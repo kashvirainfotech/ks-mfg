@@ -2078,3 +2078,152 @@ export const tblPurInvoiceItem = pgTable(
     ...standardAuditColumns,
   },
 );
+
+// ============================================================================
+// 19. Manufacturing Bill of Materials (BOM) & Multi-Level Assembly (Step 6.1)
+// ============================================================================
+
+export const tblMfgBomHeader = pgTable(
+  'tbl_mfg_bom_header',
+  {
+    bomId: bigint('bom_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_bom_id')`),
+    bomCode: varchar('bom_code', { length: 50 }).notNull(),
+    bomName: varchar('bom_name', { length: 150 }).notNull(),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    outputQty: numeric('output_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('1.000'),
+    versionNo: varchar('version_no', { length: 20 }).notNull().default('1.0'),
+    bomType: varchar('bom_type', { length: 30 })
+      .notNull()
+      .default('MANUFACTURING'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    isDefault: boolean('is_default').notNull().default(true),
+    effectiveFrom: date('effective_from').notNull().default(sql`CURRENT_DATE`),
+    effectiveTo: date('effective_to'),
+    routingId: bigint('routing_id', { mode: 'number' }),
+    totalMaterialCost: numeric('total_material_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalLabourCost: numeric('total_labour_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalOverheadCost: numeric('total_overhead_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalByproductRecovery: numeric('total_byproduct_recovery', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    netUnitCost: numeric('net_unit_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvedDate: timestamp('approved_date', { withTimezone: true }),
+    approvalRemarks: varchar('approval_remarks', { length: 350 }),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgBomCode: unique('uq_mfg_bom_code').on(table.compId, table.bomCode),
+    uqMfgBomVersion: unique('uq_mfg_bom_version').on(
+      table.compId,
+      table.itemId,
+      table.versionNo,
+    ),
+  }),
+);
+
+export const tblMfgBomItem = pgTable(
+  'tbl_mfg_bom_item',
+  {
+    bomItemId: bigint('bom_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_bom_item_id')`),
+    bomId: bigint('bom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgBomHeader.bomId),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    quantity: numeric('quantity', { precision: 14, scale: 4 })
+      .notNull()
+      .default('1.0000'),
+    scrapFactorPercent: numeric('scrap_factor_percent', { precision: 6, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    grossQuantity: numeric('gross_quantity', { precision: 14, scale: 4 })
+      .notNull()
+      .default('1.0000'),
+    childBomId: bigint('child_bom_id', { mode: 'number' }).references(
+      () => tblMfgBomHeader.bomId,
+    ),
+    unitCost: numeric('unit_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    lineCost: numeric('line_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    sourceType: varchar('source_type', { length: 30 })
+      .notNull()
+      .default('PURCHASED'),
+    operationSeq: integer('operation_seq').notNull().default(10),
+    operationName: varchar('operation_name', { length: 100 }).default(
+      'Component Assembly',
+    ),
+    isCritical: boolean('is_critical').notNull().default(false),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);
+
+export const tblMfgBomByproduct = pgTable(
+  'tbl_mfg_bom_byproduct',
+  {
+    bomByproductId: bigint('bom_byproduct_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_bom_byproduct_id')`),
+    bomId: bigint('bom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgBomHeader.bomId),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    quantity: numeric('quantity', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    productType: varchar('product_type', { length: 30 })
+      .notNull()
+      .default('RECOVERABLE_SCRAP'),
+    costAllocationPercent: numeric('cost_allocation_percent', { precision: 6, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    estimatedRecoveryRate: numeric('estimated_recovery_rate', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    estimatedRecoveryValue: numeric('estimated_recovery_value', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);

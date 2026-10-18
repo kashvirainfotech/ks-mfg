@@ -141,6 +141,9 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 - **Step 5.7 — Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`)**: WMS execution (`tbl_inv_putaway_header` & `tbl_inv_putaway_item`) transferring accepted materials from quarantine staging to permanent storage racks, operator dispatching (`ASSIGN`), and real-time on-hand stock balance updates in `tbl_inv_bin_stock` and immutable transactions in `tbl_inv_stock_ledger`.
 - **Step 5.8 — Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`)**: Commercial finance 3-way matching engine (`tbl_pur_invoice_header` & `tbl_pur_invoice_item`) comparing PO rates, GRN received quantities, and QC accepted quantities, automated price/quantity variance detection, GST Input Tax Credit (ITC) breakdown, TDS/TCS withholding tax calculations, AP clearance approvals, payment disbursements, and printable commercial vouchers.
 
+### ⚙️ Phase 6: Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`)
+- **Step 6.1 — Multi-Level Bill of Materials (BOM), Versions, Scrap Factors & Co-Products / By-Products (`/manufacturing/boms`)**: Engineering product recipes and hierarchical assembly structures (`tbl_mfg_bom_header`, `tbl_mfg_bom_item`, `tbl_mfg_bom_byproduct`) with recursive indented tree explosion (`EXPLODE`), automated cycle detection, process scrap factors (`scrap_factor_percent`), co-product and recoverable scrap recovery credits, 1-click version cloning (`CLONE`), engineering approval workflow (`APPROVE`), live absorption cost rollups, and printable costed engineering datasheets (`PRINT`).
+
 ---
 
 ## 🗺️ Planned Roadmap & Phased Scope
@@ -157,8 +160,8 @@ Development proceeds strictly **one screen/feature at a time**, completely imple
   - ✅ **Step 5.7**: Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`).
   - ✅ **Step 5.8**: Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`).
   - Complete Procure-to-Pay (P2P) closed loop: Material Requisition $\rightarrow$ RFQ Bidding $\rightarrow$ Purchase Order $\rightarrow$ Gate Security $\rightarrow$ Goods Receipt $\rightarrow$ Quality Lab Inspection $\rightarrow$ Bin Put-Away $\rightarrow$ Purchase Invoice 3-Way Matching & AP Clearance.
-- **Phase 6 — Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`)**:
-  - Multi-Level Bill of Materials (BOM) with versions, scrap factors, and co-products/by-products.
+- **Phase 6 — Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`) (🚀 In Active Development)**:
+  - ✅ **Step 6.1**: Multi-Level Bill of Materials (BOM) with versions, scrap factors, and co-products/by-products (`/manufacturing/boms`).
   - Work Centers, Machines, Shift Calendars & Production Routings.
   - Material Requirements Planning (MRP) $\rightarrow$ Production Work Orders $\rightarrow$ Material Issue / Backflushing $\rightarrow$ Stage-Wise Production & QC $\rightarrow$ Subcontractor Job-Work Outward/Inward $\rightarrow$ FG Receipt & Actual Costing.
 - **Phase 7 — Sales Order, Reservation, Dispatch & Invoicing (`SALES`)**:

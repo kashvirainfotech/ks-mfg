@@ -633,3 +633,43 @@ Each screen or feature documentation entry must contain:
    * Dynamic item editor with live calculation of rate variance, line total, GST breakdown, TDS deduction, TCS addition, and round off.
    * Real-time 3-Way Match Status Banner (Clean Match vs Price Variance vs Quantity Variance).
    * Dedicated AP Approval modal (`ShieldCheck`), Payment Clearance modal (`CreditCard`), Cancellation modal (`XCircle`), 3-Way Match Audit modal (`Eye`), and printable AP Voucher modal (`Printer`).
+
+
+### 2.25 Step 6.1 — Multi-Level Bill of Materials (BOM), Versions, Scrap Factors & Co-Products / By-Products (`/manufacturing/boms`)
+
+1. **Database Objects (`dbscripts/` & `backend/src/database/schema/core.schema.ts`):**
+   * Tables:
+     * `tbl_mfg_bom_header` (`bom_id` BIGINT PK backed by `seq_bom_id`, `comp_id` FK $\rightarrow$ `tbl_org_company`, `branch_id` FK $\rightarrow$ `tbl_org_branch`, `fyear_id` FK $\rightarrow$ `tbl_org_financial_year`, `bom_code` VARCHAR(50), `bom_name` VARCHAR(250), `item_id` FK $\rightarrow$ `tbl_inv_item`, `uom_id` FK $\rightarrow$ `tbl_inv_uom`, `output_qty` NUMERIC(14,4), `version_no` VARCHAR(20), `bom_type` VARCHAR(30) (`PRODUCTION`, `TEMPLATE`, `ENGINEERING`, `PROTOTYPE`), `status` VARCHAR(25) (`DRAFT`, `ACTIVE`, `OBSOLETE`), `is_default` BOOLEAN, `effective_from` DATE, `effective_to` DATE, `routing_id` BIGINT, `total_material_cost` NUMERIC(14,2), `total_labour_cost` NUMERIC(14,2), `total_overhead_cost` NUMERIC(14,2), `total_byproduct_recovery` NUMERIC(14,2), `net_unit_cost` NUMERIC(14,4), `approved_by` FK $\rightarrow$ `tbl_sec_user`, `approved_date` TIMESTAMPTZ, `approval_remarks` VARCHAR(350), `remarks` VARCHAR(350), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(comp_id, item_id, version_no)`).
+     * `tbl_mfg_bom_item` (`bom_item_id` BIGINT PK backed by `seq_bom_item_id`, `bom_id` FK $\rightarrow$ `tbl_mfg_bom_header` ON DELETE CASCADE, `item_id` FK $\rightarrow$ `tbl_inv_item`, `item_description` VARCHAR(250), `uom_id` FK $\rightarrow$ `tbl_inv_uom`, `quantity` NUMERIC(14,4), `scrap_factor_percent` NUMERIC(6,2), `gross_quantity` NUMERIC(14,4), `child_bom_id` FK $\rightarrow$ `tbl_mfg_bom_header`, `unit_cost` NUMERIC(14,4), `line_cost` NUMERIC(14,2), `source_type` VARCHAR(30) (`PURCHASED`, `MANUFACTURED`, `SUBCONTRACTED`), `operation_seq` INT, `operation_name` VARCHAR(100), `is_critical` BOOLEAN, `remarks` VARCHAR(250), `is_active` BOOLEAN, 7 mandatory audit columns).
+     * `tbl_mfg_bom_byproduct` (`bom_byproduct_id` BIGINT PK backed by `seq_bom_byproduct_id`, `bom_id` FK $\rightarrow$ `tbl_mfg_bom_header` ON DELETE CASCADE, `item_id` FK $\rightarrow$ `tbl_inv_item`, `item_description` VARCHAR(250), `uom_id` FK $\rightarrow$ `tbl_inv_uom`, `quantity` NUMERIC(14,4), `product_type` VARCHAR(30) (`BY_PRODUCT`, `CO_PRODUCT`, `RECOVERABLE_SCRAP`), `cost_allocation_percent` NUMERIC(6,2), `estimated_recovery_rate` NUMERIC(14,4), `estimated_recovery_value` NUMERIC(14,2), `remarks` VARCHAR(250), `is_active` BOOLEAN, 7 mandatory audit columns).
+   * Sequences: `seq_bom_id`, `seq_bom_item_id`, `seq_bom_byproduct_id` (all starting at 1001).
+   * Indexes: `idx_mfg_bom_header_comp_item`, `idx_mfg_bom_header_status`, `idx_mfg_bom_header_item_ver`, `idx_mfg_bom_item_bom_id`, `idx_mfg_bom_item_item_id`, `idx_mfg_bom_item_child_bom`, `idx_mfg_bom_byproduct_bom_id`, `idx_mfg_bom_byproduct_item_id`.
+   * Triggers: `trg_mfg_bom_header_updated_date`, `trg_mfg_bom_item_updated_date`, and `trg_mfg_bom_byproduct_updated_date` executing `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered screen `1024` (`MFG_BOM`) with actions `1069` (`EXPORT`), `1070` (`PRINT`), `1071` (`APPROVE`), `1072` (`CLONE`), and `1073` (`EXPLODE`). Role permissions assigned for `SUPER_ADMIN`, `PLANT_MANAGER`, and `DESIGN_ENG`.
+     * `03_sample_demo_data.sql`: 5 realistic engineering BOMs (`BOM-FG-001-V1.0` through `BOM-ENG-001-V1.0`), including multi-tier assemblies linking sub-assemblies `1003` (Sub-Assembly Pump Unit) and `1004` (Sub-Assembly Valve Block) via `child_bom_id`, 12 component lines with process scrap factors, and 5 byproducts/recoverable scrap rows.
+2. **Backend API Contracts (`backend/src/modules/manufacturing/bom/`):**
+   * `GET /api/v1/manufacturing/boms/summary` (`@RequirePermission('MFG_BOM', 'VIEW')`) — computes real-time operational KPI metrics (`totalBoms`, `activeBoms`, `distinctAssemblies`, `avgUnitCost`, `multiLevelBoms`).
+   * `GET /api/v1/manufacturing/boms` (`@RequirePermission('MFG_BOM', 'VIEW')`) — lists BOM register with filters by status, bomType, itemId, isDefault, and free-text search.
+   * `GET /api/v1/manufacturing/boms/:id` (`@RequirePermission('MFG_BOM', 'VIEW')`) — retrieves single BOM record with full header, components, and by-products.
+   * `GET /api/v1/manufacturing/boms/:id/tree` (`@RequirePermission('MFG_BOM', 'EXPLODE')`) — recursive multi-level tree explosion algorithm with cycle detection (`visitedBoms: Set<number>`) and compounding cumulative multipliers.
+   * `POST /api/v1/manufacturing/boms` & `PUT /api/v1/manufacturing/boms/:id` (`@RequirePermission('MFG_BOM', 'ADD' | 'EDIT')`) — creates or updates engineering BOMs with automatic document code generation (`BOM-{ITEM_CODE}-V{VERSION}`), dynamic gross scrap calculations, cost rollups, and transactional item/byproduct replacement.
+   * `POST /api/v1/manufacturing/boms/:id/approve` (`@RequirePermission('MFG_BOM', 'APPROVE')`) — marks BOM as `ACTIVE`, sets `approved_by` and `approved_date`, and unsets other defaults if `is_default` is true.
+   * `POST /api/v1/manufacturing/boms/:id/clone` (`@RequirePermission('MFG_BOM', 'CLONE')`) — deep copies all component lines, scrap factors, operations, and byproducts into a new version.
+   * `DELETE /api/v1/manufacturing/boms/:id` (`@RequirePermission('MFG_BOM', 'DELETE')`) — deletes draft or unreferenced BOMs, enforcing that child-referenced sub-assembly BOMs cannot be deleted (`ConflictException`).
+   * `GET /api/v1/manufacturing/boms/manufactured-items`, `component-items`, `child-boms`, `uoms` — sourcing accelerators and lookup helper endpoints.
+3. **Domain Logic & Formulas:**
+   * Gross Quantity Calculation: $\text{Gross Qty} = \text{Net Qty} \times \left(1 + \frac{\text{Scrap Factor \%}}{100}\right)$.
+   * Line Item Cost: $\text{Line Cost} = \text{Gross Qty} \times \text{Unit Rate}$.
+   * By-Product Recovery Value: $\text{Recovery Value} = \text{Qty} \times \text{Recovery Rate}$.
+   * Net Finished Good Unit Cost:
+     $$\text{Net Unit Cost} = \frac{\sum \text{Line Cost} + \text{Direct Labour} + \text{Overhead} - \sum \text{Recovery Value}}{\text{Batch Output Quantity}}$$
+   * Recursive Cumulative Multiplier:
+     $$\text{Cum Qty}_{\text{child}} = \text{Parent Multiplier} \times \frac{\text{Gross Qty}_{\text{child}}}{\text{Output Qty}_{\text{parent}}}$$
+4. **Frontend Architecture (`frontend/src/pages/manufacturing/BomMasterPage.tsx`):**
+   * Accessible at route `/manufacturing/boms` under `MANUFACTURING & PRODUCTION` with `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="MFG_BOM">`.
+   * 4 KPI cards (`Total BOMs`, `Active Production BOMs`, `Multi-Level Assemblies`, `Avg Net Unit Cost`).
+   * 4-Tab BOM Creation / Edit modal (`General & Header`, `Components & Scrap %`, `Co-Products & Scrap`, `Live Cost Rollup Summary`).
+   * Recursive Indented BOM Tree Explosion modal (`FolderTree` / `GitFork`) with expand/collapse and cumulative required quantity calculation.
+   * Dedicated Version Clone modal (`Copy`), Approval modal (`CheckCircle2`), and printable Costed BOM Datasheet modal (`Printer`).

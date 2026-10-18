@@ -27,7 +27,9 @@ export type PermissionAction =
   | 'APPROVE'
   | 'REJECT'
   | 'ASSIGN'
-  | 'CONFIRM';
+  | 'CONFIRM'
+  | 'CLONE'
+  | 'EXPLODE';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

@@ -33,6 +33,7 @@ import { GateInwardMasterPage } from './pages/procurement/GateInwardMasterPage';
 import { GrnMasterPage } from './pages/procurement/GrnMasterPage';
 import { PurchaseInvoiceMasterPage } from './pages/procurement/PurchaseInvoiceMasterPage';
 import { InwardQcMasterPage } from './pages/quality/InwardQcMasterPage';
+import { BomMasterPage } from './pages/manufacturing/BomMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -269,6 +270,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <InwardQcMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/boms"
+              element={
+                <ProtectedLayout>
+                  <BomMasterPage />
                 </ProtectedLayout>
               }
             />

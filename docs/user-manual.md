@@ -800,3 +800,41 @@ When a new screen is released, this manual provides:
      * Prohibits cancellation if bank payments have already been recorded.
      * Draft invoices can be permanently deleted with `DependencyCheckService` validation (`DELETE`).
 * **Action Buttons:** `Print AP Voucher` (`PURCHASE_INVOICE -> PRINT`), `Export Register` (`PURCHASE_INVOICE -> EXPORT`), `+ New Purchase Invoice` (`PURCHASE_INVOICE -> ADD`), `Edit Draft` (`PURCHASE_INVOICE -> EDIT`), `Submit for Approval` (`PURCHASE_INVOICE -> SUBMIT`), `Approve Accounts Payable` (`PURCHASE_INVOICE -> APPROVE`), `Record AP Payment` (`PURCHASE_INVOICE -> APPROVE`), `Cancel Invoice` (`PURCHASE_INVOICE -> CANCEL`), and `Delete Invoice` (`PURCHASE_INVOICE -> DELETE`).
+
+
+### 2.25 Step 6.1 — Multi-Level Bill of Materials (BOM), Versions, Scrap Factors & Co-Products / By-Products (`/manufacturing/boms`)
+
+* **Screen Code:** `MFG_BOM` (Screen ID: `1024`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Bill of Materials (BOM)`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `DESIGN_ENG` (Production / Design Engineers)
+* **Operational Capabilities:**
+  1. **Executive BOM & Engineering Architecture KPIs:**
+     * **Total BOMs:** Cumulative count of all engineering Bill of Materials registered across assemblies and components.
+     * **Active Production BOMs:** Total count of officially released, production-ready BOMs deployed for Shopfloor Work Orders and Material Requirements Planning (MRP).
+     * **Multi-Level Assemblies:** Total count of assemblies featuring recursive sub-assemblies and multi-tier indented hierarchies.
+     * **Avg Net Unit Cost:** Average net manufacturing unit cost (material + labor + overhead less co-product credits) across all active assemblies.
+  2. **Multi-Level Recursive Indented Tree Explosion (`EXPLODE`):**
+     * Click the **Multi-Level Tree Explosion** icon (`GitFork`) on any assembly to visualize the recursive indented BOM structure.
+     * Recursively traverses sub-assemblies (Level 0 Top Assembly, Level 1 Sub-Assemblies & Leaf Components, Level 2 Sub-tier Raw Materials, etc.).
+     * Computes cumulative required quantities by multiplying parent batch consumption factors through all hierarchy levels.
+     * Includes automated cycle detection to guarantee zero circular reference loops.
+     * Supports interactive expand/collapse of individual sub-assembly nodes, visual sourcing badges (`MANUFACTURED`, `PURCHASED`, `SUBCONTRACTED`), operation sequence numbers, scrap percentages, and rolled-up extended costs.
+  3. **4-Tab BOM Creation & Engineering Recipe Editor:**
+     * **Tab 1: General & Header Specifications:** Select finished goods or WIP sub-assemblies, set base batch output quantity and UOM, assign engineering version/revision (`v1.0`, `v2.0`), BOM classification (`PRODUCTION`, `TEMPLATE`, `ENGINEERING`, `PROTOTYPE`), effective date windows, routing ID, and primary default flag.
+     * **Tab 2: Components & Process Scrap Factors:** Add/remove component line items. For each line, configure component item, net quantity, process shrinkage/scrap percentage (`scrap_factor_percent`), gross quantity calculated dynamically as $\text{Gross Qty} = \text{Net Qty} \times (1 + \frac{\text{Scrap \%}}{100})$, optional child sub-assembly BOM link, unit cost, extended line cost, sourcing type, and critical part indicator.
+     * **Tab 3: Co-Products, By-Products & Recoverable Scrap:** Add/remove secondary process outputs (`RECOVERABLE_SCRAP`, `BY_PRODUCT`, `CO_PRODUCT`). Captures recovery quantity, UOM, estimated salvage recovery rate (₹), and automatically computes credit values that offset gross production costs.
+     * **Tab 4: Live Manufacturing Cost Rollup Summary:** Interactive real-time cost accounting engine breaking down Direct Material Cost, Direct Labor Absorption, Factory Overhead Absorption, and Less: Co-Product Recovery Credit to derive Net Total Batch Cost and Net Unit Cost per finished product.
+  4. **1-Click BOM Version Cloning (`CLONE`):**
+     * Allows engineers to duplicate an entire BOM structure into a new revision (e.g. `v1.0` $\rightarrow$ `v2.0` or `v1.1`) in one click.
+     * Deep-copies all line items, scrap factors, operations, and by-products while ensuring version uniqueness per item.
+     * Option to mark the newly cloned revision as the primary default production BOM.
+  5. **BOM Engineering Approval & Production Release Workflow (`APPROVE`):**
+     * Draft engineering revisions undergo formal approval before release to shopfloor operations.
+     * Promoting a BOM from `DRAFT` to `ACTIVE` logs the approving engineer user ID, timestamps the approval, records engineering remarks, and immediately enables the revision for production work order generation.
+  6. **Official Printable Costed BOM Datasheet (`PRINT`):**
+     * Professional A4 engineering datasheet (`@media print`) complete with Kashvira Infotech corporate manufacturing header, item details, base batch size, indented component breakdown with scrap factors and extended costs, co-product recovery table, full absorption cost rollup box, and dual engineering sign-off blocks (Design Engineer & Works Head).
+  7. **Referential Integrity & Controlled BOM Deletion (`DELETE`):**
+     * Deletion of active or referenced BOMs is strictly safeguarded.
+     * If a BOM is referenced as a sub-assembly child in any active parent BOM, deletion is blocked with a descriptive conflict message.
+     * Draft or obsolete unreferenced BOMs can be safely deleted via `<ConfirmDeleteModal>`.
+* **Action Buttons:** `Print Datasheet` (`MFG_BOM -> PRINT`), `Export Register` (`MFG_BOM -> EXPORT`), `+ New Bill of Materials` (`MFG_BOM -> ADD`), `Edit BOM` (`MFG_BOM -> EDIT`), `Multi-Level Tree Explosion` (`MFG_BOM -> EXPLODE`), `Clone Revision` (`MFG_BOM -> CLONE`), `Approve & Release` (`MFG_BOM -> APPROVE`), and `Delete BOM` (`MFG_BOM -> DELETE`).
