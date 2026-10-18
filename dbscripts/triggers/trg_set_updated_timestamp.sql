@@ -255,3 +255,33 @@ DROP TRIGGER IF EXISTS trg_mfg_bom_byproduct_updated_date ON tbl_mfg_bom_byprodu
 CREATE TRIGGER trg_mfg_bom_byproduct_updated_date
 BEFORE UPDATE ON tbl_mfg_bom_byproduct
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_shift_updated_date ON tbl_mfg_shift;
+CREATE TRIGGER trg_mfg_shift_updated_date
+BEFORE UPDATE ON tbl_mfg_shift
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_work_center_updated_date ON tbl_mfg_work_center;
+CREATE TRIGGER trg_mfg_work_center_updated_date
+BEFORE UPDATE ON tbl_mfg_work_center
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_work_center_machine_updated_date ON tbl_mfg_work_center_machine;
+CREATE TRIGGER trg_mfg_work_center_machine_updated_date
+BEFORE UPDATE ON tbl_mfg_work_center_machine
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_work_center_shift_updated_date ON tbl_mfg_work_center_shift;
+CREATE TRIGGER trg_mfg_work_center_shift_updated_date
+BEFORE UPDATE ON tbl_mfg_work_center_shift
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_routing_header_updated_date ON tbl_mfg_routing_header;
+CREATE TRIGGER trg_mfg_routing_header_updated_date
+BEFORE UPDATE ON tbl_mfg_routing_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_routing_operation_updated_date ON tbl_mfg_routing_operation;
+CREATE TRIGGER trg_mfg_routing_operation_updated_date
+BEFORE UPDATE ON tbl_mfg_routing_operation
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

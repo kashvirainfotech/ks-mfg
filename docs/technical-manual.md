@@ -673,3 +673,84 @@ Each screen or feature documentation entry must contain:
    * 4-Tab BOM Creation / Edit modal (`General & Header`, `Components & Scrap %`, `Co-Products & Scrap`, `Live Cost Rollup Summary`).
    * Recursive Indented BOM Tree Explosion modal (`FolderTree` / `GitFork`) with expand/collapse and cumulative required quantity calculation.
    * Dedicated Version Clone modal (`Copy`), Approval modal (`CheckCircle2`), and printable Costed BOM Datasheet modal (`Printer`).
+
+
+### 2.26 Step 6.2 — Work Centers, Production Lines, Capacity & Shift Calendars (`/manufacturing/work-centers`)
+
+1. **Database Objects (`dbscripts/` & `backend/src/database/schema/core.schema.ts`):**
+   * Tables:
+     * `tbl_mfg_shift` (`shift_id` BIGINT PK backed by `seq_shift_id`, `shift_code` VARCHAR(30), `shift_name` VARCHAR(100), `start_time` TIME, `end_time` TIME, `break_duration_mins` INT, `effective_working_hours` NUMERIC(5,2), `is_night_shift` BOOLEAN, `remarks` VARCHAR(250), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(comp_id, branch_id, shift_code)`).
+     * `tbl_mfg_work_center` (`work_center_id` BIGINT PK backed by `seq_work_center_id`, `work_center_code` VARCHAR(50), `work_center_name` VARCHAR(250), `work_center_type` VARCHAR(30) (`MACHINE`, `LINE_ASSEMBLY`, `MANUAL`, `FURNACE`, `TEST_BENCH`, `SUBCONTRACTOR`), `dept_id` FK $\rightarrow$ `tbl_hr_department(dept_id)`, `location_desc` VARCHAR(200), `capacity_per_day_hours` NUMERIC(6,2), `efficiency_percent` NUMERIC(5,2), `capacity_uom` VARCHAR(20), `cost_per_hour` NUMERIC(14,2), `labour_cost_per_hour` NUMERIC(14,2), `overhead_cost_per_hour` NUMERIC(14,2), `total_hourly_rate` NUMERIC(14,2), `status` VARCHAR(30) (`ACTIVE`, `UNDER_MAINTENANCE`, `INACTIVE`), `remarks` VARCHAR(350), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(comp_id, branch_id, work_center_code)`).
+     * `tbl_mfg_work_center_machine` (`wc_machine_id` BIGINT PK backed by `seq_wc_machine_id`, `work_center_id` FK $\rightarrow$ `tbl_mfg_work_center` ON DELETE CASCADE, `machine_code` VARCHAR(50), `machine_name` VARCHAR(200), `model_no` VARCHAR(100), `serial_no` VARCHAR(100), `manufacturer` VARCHAR(150), `installation_date` DATE, `warranty_expiry_date` DATE, `power_rating_kw` NUMERIC(8,2), `status` VARCHAR(30) (`OPERATIONAL`, `BREAKDOWN`, `STANDBY`, `DECOMMISSIONED`), `last_maintenance_date` DATE, `next_maintenance_due` DATE, `remarks` VARCHAR(250), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(comp_id, branch_id, machine_code)`).
+     * `tbl_mfg_work_center_shift` (`wc_shift_id` BIGINT PK backed by `seq_wc_shift_id`, `work_center_id` FK $\rightarrow$ `tbl_mfg_work_center` ON DELETE CASCADE, `shift_id` FK $\rightarrow$ `tbl_mfg_shift`, `days_of_week` VARCHAR(50), `operator_count` INT, `remarks` VARCHAR(250), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(work_center_id, shift_id)`).
+   * Sequences: `seq_shift_id`, `seq_work_center_id`, `seq_wc_machine_id`, `seq_wc_shift_id` (starting at 1001).
+   * Indexes: `idx_mfg_shift_comp_branch`, `idx_mfg_work_center_comp`, `idx_mfg_work_center_status`, `idx_mfg_work_center_type`, `idx_mfg_wc_machine_wc`, `idx_mfg_wc_machine_status`, `idx_mfg_wc_shift_wc`, `idx_mfg_wc_shift_shift`.
+   * Triggers: `trg_mfg_shift_updated_date`, `trg_mfg_work_center_updated_date`, `trg_mfg_work_center_machine_updated_date`, and `trg_mfg_work_center_shift_updated_date` executing `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered screen `1025` (`MFG_WORK_CENTER`) with actions `1074` (`EXPORT`), `1075` (`PRINT`), and `1076` (`MAINTENANCE`). Role permissions assigned for `SUPER_ADMIN`, `PLANT_MANAGER`, `DESIGN_ENG`, and `STORE_OFFICER`.
+     * `03_sample_demo_data.sql`: 4 factory shifts (`SHIFT-GEN`, `SHIFT-M1`, `SHIFT-E1`, `SHIFT-N1`), 5 production work centers (`WC-CNC-01`, `WC-FAB-01`, `WC-HT-01`, `WC-ASSY-01`, `WC-PAINT-01`), 10 machine assets, and 10 shift allocation rows.
+2. **Backend API Contracts (`backend/src/modules/manufacturing/work-center/`):**
+   * `GET /api/v1/manufacturing/work-centers/summary` (`@RequirePermission('MFG_WORK_CENTER', 'VIEW')`) — computes real-time operational KPI metrics (`totalWorkCenters`, `activeWorkCenters`, `totalDailyCapacityHours`, `avgEfficiencyPercent`, `totalMachines`, `operationalMachines`).
+   * `GET /api/v1/manufacturing/work-centers` (`@RequirePermission('MFG_WORK_CENTER', 'VIEW')`) — lists work centers with filters by status, workCenterType, deptId, and free-text search.
+   * `GET /api/v1/manufacturing/work-centers/:id` (`@RequirePermission('MFG_WORK_CENTER', 'VIEW')`) — retrieves single work center record with machines and operating shifts.
+   * `POST /api/v1/manufacturing/work-centers` & `PUT /api/v1/manufacturing/work-centers/:id` (`@RequirePermission('MFG_WORK_CENTER', 'ADD' | 'EDIT')`) — creates or updates work center definitions with automatic sequential numbering (`WC-{PREFIX}-{SEQ}`), total hourly rate calculation, and transactional machine/shift replacement.
+   * `POST /api/v1/manufacturing/work-centers/:id/machines/:machineId/maintenance` (`@RequirePermission('MFG_WORK_CENTER', 'MAINTENANCE')`) — logs machine operational status (`OPERATIONAL`, `BREAKDOWN`, `STANDBY`, `DECOMMISSIONED`), updates maintenance dates, and triggers automated cell status transition if all machines are in breakdown.
+   * `DELETE /api/v1/manufacturing/work-centers/:id` (`@RequirePermission('MFG_WORK_CENTER', 'DELETE')`) — deletes unlinked work centers with foreign key verification via `DependencyCheckService`.
+   * `GET /api/v1/manufacturing/work-centers/shifts`, `POST /shifts`, `GET /departments` — lookup helper endpoints.
+3. **Domain Logic & Formulas:**
+   * Standard Total Hourly Rate:
+     $$\text{Total Hourly Rate} = \text{Direct Machine Cost} + \text{Direct Labor Rate} + \text{Overhead Rate}$$
+   * Effective Daily Working Capacity:
+     $$\text{Effective Daily Capacity (Hours)} = \text{Daily Rated Capacity Hours} \times \left(\frac{\text{Efficiency / OEE \%}}{100}\right)$$
+   * Monthly Theoretical Working Capacity:
+     $$\text{Monthly Capacity (Hours)} = \text{Effective Daily Capacity} \times 25 \text{ Working Days}$$
+4. **Frontend Architecture (`frontend/src/pages/manufacturing/WorkCenterMasterPage.tsx`):**
+   * Accessible at route `/manufacturing/work-centers` under `MANUFACTURING & PRODUCTION` with `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="MFG_WORK_CENTER">`.
+   * 4 KPI cards (`Total Work Centers`, `Daily Rated Capacity`, `Plant Machinery Assets`, `Weighted Factory Efficiency`).
+   * 3-Tab Creation / Edit modal (`General Specifications & Capacity`, `Machinery & Capital Assets`, `Shift Calendars & Hourly Cost Absorption Matrix`).
+   * Dedicated Machinery Maintenance & Status Modal (`Wrench`), Shift Quick-Add Modal (`Clock`), and printable Work Center Datasheet modal (`Printer`).
+
+### 2.27 Step 6.3 — Production Routings, Operation Sequences, Standard Cycle Times & Machine Tooling (`/manufacturing/routings`)
+
+1. **Database Objects (`dbscripts/` & `backend/src/database/schema/core.schema.ts`):**
+   * Tables:
+     * `tbl_mfg_routing_header` (`routing_id` BIGINT PK backed by `seq_routing_id`, `routing_code` VARCHAR(50), `routing_name` VARCHAR(200), `item_id` BIGINT FK $\rightarrow$ `tbl_inv_item(item_id)`, `version_no` VARCHAR(20) DEFAULT `'1.0'`, `status` VARCHAR(30) (`DRAFT`, `ACTIVE`, `OBSOLETE`, `UNDER_REVIEW`), `is_default` BOOLEAN DEFAULT TRUE, `effective_from` DATE, `effective_to` DATE, `batch_size` NUMERIC(14,3), `total_setup_time_mins` NUMERIC(10,2), `total_run_time_mins` NUMERIC(10,2), `total_lead_time_days` NUMERIC(6,2), `total_machine_cost` NUMERIC(14,2), `total_labor_cost` NUMERIC(14,2), `total_overhead_cost` NUMERIC(14,2), `total_cost_per_unit` NUMERIC(14,4), `approved_by` BIGINT FK $\rightarrow$ `tbl_sec_user(user_id)`, `approved_date` TIMESTAMPTZ, `approval_remarks` VARCHAR(350), `remarks` VARCHAR(350), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(comp_id, routing_code)`, UNIQUE `(comp_id, item_id, version_no)`).
+     * `tbl_mfg_routing_operation` (`routing_op_id` BIGINT PK backed by `seq_routing_op_id`, `routing_id` BIGINT FK $\rightarrow$ `tbl_mfg_routing_header(routing_id)` ON DELETE CASCADE, `op_sequence` INT, `op_code` VARCHAR(30), `op_name` VARCHAR(200), `work_center_id` BIGINT FK $\rightarrow$ `tbl_mfg_work_center(work_center_id)`, `machine_id` BIGINT FK $\rightarrow$ `tbl_mfg_work_center_machine(wc_machine_id)`, `setup_time_mins` NUMERIC(10,2), `run_time_mins` NUMERIC(10,2), `overlap_percent` NUMERIC(5,2), `machine_hourly_rate` NUMERIC(14,2), `labor_hourly_rate` NUMERIC(14,2), `overhead_hourly_rate` NUMERIC(14,2), `total_hourly_rate` NUMERIC(14,2), `machine_cost_per_unit` NUMERIC(14,4), `labor_cost_per_unit` NUMERIC(14,4), `overhead_cost_per_unit` NUMERIC(14,4), `total_cost_per_unit` NUMERIC(14,4), `tooling_description` VARCHAR(300), `fixture_no` VARCHAR(100), `is_inspection_required` BOOLEAN DEFAULT FALSE, `qc_checkpoints` VARCHAR(350), `is_subcontracted` BOOLEAN DEFAULT FALSE, `subcontract_vendor_id` BIGINT FK $\rightarrow$ `tbl_crm_party(party_id)`, `remarks` VARCHAR(250), `is_active` BOOLEAN, 7 mandatory audit columns, UNIQUE `(routing_id, op_sequence)`).
+   * Sequences: `seq_routing_id`, `seq_routing_op_id` (starting at 1001).
+   * Indexes: `idx_mfg_routing_header_comp`, `idx_mfg_routing_header_item`, `idx_mfg_routing_header_status`, `idx_mfg_routing_op_routing`, `idx_mfg_routing_op_wc`.
+   * Triggers: `trg_mfg_routing_header_updated_date` and `trg_mfg_routing_operation_updated_date` executing `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered screen `1026` (`MFG_ROUTING`) with actions `1077` (`EXPORT`), `1078` (`PRINT`), `1079` (`APPROVE`), and `1080` (`CLONE`). Role permissions assigned for `SUPER_ADMIN`, `PLANT_MANAGER`, `DESIGN_ENG`, `STORE_OFFICER`, and `PURCHASE_EXEC`.
+     * `03_sample_demo_data.sql`: 4 production routings (`ROUT-FG-VALVE-50-V1`, `ROUT-AUTO-MNT-V1`, `ROUT-SUB-BODY-V1`, `ROUT-FG-VALVE-50-V2`), 16 operations mapped across CNC turning, milling, gas carburizing, grinding, hydro testing, powder coating, and stamping cells. Updated active BOM headers with corresponding routing IDs.
+2. **Backend API Contracts (`backend/src/modules/manufacturing/routing/`):**
+   * `GET /api/v1/manufacturing/routings/summary` (`@RequirePermission('MFG_ROUTING', 'VIEW')`) — returns KPI metrics (`totalRoutings`, `activeRoutings`, `distinctItems`, `avgCycleTimeMins`, `totalRoutingCost`).
+   * `GET /api/v1/manufacturing/routings/lookups` (`@RequirePermission('MFG_ROUTING', 'VIEW')`) — provides manufactured assemblies from `tbl_inv_item`, work centers with rates, machine tools, and subcontractor vendors.
+   * `GET /api/v1/manufacturing/routings` (`@RequirePermission('MFG_ROUTING', 'VIEW')`) — paginated listing with search on routing/item code and filtering by status, item, or default flag.
+   * `GET /api/v1/manufacturing/routings/:id` (`@RequirePermission('MFG_ROUTING', 'VIEW')`) — full routing header and sequential operations ordered by `op_sequence ASC`.
+   * `POST /api/v1/manufacturing/routings` (`@RequirePermission('MFG_ROUTING', 'ADD')`) — creates routing header and child operations with automated document code generation (`ROUT-{ITEM_CODE}-V{VER}`), rate defaults from work centers, and transaction-safe rollups.
+   * `PUT /api/v1/manufacturing/routings/:id` (`@RequirePermission('MFG_ROUTING', 'EDIT')`) — updates header parameters and atomically reconciles operations.
+   * `DELETE /api/v1/manufacturing/routings/:id` (`@RequirePermission('MFG_ROUTING', 'DELETE')`) — deletes routing after verifying unlinked status from active Bill of Materials.
+   * `POST /api/v1/manufacturing/routings/:id/approve` (`@RequirePermission('MFG_ROUTING', 'APPROVE')`) — releases routing to `ACTIVE`, marks as default, and syncs `routing_id` to active BOM.
+   * `POST /api/v1/manufacturing/routings/:id/clone` (`@RequirePermission('MFG_ROUTING', 'CLONE')`) — duplicates routing and operation stages into a new draft revision.
+3. **Absorption Costing & Cycle Time Formulas:**
+   * Amortized Setup Time per Unit:
+     $$\text{Amortized Setup (mins)} = \frac{\text{setup\_time\_mins}}{\text{batch\_size}}$$
+   * Total Operation Processing Time per Unit:
+     $$\text{Total Op Time (mins)} = \text{run\_time\_mins} + \text{Amortized Setup (mins)}$$
+     $$\text{Total Op Time (hours)} = \frac{\text{Total Op Time (mins)}}{60}$$
+   * Operation Absorption Cost Contributions:
+     $$\text{machine\_cost\_per\_unit} = \text{Total Op Time (hours)} \times \text{machine\_hourly\_rate}$$
+     $$\text{labor\_cost\_per\_unit} = \text{Total Op Time (hours)} \times \text{labor\_hourly\_rate}$$
+     $$\text{overhead\_cost\_per\_unit} = \text{Total Op Time (hours)} \times \text{overhead\_hourly\_rate}$$
+     $$\text{total\_cost\_per\_unit} = \text{machine\_cost\_per\_unit} + \text{labor\_cost\_per\_unit} + \text{overhead\_cost\_per\_unit}$$
+   * Cumulative Header Rollups:
+     $$\text{total\_cost\_per\_unit} = \sum \text{total\_cost\_per\_unit}_{\text{ops}}$$
+     $$\text{total\_lead\_time\_days} = \max\left(0.5, \frac{(\text{total\_setup\_time\_mins} + \text{total\_run\_time\_mins} \times \text{batch\_size})}{8 \times 60} \times 1.2\right)$$
+4. **Frontend Architecture (`frontend/src/pages/manufacturing/RoutingMasterPage.tsx`):**
+   * Accessible at route `/manufacturing/routings` under `MANUFACTURING & PRODUCTION` with `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<ConfirmDeleteModal>`, and `<PermissionGate screen="MFG_ROUTING">`.
+   * 4 KPI cards (`Total Routings`, `Active Released Routings`, `Configured Assemblies`, `Avg Run Cycle Time`).
+   * Interactive Sequential Operation Flow Timeline modal (`Eye`) displaying chronological manufacturing stages, machine assets, cycle times, tooling specs, and QC gates.
+   * 3-Tab Creation / Edit modal (`Header & General Parameters`, `Operation Sequencer`, `Absorption Costing & Summary`) with dynamic stage reordering (`ArrowUp`/`ArrowDown`).
+   * Dedicated Engineering Approval modal (`CheckCircle2`), Revision Cloning modal (`Copy`), and printable Shopfloor Route Traveler Card modal (`Printer`).

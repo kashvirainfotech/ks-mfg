@@ -28,7 +28,8 @@ export type PermissionAction =
   | 'ASSIGN'
   | 'CONFIRM'
   | 'CLONE'
-  | 'EXPLODE';
+  | 'EXPLODE'
+  | 'MAINTENANCE';
 
 export interface UserProfile {
   userId: number;

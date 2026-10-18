@@ -1862,3 +1862,347 @@ INSERT INTO tbl_mfg_bom_byproduct (
 ON CONFLICT (bom_byproduct_id) DO NOTHING;
 
 SELECT setval('seq_bom_byproduct_id', GREATEST((SELECT COALESCE(MAX(bom_byproduct_id), 1005) FROM tbl_mfg_bom_byproduct), 1005));
+
+-- ============================================================================
+-- FEATURE: Step 6.2 - Manufacturing Work Centers, Capacity & Shifts Demo Data
+-- ============================================================================
+
+-- 1. Factory Shifts (tbl_mfg_shift)
+INSERT INTO tbl_mfg_shift (
+    shift_id, shift_code, shift_name, start_time, end_time,
+    break_duration_mins, effective_working_hours, is_night_shift, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'SHIFT-GEN', 'General Day Shift (Admin & Assembly)', '09:00:00', '17:30:00', 30, 8.00, FALSE, 'Standard office and assembly daytime schedule', TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'SHIFT-M1',  'Morning Shift 1 (Production Line)',    '07:00:00', '15:30:00', 30, 8.00, FALSE, 'Shopfloor primary machining shift', TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'SHIFT-E1',  'Evening Shift 2 (Production Line)',    '15:30:00', '00:00:00', 30, 8.00, FALSE, 'Shopfloor secondary machining shift', TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'SHIFT-N1',  'Night Shift 3 (Furnace Continuous)',   '00:00:00', '07:00:00', 30, 6.50, TRUE,  'Automated heat treatment and continuous curing run', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (shift_id) DO NOTHING;
+
+SELECT setval('seq_shift_id', GREATEST((SELECT COALESCE(MAX(shift_id), 1004) FROM tbl_mfg_shift), 1004));
+
+-- 2. Manufacturing Work Centers (tbl_mfg_work_center)
+INSERT INTO tbl_mfg_work_center (
+    work_center_id, work_center_code, work_center_name, work_center_type,
+    dept_id, location_desc, capacity_per_day_hours, efficiency_percent, capacity_uom,
+    cost_per_hour, labour_cost_per_hour, overhead_cost_per_hour, total_hourly_rate,
+    status, remarks, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'WC-CNC-01', 'CNC Precision Turning & Milling Cell 1', 'MACHINE',
+     1001, 'Bay 1 - Heavy Machining Shopfloor', 16.00, 88.00, 'HOURS',
+     400.00, 150.00, 100.00, 650.00,
+     'ACTIVE', 'High-speed multi-axis turning and vertical milling center', TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 'WC-FAB-01', 'Heavy Fabrication & Robotic TIG/MIG Welding Bay', 'MACHINE',
+     1001, 'Bay 2 - Structural Fabrication Annex', 16.00, 80.00, 'HOURS',
+     200.00, 140.00, 80.00, 420.00,
+     'ACTIVE', 'Shielded metal arc and multi-process welding station', TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 'WC-HT-01', 'Atmosphere Gas Carburizing & Hardening Furnace', 'FURNACE',
+     1001, 'Bay 4 - Metallurgy & Heat Treatment Plant', 24.00, 92.00, 'HOURS',
+     800.00, 200.00, 250.00, 1250.00,
+     'ACTIVE', 'Controlled atmosphere continuous batch quench furnace', TRUE, 1001, 1001, 1001, 1001),
+
+    (1004, 'WC-ASSY-01', 'Valve Assembly, Hydro-Testing & Packaging Line', 'LINE_ASSEMBLY',
+     1001, 'Bay 3 - Final Assembly Clean Zone', 8.00, 85.00, 'HOURS',
+     120.00, 150.00, 80.00, 350.00,
+     'ACTIVE', 'Pneumatic assembly stations and 700-bar hydrostatic testing rig', TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 'WC-PAINT-01', 'Automated Electrostatic Powder Coating & Curing Tunnel', 'LINE_ASSEMBLY',
+     1001, 'Bay 5 - Surface Finishing & Coating Line', 16.00, 82.00, 'HOURS',
+     300.00, 160.00, 120.00, 580.00,
+     'ACTIVE', 'Continuous conveyorized powder booth and gas-fired IR oven', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (work_center_id) DO NOTHING;
+
+SELECT setval('seq_work_center_id', GREATEST((SELECT COALESCE(MAX(work_center_id), 1005) FROM tbl_mfg_work_center), 1005));
+
+-- 3. Work Center Machines & Capital Assets (tbl_mfg_work_center_machine)
+INSERT INTO tbl_mfg_work_center_machine (
+    wc_machine_id, work_center_id, machine_code, machine_name, model_no, serial_no,
+    manufacturer, installation_date, warranty_expiry_date, power_rating_kw,
+    status, last_maintenance_date, next_maintenance_due, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 'MCH-CNC-501', 'Mazak Quick Turn 250 MSY Multi-Tasking Lathe', 'QT-250MSY', 'MZK-2024-8891',
+     'Yamazaki Mazak Corp', '2024-03-15', '2027-03-14', 22.00,
+     'OPERATIONAL', '2026-04-01', '2026-07-01', 'Equipped with sub-spindle and live rotary tooling', TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 1001, 'MCH-VMC-201', 'Haas VF-2SS Super-Speed Vertical Machining Center', 'VF-2SS', 'HAA-2024-4412',
+     'Haas Automation USA', '2024-06-20', '2026-06-19', 22.40,
+     'OPERATIONAL', '2026-04-05', '2026-07-05', '12000 RPM inline direct-drive spindle', TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 1001, 'MCH-CNC-301', 'Doosan Lynx 2100 LY Turning Center with Y-Axis', 'Lynx 2100LY', 'DSN-2025-1109',
+     'DN Solutions', '2025-01-10', '2027-01-09', 15.00,
+     'OPERATIONAL', '2026-03-28', '2026-06-28', 'High rigidity roller LM guideways', TRUE, 1001, 1001, 1001, 1001),
+
+    (1004, 1002, 'MCH-WLD-101', 'ESAB Warrior 500i Multi-Process Inverter Welder', 'Warrior 500i', 'ESB-2023-7711',
+     'ESAB Welding Systems', '2023-11-05', '2025-11-04', 25.00,
+     'OPERATIONAL', '2026-03-15', '2026-06-15', 'Heavy-duty 500A @ 60% duty cycle for structural welding', TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 1002, 'MCH-WLD-102', 'Fronius TransSteel 3500 Pulse Automated MIG/MAG', 'TransSteel 3500', 'FRN-2024-3321',
+     'Fronius International', '2024-08-12', '2026-08-11', 18.50,
+     'OPERATIONAL', '2026-04-10', '2026-07-10', 'Pulse synergic program for stainless steel joint integrity', TRUE, 1001, 1001, 1001, 1001),
+
+    (1006, 1003, 'MCH-FUR-001', 'Ipsen Sealed Quench Atmosphere Carburizing Furnace SQ-400', 'SQ-400', 'IPS-2023-9901',
+     'Ipsen USA', '2023-05-18', '2026-05-17', 95.00,
+     'OPERATIONAL', '2026-04-02', '2026-05-02', 'Integral oil quench tank with nitrogen atmosphere purge', TRUE, 1001, 1001, 1001, 1001),
+
+    (1007, 1003, 'MCH-FUR-002', 'High-Precision Tempering Pit Furnace TF-200', 'TF-200', 'IND-2023-5510',
+     'Inductotherm Group', '2023-07-22', '2025-07-21', 45.00,
+     'OPERATIONAL', '2026-04-02', '2026-05-02', 'Forced air circulation up to 650°C', TRUE, 1001, 1001, 1001, 1001),
+
+    (1008, 1004, 'MCH-TST-001', 'Haskel Hydraulic Hydrostatic Test Rig 700 Bar', 'HTR-700B', 'HSK-2024-6612',
+     'Haskel International', '2024-09-14', '2026-09-13', 7.50,
+     'OPERATIONAL', '2026-04-12', '2026-07-12', 'Dual digital pressure transducers and automated graph recording', TRUE, 1001, 1001, 1001, 1001),
+
+    (1009, 1004, 'MCH-PKG-001', 'Signode Semi-Automatic Rotary Ring Stretch Wrapper', 'RRSW-150', 'SIG-2024-8819',
+     'Signode Packaging India', '2024-10-01', '2025-09-30', 3.50,
+     'OPERATIONAL', '2026-03-20', '2026-06-20', 'Palletised batch wrapping with prestretch carriage', TRUE, 1001, 1001, 1001, 1001),
+
+    (1010, 1005, 'MCH-PNT-101', 'Gema OptiFlex Pro Automated Powder Application System', 'OptiFlex Pro', 'GMA-2025-4402',
+     'Gema Switzerland', '2025-02-15', '2027-02-14', 35.00,
+     'OPERATIONAL', '2026-04-08', '2026-07-08', 'OptiSpray dense phase pumps with fast color change booth', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (wc_machine_id) DO NOTHING;
+
+SELECT setval('seq_wc_machine_id', GREATEST((SELECT COALESCE(MAX(wc_machine_id), 1010) FROM tbl_mfg_work_center_machine), 1010));
+
+-- 4. Work Center Shift Assignments (tbl_mfg_work_center_shift)
+INSERT INTO tbl_mfg_work_center_shift (
+    wc_shift_id, work_center_id, shift_id, days_of_week, operator_count, remarks,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1002, 'MON,TUE,WED,THU,FRI,SAT', 3, 'Shift 1: 3 CNC Operators + 1 Inspector', TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1001, 1003, 'MON,TUE,WED,THU,FRI,SAT', 3, 'Shift 2: 3 CNC Operators + 1 Inspector', TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1002, 1002, 'MON,TUE,WED,THU,FRI,SAT', 2, 'Shift 1: Certified TIG/MIG Welders', TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1002, 1003, 'MON,TUE,WED,THU,FRI,SAT', 2, 'Shift 2: Certified TIG/MIG Welders', TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1003, 1002, 'MON,TUE,WED,THU,FRI,SAT,SUN', 1, 'Shift 1: Furnace Master Metallurgist', TRUE, 1001, 1001, 1001, 1001),
+    (1006, 1003, 1003, 'MON,TUE,WED,THU,FRI,SAT,SUN', 1, 'Shift 2: Furnace Operator & Pyrometry Tech', TRUE, 1001, 1001, 1001, 1001),
+    (1007, 1003, 1004, 'MON,TUE,WED,THU,FRI,SAT,SUN', 1, 'Shift 3: Night Furnace Soak Monitor', TRUE, 1001, 1001, 1001, 1001),
+    (1008, 1004, 1001, 'MON,TUE,WED,THU,FRI', 4, 'General Shift: Assembly fitters + Hydro test tech', TRUE, 1001, 1001, 1001, 1001),
+    (1009, 1005, 1002, 'MON,TUE,WED,THU,FRI,SAT', 2, 'Shift 1: Powder gun operators', TRUE, 1001, 1001, 1001, 1001),
+    (1010, 1005, 1003, 'MON,TUE,WED,THU,FRI,SAT', 2, 'Shift 2: Curing line operators', TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (wc_shift_id) DO NOTHING;
+
+SELECT setval('seq_wc_shift_id', GREATEST((SELECT COALESCE(MAX(wc_shift_id), 1010) FROM tbl_mfg_work_center_shift), 1010));
+
+-- ============================================================================
+-- FEATURE: Step 6.3 - Production Routings, Operation Sequences & Machine Tooling Demo Data
+-- ============================================================================
+
+-- 1. Production Routing Headers (tbl_mfg_routing_header)
+INSERT INTO tbl_mfg_routing_header (
+    routing_id, routing_code, routing_name, item_id, version_no, status,
+    is_default, effective_from, effective_to, batch_size,
+    total_setup_time_mins, total_run_time_mins, total_lead_time_days,
+    total_machine_cost, total_labor_cost, total_overhead_cost, total_cost_per_unit,
+    approved_by, approved_date, approval_remarks, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Routing 1: Industrial SS-316 Flanged Gate Valve 2" Class 150 (V1.0)
+    (1001, 'ROUT-FG-VALVE-50-V1', 'Industrial SS-316 Flanged Gate Valve 2" Class 150 Production Routing',
+     1008, '1.0', 'ACTIVE',
+     TRUE, '2026-04-01', NULL, 10.000,
+     145.00, 140.00, 2.50,
+     1339.25, 465.08, 431.08, 2235.41,
+     1001, '2026-04-01 10:00:00+05:30', 'Approved for OEM Class 150 valve mass manufacturing',
+     'Standard 6-stage routing: CNC rough turning, milling, gas carburizing, grinding, hydro testing, powder coating', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing 2: Automotive Hydromount Powertrain Assembly (V1.0)
+    (1002, 'ROUT-AUTO-MNT-V1', 'Automotive Hydromount Powertrain Assembly Production Routing',
+     1009, '1.0', 'ACTIVE',
+     TRUE, '2026-04-01', NULL, 20.000,
+     80.00, 36.00, 1.50,
+     242.00, 142.50, 98.50, 483.00,
+     1001, '2026-04-01 11:30:00+05:30', 'Production line standard routing validated with tier-1 client',
+     'High-speed automotive assembly cell with robotic welding, powder coating, and hydro-damping filling', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing 3: Machined SS-316 Gate Valve Body Casting Sub-Assembly (V1.0)
+    (1003, 'ROUT-SUB-BODY-V1', 'Machined SS-316 Gate Valve Body Casting Sub-Assembly Routing',
+     1005, '1.0', 'ACTIVE',
+     TRUE, '2026-04-01', NULL, 10.000,
+     80.00, 81.00, 2.00,
+     785.00, 238.00, 242.00, 1265.00,
+     1001, '2026-04-01 14:00:00+05:30', 'Critical internal valve component precision machining routing',
+     '3-stage sub-assembly machining: CNC rough boring, finish port milling, and atmosphere carburizing', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing 4: Industrial Gate Valve (V2.0 - Optimized Cycle Time Draft)
+    (1004, 'ROUT-FG-VALVE-50-V2', 'Industrial SS-316 Flanged Gate Valve 2" Class 150 (V2.0 - High Speed Cell)',
+     1008, '2.0', 'DRAFT',
+     FALSE, '2026-05-01', NULL, 15.000,
+     115.00, 112.00, 2.00,
+     1080.00, 380.00, 345.00, 1805.00,
+     NULL, NULL, NULL,
+     'High-speed multi-axis CNC tooling optimization reducing cycle time by 20%', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (routing_id) DO NOTHING;
+
+SELECT setval('seq_routing_id', GREATEST((SELECT COALESCE(MAX(routing_id), 1004) FROM tbl_mfg_routing_header), 1004));
+
+-- 2. Production Routing Operations (tbl_mfg_routing_operation)
+INSERT INTO tbl_mfg_routing_operation (
+    routing_op_id, routing_id, op_sequence, op_code, op_name,
+    work_center_id, machine_id, setup_time_mins, run_time_mins, overlap_percent,
+    machine_hourly_rate, labor_hourly_rate, overhead_hourly_rate, total_hourly_rate,
+    machine_cost_per_unit, labor_cost_per_unit, overhead_cost_per_unit, total_cost_per_unit,
+    tooling_description, fixture_no, is_inspection_required, qc_checkpoints,
+    is_subcontracted, subcontract_vendor_id, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Routing 1 Operations (Gate Valve V1.0)
+    (1001, 1001, 10, 'OP-10', 'Rough CNC Turning & Flange Facing',
+     1001, 1001, 30.00, 15.00, 0.00,
+     450.00, 180.00, 120.00, 750.00,
+     135.0000, 54.0000, 36.0000, 225.0000,
+     'CNMG 120408 carbide insert, live tool turning block, 3-jaw hydraulic chuck', 'FIX-CNC-FLANGE-01',
+     TRUE, 'Check flange OD 152.4 ± 0.2 mm and face flatness <= 0.05 mm',
+     FALSE, NULL, 'Initial roughing and sealing face preparation', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 20, 'OP-20', 'Bonnet Bolting PCD Drilling & Milling Keyway',
+     1001, 1002, 20.00, 12.00, 10.00,
+     450.00, 180.00, 120.00, 750.00,
+     105.0000, 42.0000, 28.0000, 175.0000,
+     'Solid carbide 4-flute end mill Ø16mm, coolant-thru drill Ø18mm', 'JIG-PCD-4HOLE',
+     TRUE, 'Verify 4x bolt hole PCD 120.7 mm ± 0.1 mm, through clearance',
+     FALSE, NULL, '4-hole bolting pattern and internal wedge guide keyway', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1001, 30, 'OP-30', 'Atmosphere Gas Carburizing & Case Hardening',
+     1003, 1006, 45.00, 60.00, 0.00,
+     800.00, 200.00, 250.00, 1250.00,
+     860.0000, 215.0000, 268.7500, 1343.7500,
+     'Inconel heat-treat basket tray, carbon probe calibration fixture', 'BSK-HT-400',
+     TRUE, 'Surface hardness 52-56 HRC; effective case depth 0.8-1.0 mm',
+     FALSE, NULL, 'Batch atmosphere heating at 920°C followed by controlled oil quench', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1004, 1001, 40, 'OP-40', 'Precision Finish Grinding of Flange Face & Stem Seat',
+     1001, 1003, 15.00, 10.00, 15.00,
+     450.00, 180.00, 120.00, 750.00,
+     86.2500, 34.5000, 23.0000, 143.7500,
+     'CBN precision grinding wheel, magnetic rotary face plate', 'FIX-GRD-SEAT',
+     TRUE, 'Surface roughness Ra <= 0.8 µm on sealing face; runout <= 0.02 mm',
+     FALSE, NULL, 'Ultra-precision seat grinding for Class 150 bubble-tight shutoff', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 1001, 50, 'OP-50', 'Valve Trim Assembly & 700-Bar Hydrostatic Pressure Testing',
+     1004, 1008, 15.00, 25.00, 0.00,
+     120.00, 150.00, 80.00, 350.00,
+     53.0000, 66.2500, 35.3300, 154.5800,
+     'Pneumatic torque wrench 80 Nm, digital pressure transducer 0-700 bar', 'RIG-HYDRO-50',
+     TRUE, 'API 598 Shell test at 350 bar for 15 mins; zero leakage allowed',
+     FALSE, NULL, 'Insert stem, bonnet gasket, handwheel, and perform hydro certification', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1006, 1001, 60, 'OP-60', 'Electrostatic Epoxy Powder Coating & Oven Curing',
+     1005, 1010, 20.00, 18.00, 25.00,
+     300.00, 160.00, 120.00, 580.00,
+     100.0000, 53.3300, 40.0000, 193.3300,
+     'OptiSpray dense phase guns, hanging hook tree, infrared curing temp logger', 'TREE-COAT-01',
+     TRUE, 'Dry Film Thickness (DFT) 80-120 µm, cross-hatch adhesion 100%',
+     FALSE, NULL, 'Corrosion-resistant marine epoxy blue coating RAL 5005', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing 2 Operations (Automotive Hydromount V1.0)
+    (1007, 1002, 10, 'OP-10', 'Core Pin CNC Turning & Retaining Ring Grooving',
+     1001, 1001, 25.00, 6.00, 0.00,
+     450.00, 180.00, 120.00, 750.00,
+     54.3750, 21.7500, 14.5000, 90.6250,
+     'DNMG 110404 fine finishing insert, internal circlip grooving tool', 'COLLET-PIN-25',
+     TRUE, 'Pin diameter Ø25.00 ± 0.01 mm, groove width 1.30 mm',
+     FALSE, NULL, 'High tensile alloy core pin machining', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1008, 1002, 20, 'OP-20', 'Robotic Bracket MIG Welding & Seam Integrity',
+     1002, 1005, 20.00, 8.00, 20.00,
+     280.00, 220.00, 140.00, 640.00,
+     42.0000, 33.0000, 21.0000, 96.0000,
+     'Automated MIG torch nozzle, ER70S-6 wire spool 1.2mm, Ar+CO2 shielding gas', 'WELD-JIG-MNT-02',
+     TRUE, 'Visual weld throat 4.5 mm min; penetration verification',
+     FALSE, NULL, 'Robotic circumferential weld joining inner bracket to stamping shell', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1009, 1002, 30, 'OP-30', 'Automated Powder Coating & Polymer Curing',
+     1005, 1010, 15.00, 10.00, 15.00,
+     300.00, 160.00, 120.00, 580.00,
+     53.7500, 28.6700, 21.5000, 103.9200,
+     'OptiFlex electrostatic guns, satin black epoxy powder', 'TREE-MNT-B01',
+     TRUE, 'Salt spray resistance grade coating, thickness 60-90 µm',
+     FALSE, NULL, 'Protective underbody chassis coating', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1010, 1002, 40, 'OP-40', 'Hydraulic Glycol Filling, Sealing & Dynamic Load Testing',
+     1004, 1008, 20.00, 12.00, 0.00,
+     120.00, 150.00, 80.00, 350.00,
+     26.0000, 32.5000, 17.3300, 75.8300,
+     'Vacuum degassing fill nozzle, crimping ring press, dynamic frequency test bench', 'FIXT-VAC-FILL-01',
+     TRUE, 'Dynamic damping coefficient 1250 Ns/m ± 5%, zero air bubble inclusion',
+     FALSE, NULL, 'Automated glycol metering and vibration isolation test', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing 3 Operations (Gate Valve Body Sub-Assembly V1.0)
+    (1011, 1003, 10, 'OP-10', 'CNC Rough Boring & Internal Facing',
+     1001, 1001, 30.00, 22.00, 0.00,
+     450.00, 180.00, 120.00, 750.00,
+     187.5000, 75.0000, 50.0000, 312.5000,
+     'Heavy duty rough boring bar Ø45mm, carbide inserts WNMG 080408', 'CHUCK-4JAW-CAST',
+     TRUE, 'Internal bore diameter 48.5 ± 0.1 mm, wall thickness check',
+     FALSE, NULL, 'Cast body bore rough opening and flange seating face', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1012, 1003, 20, 'OP-20', 'Bonnet Mating Face Milling & Drilled Ports',
+     1001, 1002, 20.00, 14.00, 15.00,
+     450.00, 180.00, 120.00, 750.00,
+     120.0000, 48.0000, 32.0000, 200.0000,
+     'Shell face mill Ø63mm, solid carbide tap M16x2.0', 'TOMBSTONE-BODY-01',
+     TRUE, 'Thread pitch gauge pass, face flatness 0.03 mm',
+     FALSE, NULL, 'Top bonnet attachment face and gland bolt tap holes', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1013, 1003, 30, 'OP-30', 'Carburizing & Quenching Hardening',
+     1003, 1006, 30.00, 45.00, 0.00,
+     800.00, 200.00, 250.00, 1250.00,
+     640.0000, 160.0000, 200.0000, 1000.0000,
+     'Furnace stacking grid, thermocouple pyrometer monitor', 'GRID-FURNACE-02',
+     TRUE, 'Hardness 50-54 HRC at internal guide ribs',
+     FALSE, NULL, 'Wear resistance enhancement of valve body wedge guide ways', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing 4 Operations (Gate Valve V2.0 Draft)
+    (1014, 1004, 10, 'OP-10', 'High-Speed Combined CNC Turn-Mill',
+     1001, 1001, 25.00, 20.00, 0.00,
+     450.00, 180.00, 120.00, 750.00,
+     162.5000, 65.0000, 43.3300, 270.8300,
+     'Sandvik CoroTurn Prime multi-directional tooling, high-pressure coolant 70 bar', 'FIX-TURNO-FAST',
+     TRUE, 'Total tolerance within 0.025 mm, Ra <= 0.6 µm',
+     FALSE, NULL, 'Combined turn and mill in single setup on sub-spindle lathe', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1015, 1004, 20, 'OP-20', 'Atmosphere Gas Carburizing Rapid Cycle',
+     1003, 1006, 40.00, 48.00, 0.00,
+     800.00, 200.00, 250.00, 1250.00,
+     675.5600, 168.8900, 211.1100, 1055.5600,
+     'Optimized carbon boost-diffuse cycle profile with fast oil quench', 'BSK-HT-FAST',
+     TRUE, 'Hardness 52-56 HRC validated',
+     FALSE, NULL, 'Advanced vacuum carburizing cycle', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1016, 1004, 30, 'OP-30', 'Automated Test & Powder Coating Cell',
+     1004, 1008, 20.00, 22.00, 0.00,
+     200.00, 150.00, 100.00, 450.00,
+     77.7800, 58.3300, 38.8900, 175.0000,
+     'Integrated hydro test station with direct overhead conveyor to paint booth', 'CELL-INT-01',
+     TRUE, 'Continuous test and coat verification',
+     FALSE, NULL, 'Lean cellular manufacturing layout', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (routing_op_id) DO NOTHING;
+
+SELECT setval('seq_routing_op_id', GREATEST((SELECT COALESCE(MAX(routing_op_id), 1016) FROM tbl_mfg_routing_operation), 1016));
+
+-- Update BOM headers to link with their respective production routings
+UPDATE tbl_mfg_bom_header SET routing_id = 1001 WHERE bom_id = 1002 AND (routing_id IS NULL OR routing_id <> 1001);
+UPDATE tbl_mfg_bom_header SET routing_id = 1002 WHERE bom_id = 1001 AND (routing_id IS NULL OR routing_id <> 1002);
+UPDATE tbl_mfg_bom_header SET routing_id = 1003 WHERE bom_id = 1004 AND (routing_id IS NULL OR routing_id <> 1003);

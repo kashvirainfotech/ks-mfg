@@ -9,6 +9,7 @@ import {
   numeric,
   smallint,
   timestamp,
+  time,
   jsonb,
   unique,
 } from 'drizzle-orm/pg-core';
@@ -2226,4 +2227,278 @@ export const tblMfgBomByproduct = pgTable(
     isActive: boolean('is_active').notNull().default(true),
     ...standardAuditColumns,
   },
+);
+
+// ============================================================================
+// 19. Manufacturing Work Centers, Capacity & Shifts (Step 6.2)
+// ============================================================================
+
+export const tblMfgShift = pgTable(
+  'tbl_mfg_shift',
+  {
+    shiftId: bigint('shift_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_shift_id')`),
+    shiftCode: varchar('shift_code', { length: 30 }).notNull(),
+    shiftName: varchar('shift_name', { length: 100 }).notNull(),
+    startTime: time('start_time').notNull(),
+    endTime: time('end_time').notNull(),
+    breakDurationMins: integer('break_duration_mins').notNull().default(30),
+    effectiveWorkingHours: numeric('effective_working_hours', { precision: 5, scale: 2 })
+      .notNull()
+      .default('8.00'),
+    isNightShift: boolean('is_night_shift').notNull().default(false),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgShiftCode: unique('uq_mfg_shift_code').on(
+      table.compId,
+      table.branchId,
+      table.shiftCode,
+    ),
+  }),
+);
+
+export const tblMfgWorkCenter = pgTable(
+  'tbl_mfg_work_center',
+  {
+    workCenterId: bigint('work_center_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_work_center_id')`),
+    workCenterCode: varchar('work_center_code', { length: 50 }).notNull(),
+    workCenterName: varchar('work_center_name', { length: 250 }).notNull(),
+    workCenterType: varchar('work_center_type', { length: 30 })
+      .notNull()
+      .default('MACHINE'),
+    deptId: bigint('dept_id', { mode: 'number' }).references(
+      () => tblHrDepartment.deptId,
+    ),
+    locationDesc: varchar('location_desc', { length: 200 }),
+    capacityPerDayHours: numeric('capacity_per_day_hours', { precision: 6, scale: 2 })
+      .notNull()
+      .default('8.00'),
+    efficiencyPercent: numeric('efficiency_percent', { precision: 5, scale: 2 })
+      .notNull()
+      .default('85.00'),
+    capacityUom: varchar('capacity_uom', { length: 20 })
+      .notNull()
+      .default('HOURS'),
+    costPerHour: numeric('cost_per_hour', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    labourCostPerHour: numeric('labour_cost_per_hour', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    overheadCostPerHour: numeric('overhead_cost_per_hour', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalHourlyRate: numeric('total_hourly_rate', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    status: varchar('status', { length: 30 }).notNull().default('ACTIVE'),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgWorkCenterCode: unique('uq_mfg_work_center_code').on(
+      table.compId,
+      table.branchId,
+      table.workCenterCode,
+    ),
+  }),
+);
+
+export const tblMfgWorkCenterMachine = pgTable(
+  'tbl_mfg_work_center_machine',
+  {
+    wcMachineId: bigint('wc_machine_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_wc_machine_id')`),
+    workCenterId: bigint('work_center_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWorkCenter.workCenterId),
+    machineCode: varchar('machine_code', { length: 50 }).notNull(),
+    machineName: varchar('machine_name', { length: 200 }).notNull(),
+    modelNo: varchar('model_no', { length: 100 }),
+    serialNo: varchar('serial_no', { length: 100 }),
+    manufacturer: varchar('manufacturer', { length: 150 }),
+    installationDate: date('installation_date'),
+    warrantyExpiryDate: date('warranty_expiry_date'),
+    powerRatingKw: numeric('power_rating_kw', { precision: 8, scale: 2 }).default('0.00'),
+    status: varchar('status', { length: 30 }).notNull().default('OPERATIONAL'),
+    lastMaintenanceDate: date('last_maintenance_date'),
+    nextMaintenanceDue: date('next_maintenance_due'),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgWcMachineCode: unique('uq_mfg_wc_machine_code').on(
+      table.compId,
+      table.branchId,
+      table.machineCode,
+    ),
+  }),
+);
+
+export const tblMfgWorkCenterShift = pgTable(
+  'tbl_mfg_work_center_shift',
+  {
+    wcShiftId: bigint('wc_shift_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_wc_shift_id')`),
+    workCenterId: bigint('work_center_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWorkCenter.workCenterId),
+    shiftId: bigint('shift_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgShift.shiftId),
+    daysOfWeek: varchar('days_of_week', { length: 50 }).default('MON,TUE,WED,THU,FRI,SAT'),
+    operatorCount: integer('operator_count').notNull().default(1),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgWcShift: unique('uq_mfg_wc_shift').on(
+      table.workCenterId,
+      table.shiftId,
+    ),
+  }),
+);
+
+export const tblMfgRoutingHeader = pgTable(
+  'tbl_mfg_routing_header',
+  {
+    routingId: bigint('routing_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_routing_id')`),
+    routingCode: varchar('routing_code', { length: 50 }).notNull(),
+    routingName: varchar('routing_name', { length: 200 }).notNull(),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    versionNo: varchar('version_no', { length: 20 }).notNull().default('1.0'),
+    status: varchar('status', { length: 30 }).notNull().default('DRAFT'),
+    isDefault: boolean('is_default').notNull().default(true),
+    effectiveFrom: date('effective_from').notNull().default(sql`CURRENT_DATE`),
+    effectiveTo: date('effective_to'),
+    batchSize: numeric('batch_size', { precision: 14, scale: 3 })
+      .notNull()
+      .default('1.000'),
+    totalSetupTimeMins: numeric('total_setup_time_mins', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalRunTimeMins: numeric('total_run_time_mins', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalLeadTimeDays: numeric('total_lead_time_days', { precision: 6, scale: 2 })
+      .notNull()
+      .default('1.00'),
+    totalMachineCost: numeric('total_machine_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalLaborCost: numeric('total_labor_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalOverheadCost: numeric('total_overhead_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalCostPerUnit: numeric('total_cost_per_unit', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvedDate: timestamp('approved_date', { withTimezone: true }),
+    approvalRemarks: varchar('approval_remarks', { length: 350 }),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgRoutingCode: unique('uq_mfg_routing_code').on(
+      table.compId,
+      table.routingCode,
+    ),
+    uqMfgRoutingVersion: unique('uq_mfg_routing_version').on(
+      table.compId,
+      table.itemId,
+      table.versionNo,
+    ),
+  }),
+);
+
+export const tblMfgRoutingOperation = pgTable(
+  'tbl_mfg_routing_operation',
+  {
+    routingOpId: bigint('routing_op_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_routing_op_id')`),
+    routingId: bigint('routing_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgRoutingHeader.routingId),
+    opSequence: integer('op_sequence').notNull().default(10),
+    opCode: varchar('op_code', { length: 30 }).notNull(),
+    opName: varchar('op_name', { length: 200 }).notNull(),
+    workCenterId: bigint('work_center_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWorkCenter.workCenterId),
+    machineId: bigint('machine_id', { mode: 'number' }).references(
+      () => tblMfgWorkCenterMachine.wcMachineId,
+    ),
+    setupTimeMins: numeric('setup_time_mins', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    runTimeMins: numeric('run_time_mins', { precision: 10, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    overlapPercent: numeric('overlap_percent', { precision: 5, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    machineHourlyRate: numeric('machine_hourly_rate', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    laborHourlyRate: numeric('labor_hourly_rate', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    overheadHourlyRate: numeric('overhead_hourly_rate', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalHourlyRate: numeric('total_hourly_rate', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    machineCostPerUnit: numeric('machine_cost_per_unit', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    laborCostPerUnit: numeric('labor_cost_per_unit', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    overheadCostPerUnit: numeric('overhead_cost_per_unit', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    totalCostPerUnit: numeric('total_cost_per_unit', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    toolingDescription: varchar('tooling_description', { length: 300 }),
+    fixtureNo: varchar('fixture_no', { length: 100 }),
+    isInspectionRequired: boolean('is_inspection_required').notNull().default(false),
+    qcCheckpoints: varchar('qc_checkpoints', { length: 350 }),
+    isSubcontracted: boolean('is_subcontracted').notNull().default(false),
+    subcontractVendorId: bigint('subcontract_vendor_id', { mode: 'number' }).references(
+      () => tblCrmParty.partyId,
+    ),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgRoutingOpSeq: unique('uq_mfg_routing_op_seq').on(
+      table.routingId,
+      table.opSequence,
+    ),
+  }),
 );

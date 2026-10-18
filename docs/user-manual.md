@@ -838,3 +838,69 @@ When a new screen is released, this manual provides:
      * If a BOM is referenced as a sub-assembly child in any active parent BOM, deletion is blocked with a descriptive conflict message.
      * Draft or obsolete unreferenced BOMs can be safely deleted via `<ConfirmDeleteModal>`.
 * **Action Buttons:** `Print Datasheet` (`MFG_BOM -> PRINT`), `Export Register` (`MFG_BOM -> EXPORT`), `+ New Bill of Materials` (`MFG_BOM -> ADD`), `Edit BOM` (`MFG_BOM -> EDIT`), `Multi-Level Tree Explosion` (`MFG_BOM -> EXPLODE`), `Clone Revision` (`MFG_BOM -> CLONE`), `Approve & Release` (`MFG_BOM -> APPROVE`), and `Delete BOM` (`MFG_BOM -> DELETE`).
+
+
+### 2.26 Step 6.2 — Work Centers, Production Lines, Capacity & Shift Calendars (`/manufacturing/work-centers`)
+
+* **Screen Code:** `MFG_WORK_CENTER` (Screen ID: `1025`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Work Centers & Capacities`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `DESIGN_ENG`, `STORE_OFFICER`
+* **Operational Capabilities:**
+  1. **Executive Work Center & Capacity Architecture KPIs:**
+     * **Total Work Centers:** Total production cells, CNC machining bays, assembly lines, furnaces, and workstations configured in the factory branch.
+     * **Daily Rated Capacity:** Cumulative standard working hours available across all active work centers per day (e.g. 80.0 Hours/Day across 5 cells).
+     * **Plant Machinery & Assets:** Total capital equipment and machine tools installed on the shopfloor along with live operational vs breakdown status (e.g. 10/10 Operational).
+     * **Weighted Factory Efficiency:** Overall Equipment Effectiveness (OEE) and efficiency percentage benchmark across manufacturing bays (e.g. 85.4% average OEE).
+  2. **Multi-Classification Work Center Register:**
+     * High-density master listing supporting six distinct classifications: `MACHINE` (CNC lathes, milling centers), `LINE_ASSEMBLY` (conveyorized lines, packaging benches), `MANUAL` (bench fitting, deburring), `FURNACE` (sealed quench carburizing, tempering), `TEST_BENCH` (hydrostatic testing, CMM), and `SUBCONTRACTOR` (external partner processing).
+     * Filterable by Operational Status (`ACTIVE`, `UNDER_MAINTENANCE`, `INACTIVE`), Classification Type, and Shopfloor Department (`PROD-CNC`, `MAINT-ENG`, etc.).
+  3. **3-Tab Work Center & Cell Configuration Modal:**
+     * **Tab 1: General Specifications & Rated Capacity:** Configure unique work center code (`WC-CNC-01`), descriptive title, department linkage, shopfloor bay location, daily standard working capacity in hours (up to 24 hrs), efficiency / OEE percentage rating (compounding effective hours = $\text{Capacity Hours} \times \frac{\text{OEE \%}}{100}$), capacity UOM, status, and engineering remarks.
+     * **Tab 2: Machinery & Capital Assets Register:** Associate physical equipment and machine tools with machine code, description, model number, serial number, OEM manufacturer, installation date, warranty expiration date, power rating in kW, operational status, and preventive maintenance scheduling.
+     * **Tab 3: Shift Calendars & Hourly Cost Absorption Matrix:** Allocate one or multiple factory working shifts with assigned operator staffing counts. Define direct machine operating cost (₹/hr), direct operator labor cost (₹/hr), and factory overhead/power absorption cost (₹/hr) to auto-compute the standard total hourly rate (₹/hr) utilized in Production Routings and Work Order variance costing.
+  4. **Machinery Maintenance & Breakdown Logging (`MAINTENANCE`):**
+     * Dedicated maintenance action modal (`Wrench`) to update individual machine operational statuses (`OPERATIONAL`, `BREAKDOWN`, `STANDBY`, `DECOMMISSIONED`).
+     * Log preventive maintenance service dates, next PM due dates, and maintenance engineering remarks.
+     * Intelligent cell failover: if all machinery assigned to a work center is marked as `BREAKDOWN`, the system automatically transitions the parent work center's status to `UNDER_MAINTENANCE`.
+  5. **Factory Shift Management Modal:**
+     * Shortcut to inspect and register factory production shifts (`tbl_mfg_shift`) complete with shift code (`SHIFT-GEN`, `SHIFT-M1`, `SHIFT-E1`, `SHIFT-N1`), shift start/end times, lunch/tea break durations, effective working hours (e.g. 8.00 hrs, 6.50 hrs), and overnight night shift flags.
+  6. **Official Printable Work Center Capacity & Equipment Datasheet (`PRINT`):**
+     * Professional A4 engineering datasheet (`@media print`) complete with Kashvira Infotech corporate manufacturing header, work center specifications, installed machinery inventory table, shift operational schedule, absorption hourly cost matrix, and dual supervisory sign-offs (Maintenance Engineer & Works Manager).
+  7. **Controlled Deletion & Referential Integrity Guard (`DELETE`):**
+     * Validates that work centers are unlinked from active production routings or operations before allowing permanent removal.
+     * Cascading cleanup of assigned machine links and shift mappings within a managed database transaction.
+* **Action Buttons:** `Print Datasheet` (`MFG_WORK_CENTER -> PRINT`), `Export Register` (`MFG_WORK_CENTER -> EXPORT`), `+ New Work Center` (`MFG_WORK_CENTER -> ADD`), `Edit Work Center` (`MFG_WORK_CENTER -> EDIT`), `Log Maintenance / Breakdown` (`MFG_WORK_CENTER -> MAINTENANCE`), and `Delete Work Center` (`MFG_WORK_CENTER -> DELETE`).
+
+### 2.27 Step 6.3 — Production Routings, Operation Sequences, Standard Cycle Times & Machine Tooling (`/manufacturing/routings`)
+
+* **Screen Code:** `MFG_ROUTING` (Screen ID: `1026`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Production Routings`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `DESIGN_ENG`, `QA_HEAD`
+* **Operational Capabilities:**
+  1. **Executive Production Routing KPIs:**
+     * **Total Routings:** Total configured multi-stage production routings across all manufactured parts and assemblies.
+     * **Active Routings:** Approved and shopfloor-released production routings ready for manufacturing execution.
+     * **Configured Assemblies:** Distinct manufactured finished goods and sub-assemblies possessing active process routes.
+     * **Avg Run Cycle Time:** Fleet-wide average unit machining, treatment, and assembly cycle time in minutes.
+  2. **High-Density Master Routing Register:**
+     * Displays routing document code (`ROUT-{ITEM_CODE}-V{VER}`), item code & description, engineering version pill (`v1.0`, `v2.0`), release status badge (`ACTIVE`, `DRAFT`, `UNDER_REVIEW`, `OBSOLETE`), default indicator badge, sequential operations count, cumulative setup time, standard unit run cycle time, and standard absorption cost per unit in ₹.
+     * Filterable by status, manufactured assembly item, and default-only toggle.
+  3. **Interactive Sequential Operation Flow Timeline Visualizer (`Eye`):**
+     * Click any routing row to open an interactive chronological visualizer mapping each manufacturing operation stage (e.g. OP-10 -> OP-20 -> OP-30...).
+     * Highlights sequence number, operation name, assigned work center cell badge, preferred machine tool asset, standard setup & run minutes, line overlap percentages, tooling inserts and fixture catalog numbers, quality gate checkpoints with target tolerances, and operation cost contribution.
+  4. **3-Tab Production Routing Configuration Modal:**
+     * **Tab 1: Header & General Parameters:** Select manufactured assembly item, define routing document code, description name, revision version (e.g. `1.0`), standard batch lot size for setup amortization, release & expiry dates, default primary routing toggle, and engineering remarks.
+     * **Tab 2: Operation Sequencer:** Dynamic multi-row builder to add sequential stages (`+10` increments: 10, 20, 30...). Select work center (auto-populating machine, labor, and overhead absorption rates), preferred machine asset, setup time (mins), unit run cycle time (mins), line overlap %, tooling & insert specifications, fixture/jig IDs, quality gate toggle with inspection checkpoints, and subcontracting flags with vendor assignments. Supports drag/arrow stage reordering.
+     * **Tab 3: Absorption Costing & Summary:** Live cost distribution rollup displaying direct machinery absorption (₹), direct operator labor cost (₹), factory overhead absorption (₹), and total standard routing cost per unit. Auto-computes estimated shopfloor lead time in days.
+  5. **Routing Engineering Approval & Release Workflow (`APPROVE`):**
+     * Promotes draft engineering routings to `ACTIVE` status with reviewer remarks, audit timestamping, and authorized user credentials.
+     * Includes automated option to mark the approved version as the primary default routing and seamlessly sync/link its routing ID to the item's active Bill of Materials (`tbl_mfg_bom_header.routing_id`).
+  6. **1-Click Routing Revision & Cloning (`CLONE`):**
+     * Duplicates an existing routing to a new target revision (e.g. `1.1` or `2.0`) with updated document code.
+     * Copies all sequential operation stages, tooling specs, and machine assignments into a new `DRAFT` revision for engineering change optimization.
+  7. **Official Printable Shopfloor Route Traveler Card (`PRINT`):**
+     * Professional ISO 9001 / IATF 16949 compliant routing traveler sheet (`@media print`) complete with Kashvira Infotech manufacturing header, part numbers, batch quantity, drawing revision, operation sequence table, tooling references, inspection criticalities, and formal sign-off stamp blocks (Operator Sign, QC Inspector Stamp, Production Engineer, Quality Assurance Head, and Plant Operations Manager).
+  8. **Controlled Referential Deletion Guard (`DELETE`):**
+     * Prevents deletion of active routings if they are linked to Bill of Materials (BOM) or production work orders.
+     * Performs cascading removal of child operations within an ACID transaction.
+* **Action Buttons:** `Print Traveler` (`MFG_ROUTING -> PRINT`), `Export Register` (`MFG_ROUTING -> EXPORT`), `+ New Routing` (`MFG_ROUTING -> ADD`), `Edit Routing` (`MFG_ROUTING -> EDIT`), `Timeline Visualizer` (`MFG_ROUTING -> VIEW`), `Clone Revision` (`MFG_ROUTING -> CLONE`), `Approve & Release` (`MFG_ROUTING -> APPROVE`), and `Delete Routing` (`MFG_ROUTING -> DELETE`).

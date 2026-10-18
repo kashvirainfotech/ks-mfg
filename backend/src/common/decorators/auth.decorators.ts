@@ -29,7 +29,8 @@ export type PermissionAction =
   | 'ASSIGN'
   | 'CONFIRM'
   | 'CLONE'
-  | 'EXPLODE';
+  | 'EXPLODE'
+  | 'MAINTENANCE';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

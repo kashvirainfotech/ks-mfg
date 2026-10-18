@@ -1322,3 +1322,137 @@ INSERT INTO tbl_sec_role_action_permission (
     (1005, 1024, 1072, TRUE, 1001, 1001, 1001, 1001),
     (1005, 1024, 1073, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.2 - Manufacturing Work Centers, Capacity & Shifts
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1025, 'MFG_WORK_CENTER', 'Work Centers, Capacity & Machine Assets', 'MANUFACTURING', '/manufacturing/work-centers', 'Cpu', 25, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1025) FROM tbl_sec_screen), 1025));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1074, 1025, 'EXPORT',      'Export Work Centers & Machinery Register',   TRUE, 1001, 1001, 1001, 1001),
+    (1075, 1025, 'PRINT',       'Print Work Center Capacity & Equipment Sheet', TRUE, 1001, 1001, 1001, 1001),
+    (1076, 1025, 'MAINTENANCE', 'Update Machinery Maintenance / Status Log',   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1076) FROM tbl_sec_action), 1076));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1025, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1025, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1025, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- QA_HEAD
+    (1004, 1025, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1005, 1025, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- PURCHASE_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1025, 1074, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1025, 1075, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1025, 1076, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER
+    (1002, 1025, 1074, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1025, 1075, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1025, 1076, TRUE, 1001, 1001, 1001, 1001),
+    -- QA_HEAD (View, Print)
+    (1003, 1025, 1074, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1025, 1075, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1025, 1076, FALSE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (View, Print, Maintenance)
+    (1004, 1025, 1074, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1025, 1075, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1025, 1076, TRUE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Print)
+    (1005, 1025, 1074, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1025, 1075, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1025, 1076, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.3 - Production Routings, Operation Sequences & Standard Cycle Times
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1026, 'MFG_ROUTING', 'Production Routings & Operations', 'MANUFACTURING', '/manufacturing/routings', 'Workflow', 26, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1026) FROM tbl_sec_screen), 1026));
+
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1077, 1026, 'EXPORT',  'Export Production Routings & Operations Sheet', TRUE, 1001, 1001, 1001, 1001),
+    (1078, 1026, 'PRINT',   'Print Routing Traveler & Shopfloor Route Card', TRUE, 1001, 1001, 1001, 1001),
+    (1079, 1026, 'APPROVE', 'Approve & Release Routing Version',            TRUE, 1001, 1001, 1001, 1001),
+    (1080, 1026, 'CLONE',   'Duplicate / Revise Production Routing',         TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1080) FROM tbl_sec_action), 1080));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1026, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1026, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1026, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- QA_HEAD
+    (1004, 1026, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1005, 1026, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001) -- PURCHASE_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN
+    (1001, 1026, 1077, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1026, 1078, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1026, 1079, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1026, 1080, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER
+    (1002, 1026, 1077, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1026, 1078, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1026, 1079, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1026, 1080, TRUE, 1001, 1001, 1001, 1001),
+    -- QA_HEAD (View, Print)
+    (1003, 1026, 1077, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1026, 1078, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1026, 1079, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1026, 1080, FALSE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (View, Print)
+    (1004, 1026, 1077, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1026, 1078, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1026, 1079, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1026, 1080, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Print)
+    (1005, 1026, 1077, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1026, 1078, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1026, 1079, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1026, 1080, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;

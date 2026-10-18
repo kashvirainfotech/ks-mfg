@@ -143,6 +143,8 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 
 ### ⚙️ Phase 6: Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`)
 - **Step 6.1 — Multi-Level Bill of Materials (BOM), Versions, Scrap Factors & Co-Products / By-Products (`/manufacturing/boms`)**: Engineering product recipes and hierarchical assembly structures (`tbl_mfg_bom_header`, `tbl_mfg_bom_item`, `tbl_mfg_bom_byproduct`) with recursive indented tree explosion (`EXPLODE`), automated cycle detection, process scrap factors (`scrap_factor_percent`), co-product and recoverable scrap recovery credits, 1-click version cloning (`CLONE`), engineering approval workflow (`APPROVE`), live absorption cost rollups, and printable costed engineering datasheets (`PRINT`).
+- **Step 6.2 — Work Centers, Production Lines, Capacity & Shift Calendars (`/manufacturing/work-centers`)**: Shopfloor workstations, CNC machining cells, assembly lines, and furnaces (`tbl_mfg_work_center`), capital machinery assets (`tbl_mfg_work_center_machine`), factory production shifts (`tbl_mfg_shift`), working shift allocations (`tbl_mfg_work_center_shift`), daily rated capacity & OEE efficiency calculations, machine breakdown and maintenance logging (`MAINTENANCE`), absorption hourly cost matrices (machine + labor + overhead rates), and printable work center capacity sheets (`PRINT`).
+- **Step 6.3 — Production Routings, Operation Sequences, Standard Cycle Times & Machine Tooling (`/manufacturing/routings`)**: Chronological multi-stage manufacturing operation sequences (`tbl_mfg_routing_header` & `tbl_mfg_routing_operation`), work center cell assignment, preferred machine tooling and fixture tracking, setup & run cycle times, interactive sequential operation flow timeline visualizer (`VIEW`), engineering approval workflow (`APPROVE`), 1-click revision cloning (`CLONE`), absorption unit costing rollups, and printable ISO/IATF shopfloor route traveler cards (`PRINT`).
 
 ---
 
@@ -162,7 +164,8 @@ Development proceeds strictly **one screen/feature at a time**, completely imple
   - Complete Procure-to-Pay (P2P) closed loop: Material Requisition $\rightarrow$ RFQ Bidding $\rightarrow$ Purchase Order $\rightarrow$ Gate Security $\rightarrow$ Goods Receipt $\rightarrow$ Quality Lab Inspection $\rightarrow$ Bin Put-Away $\rightarrow$ Purchase Invoice 3-Way Matching & AP Clearance.
 - **Phase 6 — Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`) (🚀 In Active Development)**:
   - ✅ **Step 6.1**: Multi-Level Bill of Materials (BOM) with versions, scrap factors, and co-products/by-products (`/manufacturing/boms`).
-  - Work Centers, Machines, Shift Calendars & Production Routings.
+  - ✅ **Step 6.2**: Work Centers, Production Lines, Capacity & Shift Calendars (`/manufacturing/work-centers`).
+  - ✅ **Step 6.3**: Production Routings, Operation Sequences, Cycle Times & Tooling (`/manufacturing/routings`).
   - Material Requirements Planning (MRP) $\rightarrow$ Production Work Orders $\rightarrow$ Material Issue / Backflushing $\rightarrow$ Stage-Wise Production & QC $\rightarrow$ Subcontractor Job-Work Outward/Inward $\rightarrow$ FG Receipt & Actual Costing.
 - **Phase 7 — Sales Order, Reservation, Dispatch & Invoicing (`SALES`)**:
   - Customer Inquiry / Quotation $\rightarrow$ Sales Order (SO) & ATP Stock Reservation $\rightarrow$ Pick/Pack/Delivery Challan $\rightarrow$ GST Tax Invoice & Sales Return.

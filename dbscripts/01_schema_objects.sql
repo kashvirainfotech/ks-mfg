@@ -1925,3 +1925,230 @@ CREATE TABLE IF NOT EXISTS tbl_mfg_bom_byproduct (
 
 CREATE INDEX IF NOT EXISTS idx_mfg_bom_byproduct_bom ON tbl_mfg_bom_byproduct (bom_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_mfg_bom_byproduct_item ON tbl_mfg_bom_byproduct (item_id);
+
+
+-- ============================================================================
+-- 45. FACTORY SHIFT MASTER (tbl_mfg_shift)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_shift_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_shift (
+    shift_id                    BIGINT          PRIMARY KEY DEFAULT nextval('seq_shift_id'),
+    shift_code                  VARCHAR(30)     NOT NULL,
+    shift_name                  VARCHAR(100)    NOT NULL,
+    start_time                  TIME            NOT NULL,
+    end_time                    TIME            NOT NULL,
+    break_duration_mins         INT             NOT NULL DEFAULT 30,
+    effective_working_hours     NUMERIC(5, 2)   NOT NULL DEFAULT 8.00,
+    is_night_shift              BOOLEAN         NOT NULL DEFAULT FALSE,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_shift_code UNIQUE (comp_id, branch_id, shift_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_shift_comp_branch ON tbl_mfg_shift (comp_id, branch_id, is_active);
+
+
+-- ============================================================================
+-- 46. MANUFACTURING WORK CENTERS & PRODUCTION CELLS (tbl_mfg_work_center)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_work_center_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_work_center (
+    work_center_id              BIGINT          PRIMARY KEY DEFAULT nextval('seq_work_center_id'),
+    work_center_code            VARCHAR(50)     NOT NULL,
+    work_center_name            VARCHAR(250)    NOT NULL,
+    work_center_type            VARCHAR(30)     NOT NULL DEFAULT 'MACHINE'
+                                                CHECK (work_center_type IN ('MACHINE', 'LINE_ASSEMBLY', 'MANUAL', 'FURNACE', 'TEST_BENCH', 'SUBCONTRACTOR')),
+    dept_id                     BIGINT          REFERENCES tbl_hr_department(dept_id),
+    location_desc               VARCHAR(200),
+    capacity_per_day_hours      NUMERIC(6, 2)   NOT NULL DEFAULT 8.00,
+    efficiency_percent          NUMERIC(5, 2)   NOT NULL DEFAULT 85.00,
+    capacity_uom                VARCHAR(20)     NOT NULL DEFAULT 'HOURS',
+    cost_per_hour               NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    labour_cost_per_hour        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    overhead_cost_per_hour      NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_hourly_rate           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'ACTIVE'
+                                                CHECK (status IN ('ACTIVE', 'UNDER_MAINTENANCE', 'INACTIVE')),
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_work_center_code UNIQUE (comp_id, branch_id, work_center_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_work_center_comp ON tbl_mfg_work_center (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_work_center_status ON tbl_mfg_work_center (comp_id, status);
+CREATE INDEX IF NOT EXISTS idx_mfg_work_center_type ON tbl_mfg_work_center (comp_id, work_center_type);
+
+
+-- ============================================================================
+-- 47. WORK CENTER MACHINES & ASSETS (tbl_mfg_work_center_machine)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_wc_machine_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_work_center_machine (
+    wc_machine_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_wc_machine_id'),
+    work_center_id              BIGINT          NOT NULL REFERENCES tbl_mfg_work_center(work_center_id) ON DELETE CASCADE,
+    machine_code                VARCHAR(50)     NOT NULL,
+    machine_name                VARCHAR(200)    NOT NULL,
+    model_no                    VARCHAR(100),
+    serial_no                   VARCHAR(100),
+    manufacturer                VARCHAR(150),
+    installation_date           DATE,
+    warranty_expiry_date        DATE,
+    power_rating_kw             NUMERIC(8, 2)   DEFAULT 0.00,
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'OPERATIONAL'
+                                                CHECK (status IN ('OPERATIONAL', 'BREAKDOWN', 'STANDBY', 'DECOMMISSIONED')),
+    last_maintenance_date       DATE,
+    next_maintenance_due        DATE,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_wc_machine_code UNIQUE (comp_id, branch_id, machine_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_wc_machine_wc ON tbl_mfg_work_center_machine (work_center_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_wc_machine_status ON tbl_mfg_work_center_machine (comp_id, status);
+
+
+-- ============================================================================
+-- 48. WORK CENTER SHIFT ALLOCATIONS (tbl_mfg_work_center_shift)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_wc_shift_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_work_center_shift (
+    wc_shift_id                 BIGINT          PRIMARY KEY DEFAULT nextval('seq_wc_shift_id'),
+    work_center_id              BIGINT          NOT NULL REFERENCES tbl_mfg_work_center(work_center_id) ON DELETE CASCADE,
+    shift_id                    BIGINT          NOT NULL REFERENCES tbl_mfg_shift(shift_id),
+    days_of_week                VARCHAR(50)     DEFAULT 'MON,TUE,WED,THU,FRI,SAT',
+    operator_count              INT             NOT NULL DEFAULT 1,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_wc_shift UNIQUE (work_center_id, shift_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_wc_shift_wc ON tbl_mfg_work_center_shift (work_center_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_wc_shift_shift ON tbl_mfg_work_center_shift (shift_id);
+
+-- ============================================================================
+-- 49. MANUFACTURING ROUTING HEADER (tbl_mfg_routing_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_routing_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_routing_header (
+    routing_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_routing_id'),
+    routing_code                VARCHAR(50)     NOT NULL,
+    routing_name                VARCHAR(200)    NOT NULL,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    version_no                  VARCHAR(20)     NOT NULL DEFAULT '1.0',
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'ACTIVE', 'OBSOLETE', 'UNDER_REVIEW')),
+    is_default                  BOOLEAN         NOT NULL DEFAULT TRUE,
+    effective_from              DATE            NOT NULL DEFAULT CURRENT_DATE,
+    effective_to                DATE,
+    batch_size                  NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    total_setup_time_mins       NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    total_run_time_mins         NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    total_lead_time_days        NUMERIC(6, 2)   NOT NULL DEFAULT 1.00,
+    total_machine_cost          NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_labor_cost            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_overhead_cost         NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_cost_per_unit         NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    approved_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approved_date               TIMESTAMPTZ,
+    approval_remarks            VARCHAR(350),
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_routing_code UNIQUE (comp_id, routing_code),
+    CONSTRAINT uq_mfg_routing_version UNIQUE (comp_id, item_id, version_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_routing_header_comp ON tbl_mfg_routing_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_routing_header_item ON tbl_mfg_routing_header (comp_id, item_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_routing_header_status ON tbl_mfg_routing_header (comp_id, status);
+
+
+-- ============================================================================
+-- 50. MANUFACTURING ROUTING OPERATIONS (tbl_mfg_routing_operation)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_routing_op_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_routing_operation (
+    routing_op_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_routing_op_id'),
+    routing_id                  BIGINT          NOT NULL REFERENCES tbl_mfg_routing_header(routing_id) ON DELETE CASCADE,
+    op_sequence                 INT             NOT NULL DEFAULT 10,
+    op_code                     VARCHAR(30)     NOT NULL,
+    op_name                     VARCHAR(200)    NOT NULL,
+    work_center_id              BIGINT          NOT NULL REFERENCES tbl_mfg_work_center(work_center_id),
+    machine_id                  BIGINT          REFERENCES tbl_mfg_work_center_machine(wc_machine_id),
+    setup_time_mins             NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    run_time_mins               NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    overlap_percent             NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    machine_hourly_rate         NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    labor_hourly_rate           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    overhead_hourly_rate        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_hourly_rate           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    machine_cost_per_unit       NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    labor_cost_per_unit         NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    overhead_cost_per_unit      NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    total_cost_per_unit         NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    tooling_description         VARCHAR(300),
+    fixture_no                  VARCHAR(100),
+    is_inspection_required      BOOLEAN         NOT NULL DEFAULT FALSE,
+    qc_checkpoints              VARCHAR(350),
+    is_subcontracted            BOOLEAN         NOT NULL DEFAULT FALSE,
+    subcontract_vendor_id       BIGINT          REFERENCES tbl_crm_party(party_id),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_routing_op_seq UNIQUE (routing_id, op_sequence)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_routing_op_routing ON tbl_mfg_routing_operation (routing_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_routing_op_wc ON tbl_mfg_routing_operation (work_center_id);

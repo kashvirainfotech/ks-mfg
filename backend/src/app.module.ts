@@ -29,6 +29,8 @@ import { InwardQcModule } from './modules/quality/inward-qc/inward-qc.module';
 import { PutAwayModule } from './modules/inventory/put-away/put-away.module';
 import { InvoiceModule } from './modules/procurement/invoice/invoice.module';
 import { BomModule } from './modules/manufacturing/bom/bom.module';
+import { WorkCenterModule } from './modules/manufacturing/work-center/work-center.module';
+import { RoutingModule } from './modules/manufacturing/routing/routing.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -68,6 +70,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     PutAwayModule,
     InvoiceModule,
     BomModule,
+    WorkCenterModule,
+    RoutingModule,
   ],
   controllers: [AppController],
   providers: [

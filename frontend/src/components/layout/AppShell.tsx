@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarRange,
   ChevronDown,
+  Cpu,
   Factory,
   FileCheck2,
   FileSpreadsheet,
@@ -34,6 +35,7 @@ import {
   UserCog,
   Users,
   Warehouse,
+  Workflow,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -182,6 +184,20 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Bill of Materials (BOM)',
         path: '/manufacturing/boms',
         icon: Layers,
+        badge: 'Live',
+      },
+      {
+        code: 'MFG_WORK_CENTER',
+        label: 'Work Centers & Capacities',
+        path: '/manufacturing/work-centers',
+        icon: Cpu,
+        badge: 'Live',
+      },
+      {
+        code: 'MFG_ROUTING',
+        label: 'Production Routings',
+        path: '/manufacturing/routings',
+        icon: Workflow,
         badge: 'Live',
       },
     ],
