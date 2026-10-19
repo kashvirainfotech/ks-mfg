@@ -33,7 +33,24 @@ export type PermissionAction =
   | 'RUN_MRP'
   | 'CONVERT'
   | 'CLOSE'
-  | 'RETURN';
+  | 'RETURN'
+  | 'START'
+  | 'COMPLETE'
+  | 'DISPATCH'
+  | 'RECEIVE'
+  | 'RECONCILE'
+  | 'POST'
+  | 'CONVERT_TO_SO'
+  | 'REVISE'
+  | 'CREATE_WO'
+  | 'HOLD'
+  | 'PICK'
+  | 'PACK'
+  | 'GENERATE_IRN'
+  | 'RECORD_PAYMENT'
+  | 'INSPECT'
+  | 'POST_CREDIT_NOTE'
+  | 'RESTOCK';
 
 export interface UserProfile {
   userId: number;

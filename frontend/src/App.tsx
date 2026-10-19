@@ -39,6 +39,14 @@ import { RoutingMasterPage } from './pages/manufacturing/RoutingMasterPage';
 import { MrpMasterPage } from './pages/manufacturing/MrpMasterPage';
 import { WorkOrderMasterPage } from './pages/manufacturing/WorkOrderMasterPage';
 import { MaterialIssueMasterPage } from './pages/manufacturing/MaterialIssueMasterPage';
+import { JobCardMasterPage } from './pages/manufacturing/JobCardMasterPage';
+import { JobWorkMasterPage } from './pages/manufacturing/JobWorkMasterPage';
+import { FgReceiptMasterPage } from './pages/manufacturing/FgReceiptMasterPage';
+import { QuotationMasterPage } from './pages/sales/QuotationMasterPage';
+import { SalesOrderMasterPage } from './pages/sales/SalesOrderMasterPage';
+import { DeliveryChallanMasterPage } from './pages/sales/DeliveryChallanMasterPage';
+import { SalesInvoiceMasterPage } from './pages/sales/SalesInvoiceMasterPage';
+import { SalesReturnMasterPage } from './pages/sales/SalesReturnMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -323,6 +331,70 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <MaterialIssueMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/job-cards"
+              element={
+                <ProtectedLayout>
+                  <JobCardMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/job-work"
+              element={
+                <ProtectedLayout>
+                  <JobWorkMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/fg-receipts"
+              element={
+                <ProtectedLayout>
+                  <FgReceiptMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/sales/quotations"
+              element={
+                <ProtectedLayout>
+                  <QuotationMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/sales/orders"
+              element={
+                <ProtectedLayout>
+                  <SalesOrderMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/sales/delivery-challans"
+              element={
+                <ProtectedLayout>
+                  <DeliveryChallanMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/sales/invoices"
+              element={
+                <ProtectedLayout>
+                  <SalesInvoiceMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/sales/returns"
+              element={
+                <ProtectedLayout>
+                  <SalesReturnMasterPage />
                 </ProtectedLayout>
               }
             />

@@ -1043,5 +1043,397 @@ When a new screen is released, this manual provides:
      * Posted issue slips are locked and immutable, guaranteeing financial ledger and inventory integrity.
 * **Action Buttons:** `New Material Issue` (`MFG_MATERIAL_ISSUE -> ADD`), `Return to Store` (`MFG_MATERIAL_ISSUE -> RETURN`), `Submit & Post` (`MFG_MATERIAL_ISSUE -> SUBMIT`), `Print Voucher` (`MFG_MATERIAL_ISSUE -> PRINT`), `Export Register` (`MFG_MATERIAL_ISSUE -> EXPORT`), `View Details` (`MFG_MATERIAL_ISSUE -> VIEW`), and `Delete Slip` (`MFG_MATERIAL_ISSUE -> DELETE`).
 
+### 2.31 Step 6.7 — Stage-Wise Production Job Cards, Operation Time Logging & In-Process QC Inspection (`/manufacturing/job-cards`)
+
+* **Screen Code:** `MFG_JOB_CARD` (Screen ID: `1030`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Job Cards & Shopfloor MES`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `PRODUCTION_SUPERVISOR`, `OPERATOR`, `QUALITY_HEAD`, `QC_INSPECTOR`
+* **Operational Capabilities:**
+  1. **Executive Shopfloor Job Card & MES KPIs:**
+     * **Total Job Cards:** Fleet-wide count of all issued routing operation travelers across plant workstations and CNC cells.
+     * **Active Jobs (Running):** Live counter of operations currently in progress on shopfloor machines.
+     * **Pending Dispatch / Queued:** Operations released and waiting for operator machine clock-in.
+     * **In-Process QC Clearances:** Total operation lots successfully inspected and stamped accepted by QA inspectors.
+  2. **Job Card Traveler Identification & Lifecycle:**
+     * Unique shopfloor traveler numbering scheme: `JC-{BRANCH}-{FYEAR}-XXXX` (e.g. `JC-AHM-2627-0001`).
+     * State lifecycle:
+       $$\text{PENDING} \longrightarrow \text{IN_PROGRESS} \longrightarrow \text{COMPLETED} \quad (\text{or } \text{CANCELLED})$$
+     * In-Process QC status lifecycle:
+       $$\text{NA} \quad \text{or} \quad \text{PENDING} \longrightarrow \text{ACCEPTED} \quad (\text{or } \text{REJECTED} \text{ / } \text{DEVIATION_ACCEPTED})$$
+  3. **1-Click "Generate Job Cards from Work Order":**
+     * Automatically scans active Work Orders (`RELEASED` / `IN_PROGRESS`) and identifies unassigned routing operations from `tbl_mfg_wo_routing_op`.
+     * Generates sequential Job Cards with frozen work center, standard setup time, standard run time per unit, machine asset assignment, and initial input quantity.
+  4. **Shopfloor Clock-In / Start Job Workflow (`START`):**
+     * Sets `actual_start_time = CURRENT_TIMESTAMP`, updates Job Card status to `IN_PROGRESS`, and transitions the parent Work Order to `IN_PROGRESS`.
+  5. **Granular Shift / Interval Time & Output Booking (`LOG_TIME`):**
+     * Records operator shift-wise booking:
+       * Setup Time (minutes), Run Time (minutes), Downtime (minutes), and Downtime Reason Code (e.g., Tool Breakage, Maintenance, Material Shortage, Power Failure).
+       * Good Output Pieces, Scrapped Pieces, and Rework Pieces.
+     * Automatically recalculates actual absorbed operation costs:
+       $$\text{Operation Cost} = \left(\frac{\text{Total Time Mins}}{60.0}\right) \times \text{Work Center Hourly Rate}$$
+  6. **In-Process Quality Control (IPQC) Clearance Workflow (`APPROVE`):**
+     * Inspects operation output against engineering tolerance drawings.
+     * Captures sample size, accepted pieces, rejected pieces, visual/dimensional remarks, and inspector digital stamps.
+     * Enforces that operations with `is_inspection_required = true` cannot complete without `ACCEPTED` or `DEVIATION_ACCEPTED` clearance.
+  7. **Stage Handover & Work Order Cost Rollup (`COMPLETE`):**
+     * Automatically transfers good output quantity to the next sequential operation's input queue ($\text{input\_qty} = \text{current}.\text{completed\_qty}$).
+     * When all routing operations of a Work Order reach completion, rolls up cumulative operation costs into `tbl_mfg_wo_header.actual_operation_cost`.
+  8. **Printable Shopfloor Route Traveler & Job Card Sheet (`PRINT`):**
+     * High-density ISO 9001 / IATF 16949 compliant traveler card with corporate header, barcode simulation, item specifications, drawing reference, operation step instructions, operator time log sheet, and QC stamp blocks.
+  9. **Controlled Referential Deletion Guard (`DELETE`):**
+     * Deletion is restricted to `PENDING` job cards with no associated time booking logs.
+* **Action Buttons:** `New Job Card` (`MFG_JOB_CARD -> ADD`), `Generate from Work Order` (`MFG_JOB_CARD -> ADD`), `Clock-In / Start` (`MFG_JOB_CARD -> START`), `Log Time & Output` (`MFG_JOB_CARD -> EDIT`), `In-Process QC Clearance` (`MFG_JOB_CARD -> APPROVE`), `Complete Stage` (`MFG_JOB_CARD -> COMPLETE`), `Print Job Card Traveler` (`MFG_JOB_CARD -> PRINT`), `Export Register` (`MFG_JOB_CARD -> EXPORT`), `View Details` (`MFG_JOB_CARD -> VIEW`), and `Delete Job Card` (`MFG_JOB_CARD -> DELETE`).
+
+
+
+
+
+### 2.32 Step 6.8 — Subcontractor Job-Work Outward Delivery Challan, Inward Receipt & Material Reconciliation (`/manufacturing/job-work`)
+
+* **Screen Code:** `MFG_JOB_WORK` (Screen ID: `1031`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Subcontractor Job-Work`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `PRODUCTION_SUPERVISOR`, `QUALITY_HEAD`, `QC_INSPECTOR`, `WAREHOUSE_OFFICER`
+* **Operational Capabilities:**
+  1. **Executive Subcontractor Job-Work & Reconciliation KPIs:**
+     * **Total Outward Challans:** Total delivery challans created across all third-party processing vendors.
+     * **Active / In-Process Challans:** Challans currently dispatched to vendors and awaiting processing and inward receipt.
+     * **Inward Receipts Recorded:** Cumulative processing batches received back from subcontractors with QC clearance.
+     * **Fully Reconciled & Closed:** Challans where total input quantity equals processed output plus scrap plus process loss.
+  2. **Indian GST Section 143 & Rule 55 Statutory Delivery Challan:**
+     * Outward delivery challan numbering scheme: `JW-OUT-{BRANCH}-{FYEAR}-XXXX` (e.g. `JW-OUT-AHM-2627-0001`).
+     * Inward receipt voucher numbering scheme: `JW-IN-{BRANCH}-{FYEAR}-XXXX` (e.g. `JW-IN-AHM-2627-0001`).
+     * Outward challan status lifecycle:
+       $$\text{DRAFT} \longrightarrow \text{DISPATCHED} \longrightarrow \text{PARTIALLY_RECEIVED} \longrightarrow \text{RECEIVED} \longrightarrow \text{RECONCILED} \quad (\text{or } \text{CANCELLED})$$
+     * Comprehensive logistics data: vendor (`tbl_crm_party`), parent Work Order, routing operation, nature of processing (e.g., Hard Chrome Plating, Heat Treatment, Phosphating, Precision CNC Milling), transporter name, vehicle registration number, and Indian GST E-Way Bill number.
+  3. **Challan Item Lines & Multi-Line Billable Accounting:**
+     * Tracks sent component/material (`tbl_inv_item`), HSN classification code, batch/heat numbers, unit valuation rate, sent quantity, returned good quantity, scrap returned, process loss, and pending balance.
+     * Enforces statutory return timeline under Section 143 (1 year for inputs, 3 years for capital machinery).
+  4. **Outward Dispatch Workflow (`DISPATCH`):**
+     * Transitions challan status from `DRAFT` to `DISPATCHED`, recording `dispatched_by` and `dispatched_at`.
+     * Automatically debits raw material/semi-finished inventory from the source warehouse with an immutable transaction in `tbl_inv_stock_ledger` (`PRODUCTION_ISSUE`).
+  5. **Inward Goods Receipt Workflow (`RECEIVE`):**
+     * Records inward receipt against an active outward challan, capturing vendor DC/invoice number, vehicle number, and e-way bill.
+     * Records stage-wise quality clearance (`ACCEPTED`, `REJECTED`, `DEVIATION_ACCEPTED`), scrap pieces returned, and allowable process losses.
+     * Captures subcontractor processing service charges plus 18% GST.
+     * Automatically credits accepted items into the target inventory warehouse (`PUTAWAY_INWARD` in `tbl_inv_stock_ledger`).
+     * Automatically accumulates actual subcontracting machining charges into parent Work Order headers (`tbl_mfg_wo_header.actual_operation_cost`).
+  6. **Material Reconciliation & Closure Workflow (`RECONCILE`):**
+     * Compares sent input quantities against total returned good units, returned scrap, and process losses.
+     * Verifies that the outstanding balance is zero ($\text{Sent} = \text{Received} + \text{Scrap} + \text{Loss}$).
+     * Transitions challan status to `RECONCILED` and locks the record against further alterations.
+  7. **Statutory Indian GST Section 143 Delivery Challan (`PRINT`):**
+     * High-density printable challan adhering to CGST Rule 55 requirements.
+     * Displays corporate header, GSTIN, PAN, CIN, job-worker consignee address and GSTIN, nature of processing declaration, line items with HSN and valuation, transporter info, and two-tier physical signature blocks:
+       * **Prepared By:** Stores & Logistics Officer
+       * **Authorized Signatory:** Factory Commercial / Dispatch Manager
+  8. **Controlled Referential Deletion Guard (`DELETE`):**
+     * Deletion is restricted to `DRAFT` challans with no associated stock ledger debits or inward receipts.
+* **Action Buttons:** `New Outward Challan` (`MFG_JOB_WORK -> ADD`), `Outward Dispatch` (`MFG_JOB_WORK -> DISPATCH`), `Receive Inward Goods` (`MFG_JOB_WORK -> RECEIVE`), `Reconcile Challan` (`MFG_JOB_WORK -> RECONCILE`), `Print GST Delivery Challan` (`MFG_JOB_WORK -> PRINT`), `Export Register` (`MFG_JOB_WORK -> EXPORT`), `View Details` (`MFG_JOB_WORK -> VIEW`), and `Delete Challan` (`MFG_JOB_WORK -> DELETE`).
+
+### 2.33 Step 6.9 — Finished Goods (FG) Production Receipt, Scrap/By-Product Accounting & Absorption Cost Rollup (`/manufacturing/fg-receipts`)
+
+* **Screen Code:** `MFG_FG_RECEIPT` (Screen ID: `1032`)
+* **Navigation Path:** `Sidebar -> MANUFACTURING & PRODUCTION -> Finished Goods Receipts`
+* **Primary Roles Authorized:** `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `PRODUCTION_SUPERVISOR`, `QUALITY_HEAD`, `QC_INSPECTOR`
+* **Operational Capabilities:**
+  1. **Executive FG Production Receipt & Costing KPIs:**
+     * **Total FG Receipts:** Fleet-wide count of all production handover vouchers created across plant workstations.
+     * **Posted & In-Stock:** Cumulative vouchers posted to WMS stock ledger with live units credited to sellable FG inventory.
+     * **Pending QC Clearance:** Production batches currently in draft awaiting QA physical/dimensional clearance.
+     * **Absorbed Production Cost:** Cumulative inventory valuation absorbed into finished items less scrap recovery credits.
+  2. **Finished Goods Receipt Numbering & State Lifecycle:**
+     * Receipt numbering scheme: `FGR-{BRANCH}-{FYEAR}-XXXX` (e.g. `FGR-AHM-2627-0001`).
+     * State lifecycle:
+       $$\text{DRAFT} \longrightarrow \text{POSTED} \quad (\text{or } \text{CANCELLED})$$
+     * QC Inspection lifecycle:
+       $$\text{PENDING} \longrightarrow \text{ACCEPTED} \quad (\text{or } \text{DEVIATION_ACCEPTED} \text{ / } \text{REJECTED})$$
+  3. **Work Order Integration & Batch Traceability:**
+     * Selects active Work Orders (`RELEASED`, `IN_PROGRESS`, `COMPLETED`), automatically populating finished item code, engineering drawing reference, base UOM, planned vs completed progress, and default target warehouse.
+     * Tracks shopfloor melt/batch lot numbers, heat numbers, manufacturing date, and optional expiration/retest dates.
+  4. **Output Quantity Breakdown & Yield Efficiency Calculation:**
+     * Records submitted output pieces vs QA accepted (good) pieces, rejected scrap pieces, and rework pieces.
+     * Automatically computes yield efficiency percentage:
+       $$\text{Yield \%} = \left(\frac{\text{Accepted Output Qty}}{\text{Submitted Qty}}\right) \times 100$$
+  5. **Scrap & By-Product Accounting Grid (`Suggest from BOM`):**
+     * 1-Click "Suggest from BOM" auto-identifies co-products, turning chips, sheet metal offcuts, or recoverable scrap defined in the parent Work Order's Bill of Materials (`tbl_mfg_bom_byproduct`), scaled proportionally to the received batch quantity.
+     * Calculates total scrap recovery credit ($\text{Quantity} \times \text{Recovery Rate}$) and assigns destination scrap yard warehouses/bins.
+  6. **Live Absorption Cost Rollup Engine:**
+     * Computes actual material cost (allocated from raw material issues) plus actual operation cost (labor, machine setup/run, and subcontracting charges).
+     * Automatically credits recoverable scrap value:
+       $$\text{Net Production Cost} = \text{Actual Material Cost} + \text{Actual Operation Cost} - \text{By-Product Recovery Credit}$$
+       $$\text{Unit Production Cost} = \frac{\text{Net Production Cost}}{\text{Accepted Qty}}$$
+  7. **Quality Control Clearance Workflow (`APPROVE`):**
+     * Form for QA inspectors to stamp acceptance, deviation acceptance, or rejection with sample test observations.
+     * Enforces that receipts cannot be posted into sellable inventory without `ACCEPTED` or `DEVIATION_ACCEPTED` clearance.
+  8. **Automated Stock Ledger Posting & Work Order Completion (`POST`):**
+     * Debits shopfloor WIP and posts Finished Goods into the target warehouse with an immutable stock ledger transaction (`PUTAWAY_INWARD` in `tbl_inv_stock_ledger`).
+     * Increments on-hand inventory balances in the bin storage matrix (`tbl_inv_bin_stock`).
+     * Automatically posts recoverable scrap/by-products to scrap warehouse ledgers.
+     * Updates parent Work Order progress: increments `completed_qty` and `scrapped_qty`. If target quantity is fulfilled, automatically transitions the Work Order status to `COMPLETED` and sets `actual_end_date`.
+  9. **Printable Production Inward Slip / Transfer Voucher (`PRINT`):**
+     * Formal ISO 9001:2015 compliant plant handover document with company header, GSTIN, Work Order details, lot/heat traceability, quantity yield breakdown, absorption cost analysis, and three-tier physical signature blocks:
+       * **Production Supervisor:** Shopfloor Handover
+       * **Quality Inspector:** QC Clearance Stamp
+       * **Store / WMS Officer:** Putaway Acknowledgement
+  10. **Controlled Referential Deletion Guard (`DELETE`):**
+      * Deletion is restricted to `DRAFT` receipts. Posted receipts are locked and immutable, protecting inventory and ledger integrity.
+* **Action Buttons:** `New FG Receipt` (`MFG_FG_RECEIPT -> ADD`), `QC Inspection Clearance` (`MFG_FG_RECEIPT -> APPROVE`), `Post to Stock & Update WO` (`MFG_FG_RECEIPT -> POST`), `Print Voucher` (`MFG_FG_RECEIPT -> PRINT`), `Export Register` (`MFG_FG_RECEIPT -> EXPORT`), `View Details` (`MFG_FG_RECEIPT -> VIEW`), and `Delete Receipt` (`MFG_FG_RECEIPT -> DELETE`).
+
+### 2.34 Customer Inquiry & Quotation / Proforma Invoice (`/sales/quotations`)
+* **Screen ID:** `1033` | **Screen Code:** `SALES_QUOTATION` | **Module:** `SALES` | **Database Table:** [`tbl_sales_quotation_header`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql) & [`tbl_sales_quotation_item`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql).
+* **Overview:** The Customer Inquiry & Quotation / Proforma Invoice module serves as the primary commercial gateway for Phase 7 (Sales & Customer Relationship Management). It manages customer presales inquiries and Requests for Quotation (RFQs), automates tiered price list lookups, executes live multi-line Indian GST tax derivations based on shipping state codes, maintains quotation revision histories, generates statutory printable proforma invoices, and provides a 1-Click bridge to convert accepted quotations into manufacturing Sales Orders.
+* **Core Capabilities & Workflows:**
+  1. **Executive Pipeline Metrics & Commercial KPIs:**
+     * **Total Quotations:** Fleet-wide count of all issued, negotiated, and completed commercial quotes.
+     * **Open Pipeline Value:** Cumulative rupee valuation of active quotations in `SUBMITTED` and `SENT` status under commercial negotiation.
+     * **Won / Accepted Value:** Cumulative rupee value of quotations signed off and accepted by customers (`ACCEPTED` and `CONVERTED_TO_SO`).
+     * **Draft & Negotiation Count:** Active bids undergoing internal rate card checks and engineering feasibility verification.
+  2. **Quotation Numbering & Revision Tracking:**
+     * Formats quotation numbers as `QT-{BRANCH}-{FYEAR}-XXXX` (e.g. `QT-AHM-2627-0001`).
+     * Supports formal revision numbering (`revision_no`) and timestamps (`revision_date`, `revision_reason`).
+     * Commercial Status Lifecycle:
+       $$\text{DRAFT} \longrightarrow \text{SUBMITTED} \longrightarrow \text{SENT} \longrightarrow \text{ACCEPTED} \longrightarrow \text{CONVERTED_TO_SO}$$
+       $$\text{(with alternative terminal states: } \text{REJECTED} \text{ or } \text{EXPIRED)}$$
+  3. **Customer Master & Multi-Address Integration:**
+     * Integrates with Unified Party Master (`tbl_crm_party` where `is_customer = TRUE`), auto-filling customer legal names, GSTIN, PAN, primary SCM contacts, phone, and standard credit terms (`NET_30`, `NET_45`, etc.).
+     * Allows selecting explicit Billing and Shipping Addresses from `tbl_crm_party_address`, dynamically identifying the consignee destination state.
+  4. **Dynamic Indian GST Calculation Engine:**
+     * Derives tax components in real-time by comparing the supplying plant's branch state code (e.g. Gujarat `24`) with the customer's shipping address state code:
+       * **Intra-State Supply** ($\text{Plant State} = \text{Shipping State}$):
+         $$\text{CGST Rate} = \frac{\text{GST Rate}}{2}, \quad \text{SGST Rate} = \frac{\text{GST Rate}}{2}, \quad \text{IGST Rate} = 0\%$$
+       * **Inter-State Supply** ($\text{Plant State} \neq \text{Shipping State}$):
+         $$\text{IGST Rate} = \text{GST Rate}, \quad \text{CGST Rate} = 0\%, \quad \text{SGST Rate} = 0\%$$
+     * Real-time line-by-line financial rollup:
+       $$\text{Gross Amount} = \text{Quantity} \times \text{Unit Rate}$$
+       $$\text{Taxable Amount} = \text{Gross Amount} - \left(\frac{\text{Gross Amount} \times \text{Discount \%}}{100}\right)$$
+       $$\text{Total Tax} = \text{CGST Amount} + \text{SGST Amount} + \text{IGST Amount}$$
+       $$\text{Line Total} = \text{Taxable Amount} + \text{Total Tax}$$
+  5. **Commercial Surcharges & Header Financials:**
+     * Supports freight and forwarding charges, returnable packaging surcharges, header commercial discounts, and automated currency round-off.
+     * Computes final commercial quotation value:
+       $$\text{Grand Total} = \text{Net Taxable} + \text{Total GST} + \text{Freight} + \text{Packaging} + \text{Round Off}$$
+  6. **Quotation Revision Engine (`Revise`):**
+     * Preserves audit trails by bumping `revision_no` (Rev 0 $\rightarrow$ Rev 1 $\rightarrow$ Rev 2), logging the revision reason, and returning the quotation to DRAFT for commercial repricing.
+  7. **1-Click Convert to Sales Order (`CONVERT_TO_SO`):**
+     * Once a customer issues a formal Purchase Order and the quotation is marked `ACCEPTED`, the 1-Click Convert to SO action:
+       * Prompts for Customer PO Number and Customer PO Date.
+       * Transitions status to `CONVERTED_TO_SO` and locks commercial terms.
+       * Generates sales order metadata ready for Step 7.2 Sales Order scheduling, Work Order MRP reservation, and delivery dispatch.
+  8. **Printable Commercial Proforma Invoice (`PRINT`):**
+     * Fully compliant statutory Indian GST tax proforma invoice layout with:
+       * Supplier company header, CIN, GSTIN, PAN, and plant location.
+       * Buyer (Bill To) and Consignee (Ship To) GSTIN and State Code declarations.
+       * Tabular schedule of goods: item description, HSN/SAC code, quantity, rate, discount, and taxable value.
+       * Indian GST Statutory Tax Summary breakdown matrix (CGST, SGST, IGST).
+       * Official bank remittance details (SBI Current A/C, IFSC Code).
+       * Standard commercial declarations, validity terms, and corporate authorized signatory block.
+       * One-click native printer trigger (`window.print()`).
+  9. **Referential Deletion Protection (`DELETE`):**
+     * Strictly limits deletion to uncommitted `DRAFT` quotes. Accepted and converted commercial contracts remain permanently archived in the ERP ledger.
+* **Action Buttons:** `Create Quotation` (`SALES_QUOTATION -> ADD`), `Edit Quotation` (`SALES_QUOTATION -> EDIT`), `Revise Quotation` (`SALES_QUOTATION -> EDIT`), `Mark as Sent` (`SALES_QUOTATION -> SEND`), `Convert to Sales Order` (`SALES_QUOTATION -> CONVERT_TO_SO`), `Print Proforma Invoice` (`SALES_QUOTATION -> PRINT`), `Export Register` (`SALES_QUOTATION -> EXPORT`), `View Details` (`SALES_QUOTATION -> VIEW`), and `Delete Draft` (`SALES_QUOTATION -> DELETE`).
+
+### 2.35 Sales Order (SO), Commercial Credit Check & Available-to-Promise (ATP) Stock Reservation (`/sales/orders`)
+* **Screen ID:** `1034` | **Screen Code:** `SALES_ORDER` | **Module:** `SALES` | **Database Table:** [`tbl_sales_order_header`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql) & [`tbl_sales_order_item`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql).
+* **Overview:** The Sales Order & Available-to-Promise (ATP) Stock Reservation module manages legally binding customer sales contracts within the KS-MFG platform. It supports direct order creation or 1-click import from accepted commercial quotations (`quotation_id`), runs live customer credit exposure checks against master limits (`tbl_crm_party`), enforces an automated `ON_HOLD` gate when credit exposure is exceeded with authorized managerial override, executes automated Available-to-Promise (ATP) stock allocation from finished goods warehouses (`tbl_inv_bin_stock`), triggers 1-Click production Work Orders for unreserved deficit quantities in Phase 6 Manufacturing, and outputs statutory printable Sales Order Acknowledgement contracts.
+* **Core Capabilities & Workflows:**
+  1. **Executive Pipeline & Order Fulfillment KPIs:**
+     * **Total Sales Orders:** Cumulative count and total gross contract value across all customer orders.
+     * **Active Execution:** Count and value of live confirmed orders in progress (`CONFIRMED`, `IN_PRODUCTION`, `READY_FOR_DISPATCH`).
+     * **Pending Stock Allocation:** Count of orders with deficit quantities awaiting ATP reservation or shopfloor manufacturing completion.
+     * **Ready for Dispatch:** Orders where 100% of line item quantities have been reserved from finished goods bin stock (`atp_reservation_status = 'FULL'`).
+     * **Credit / Admin Hold:** Alerts indicating customer accounts exceeding approved credit limits or placed on operational hold.
+  2. **Automated Order Numbering & Lifecycle State Machine:**
+     * Formats order numbers as `SO-{BRANCH}-{FYEAR}-XXXX` (e.g., `SO-AHM-2627-0001`).
+     * Order Lifecycle:
+       $$\text{DRAFT} \longrightarrow \text{CONFIRMED} \longrightarrow \text{IN_PRODUCTION} \longrightarrow \text{READY_FOR_DISPATCH} \longrightarrow \text{PARTIALLY_DELIVERED} \longrightarrow \text{COMPLETED}$$
+       $$\text{(with administrative states: } \text{ON_HOLD} \text{ and } \text{CANCELLED)}$$
+     * ATP Reservation Lifecycle:
+       $$\text{PENDING} \longrightarrow \text{PARTIAL} \longrightarrow \text{FULL} \longrightarrow \text{RELEASED}$$
+  3. **Quotation Import & Customer Master Integration:**
+     * 1-Click "Import from Accepted Quotation" pulls customer master, billing/shipping addresses, payment terms, Incoterms, and line items directly from Step 7.1 quotations, automatically stamping `converted_to_so_id` in the quotation ledger.
+  4. **Customer Commercial Credit Exposure Engine:**
+     * Evaluates customer `credit_limit` vs live unbilled exposure across all non-cancelled, non-completed sales orders:
+       $$\text{Projected Exposure} = \text{Current Unbilled Exposure} + \text{New Order Grand Total}$$
+     * If $\text{Projected Exposure} > \text{Credit Limit}$, the system flags `is_credit_limit_exceeded = TRUE`, places the order in `ON_HOLD` status, and locks order confirmation.
+     * **Managerial Credit Override Workflow (`AUTHORIZE`):** Authorized managers (Super Admin or Plant Manager) can clear credit holds by providing an audit-logged justification, allowing order confirmation to proceed.
+  5. **Real-Time Available-to-Promise (ATP) Stock Reservation Engine (`CONFIRM`):**
+     * Upon order confirmation, the ATP engine queries finished goods on-hand balances in warehouse bins (`tbl_inv_bin_stock` where `available_qty > 0`) using FIFO priority.
+     * Dynamically reserves inventory:
+       $$\text{Allocated Qty} = \min(\text{Deficit Qty}, \text{Available Qty})$$
+       $$\text{Reserved Qty}_{\text{new}} = \text{Reserved Qty}_{\text{old}} + \text{Allocated Qty}$$
+       $$\text{Available Qty}_{\text{new}} = \text{Available Qty}_{\text{old}} - \text{Allocated Qty}$$
+     * Updates line item reservation status: `FULL` if $100\%$ fulfilled, `PARTIAL` if partially allocated, or `PENDING` if no stock is available.
+     * If all line items achieve `FULL` reservation, the order status automatically advances to `READY_FOR_DISPATCH`.
+  6. **1-Click Manufacturing Work Order Generation (`CREATE_WO`):**
+     * For unreserved deficit quantities ($\text{Deficit Qty} = \text{Ordered Qty} - \text{Reserved Qty}$), the 1-Click generator creates linked production Work Orders in `tbl_mfg_wo_header`.
+     * Automatically pulls the active standard Bill of Materials (`tbl_mfg_bom_header`) and routing operations, schedules production start/end dates, sets priority to `HIGH`, links `sales_order_id`, and transitions order status to `IN_PRODUCTION`.
+  7. **Official Sales Order Acknowledgement / Contract (`PRINT`):**
+     * Printable ISO/GST-compliant contractual acknowledgement containing company letterhead, CIN, GSTIN, customer PO reference, schedule of goods with HSN codes, UOM, unit prices, discount, taxable amounts, statutory CGST/SGST/IGST breakdown, commercial delivery terms, and dual signature/seal blocks.
+  8. **Referential Integrity & Stock Release on Deletion (`DELETE`):**
+     * Cancelling or deleting an unfulfilled order automatically releases all reserved inventory back to available stock in `tbl_inv_bin_stock`.
+* **Action Buttons:** `New Sales Order` (`SALES_ORDER -> ADD`), `Edit Sales Order` (`SALES_ORDER -> EDIT`), `Confirm & Reserve Stock` (`SALES_ORDER -> CONFIRM`), `Authorize Credit Override` (`SALES_ORDER -> AUTHORIZE`), `Generate Work Orders` (`SALES_ORDER -> CREATE_WO`), `Hold / Release` (`SALES_ORDER -> HOLD`), `Print Acknowledgement` (`SALES_ORDER -> PRINT`), `Export Register` (`SALES_ORDER -> EXPORT`), `View Details` (`SALES_ORDER -> VIEW`), and `Cancel Order` (`SALES_ORDER -> DELETE`).
+
+
+
+
+### 2.36 Outward Warehouse Pick/Pack Slip & Dispatch Delivery Challan (`/sales/delivery-challans`)
+* **Screen ID:** `1035` | **Screen Code:** `DELIVERY_CHALLAN` | **Module:** `SALES` | **Database Table:** [`tbl_sales_delivery_challan_header`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql) & [`tbl_sales_delivery_challan_item`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql).
+* **Overview:** The Outward Delivery Challan & Dispatch module governs warehouse picking, packing verification, transporter vehicle assignment, and statutory outward transport documentation in accordance with **Rule 55 of CGST Rules, 2017**. It supports direct outward dispatch or 1-click loading from confirmed customer Sales Orders (`so_id`), tracks multi-tier warehouse execution milestones (`DRAFT` $\rightarrow$ `PICKED` $\rightarrow$ `PACKED` $\rightarrow$ `DISPATCHED` $\rightarrow$ `DELIVERED`), triggers real-time stock ledger deduction (`SALES_DISPATCH` in `tbl_inv_stock_ledger`) and storage bin balance decrement (`tbl_inv_bin_stock`), synchronizes delivered quantities into parent Sales Orders, and generates statutory printable Delivery Challans and Packing Slips.
+* **Core Capabilities & Workflows:**
+  1. **Executive Shipment & Outward Logistics KPIs:**
+     * **Total Challans:** Cumulative count and total gross declared commercial value across all active delivery challans.
+     * **Dispatched Outward:** Count and total value of shipments successfully released through the factory gate.
+     * **Pending Dispatch:** Shipments currently progressing through warehouse staging (`DRAFT`, `PICKED`, `PACKED`).
+     * **Packed & Staged:** Shipments packed, weighed, and awaiting carrier vehicle placement in the outward loading bay.
+     * **Customer Delivered:** Shipments where proof of destination delivery (POD) has been confirmed and logged.
+  2. **Automated Document Numbering & Lifecycle State Machine:**
+     * Formats challan numbers as `DC-{BRANCH}-{FYEAR}-XXXX` (e.g., `DC-AHM-2627-0001`).
+     * Shipment Lifecycle:
+       $$\text{DRAFT} \longrightarrow \text{PICKED} \longrightarrow \text{PACKED} \longrightarrow \text{DISPATCHED} \longrightarrow \text{DELIVERED}$$
+       $$\text{(with administrative state: } \text{CANCELLED)}$$
+  3. **1-Click Sales Order Integration & Undelivered Balance Pull:**
+     * 1-Click "Load from Sales Order" pre-populates customer party, billing address, ship-to consignee location, destination state code, delivery terms, and line items with pending deliverable quantities ($\text{Pending Qty} = \text{Ordered Qty} - \text{Delivered Qty}$).
+  4. **Multi-Purpose Dispatch Classifications:**
+     * Supports legally distinct Indian GST dispatch categories: `SUPPLY_ON_SALE` (regular customer orders with tax invoice to follow), `SAMPLE_DEMO` (marketing and physical lab testing samples), `JOB_WORK_RETURN` (return of processed items to client), `EXHIBITION` (trade shows & fairs), and `APPROVAL_BASIS` (sales on approval).
+  5. **Warehouse Picking Slip Generation (`PICK`):**
+     * Generates warehouse picker travelers specifying storage bins, item codes, descriptions, and lot/batch numbers to guide material retrieval from finished goods storage bays.
+  6. **Packing List & Weight Verification (`PACK`):**
+     * Captures total package count, packaging type (Wooden Crates, Corrugated Boxes, Pallets, Drums), net weight (kg), and gross weight (kg). Formats packaging declarations required for transport documentation.
+  7. **Physical Gate Outward Dispatch & Real-Time Inventory Deduction (`DISPATCH`):**
+     * Final outward gate clearance captures vehicle registration number, transporter, LR/RR consignment number and date, and Indian GST E-Way Bill number.
+     * In an atomic database transaction:
+       * Decrements on-hand inventory and reserved balances in `tbl_inv_bin_stock`:
+         $$\text{On-Hand Qty}_{\text{new}} = \max(0, \text{On-Hand Qty}_{\text{old}} - \text{Dispatched Qty})$$
+         $$\text{Reserved Qty}_{\text{new}} = \max(0, \text{Reserved Qty}_{\text{old}} - \text{Dispatched Qty})$$
+         $$\text{Available Qty}_{\text{new}} = \text{On-Hand Qty}_{\text{new}} - \text{Reserved Qty}_{\text{new}}$$
+       * Logs an immutable outward transaction in `tbl_inv_stock_ledger` (`transaction_type = 'SALES_DISPATCH'`, `reference_doc_type = 'DELIVERY_CHALLAN'`).
+       * Updates line item `delivered_qty` on linked Sales Orders (`tbl_sales_order_item`).
+       * Advances Sales Order header status to `COMPLETED` if $100\%$ fulfilled, or `PARTIALLY_DELIVERED`.
+  8. **Customer Receipt Proof of Delivery (`DELIVERED`):**
+     * Records destination proof of delivery timestamp upon receipt of signed customer delivery receipts.
+  9. **Statutory Printable GST Rule 55 Delivery Challan (`PRINT`):**
+     * Official statutory layout compliant with Rule 55 of CGST Rules, 2017:
+       * Corporate letterhead, CIN, PAN, plant GSTIN, and state code.
+       * Buyer (Bill To) and Consignee (Ship To) GST declarations.
+       * Logistics details: Transporter name, vehicle number, LR/RR number & date, E-Way Bill number.
+       * Schedule of goods: HSN/SAC code, UOM, quantity, declared commercial unit rate, and total value.
+       * Package count and gross/net weight verification box.
+       * Mandatory Rule 55 declaration text.
+       * 3-tier authorized signatory blocks: Stores / Dispatch Executive, Quality / Packaging Head, and Outward Security / Authorized Signatory.
+       * Native one-click `window.print()` trigger.
+  10. **Reversible Cancellation Engine (`CANCEL`):**
+      * Cancelling an already dispatched challan automatically restores deducted inventory into warehouse storage bins, creates an offsetting `ADJUSTMENT` entry in the stock ledger, and decrements delivered quantities on the linked Sales Order.
+* **Action Buttons:** `New Delivery Challan` (`DELIVERY_CHALLAN -> ADD`), `Edit Challan` (`DELIVERY_CHALLAN -> EDIT`), `Confirm Pick Slip` (`DELIVERY_CHALLAN -> PICK`), `Confirm Packing` (`DELIVERY_CHALLAN -> PACK`), `Gate Dispatch` (`DELIVERY_CHALLAN -> DISPATCH`), `Mark Delivered` (`DELIVERY_CHALLAN -> EDIT`), `Print Statutory Challan` (`DELIVERY_CHALLAN -> PRINT`), `Export Register` (`DELIVERY_CHALLAN -> EXPORT`), `View Details` (`DELIVERY_CHALLAN -> VIEW`), and `Delete / Cancel` (`DELIVERY_CHALLAN -> DELETE`).
+
+
+
+
+### 2.37 Statutory GST Tax Invoice Generation, E-Invoicing (IRN) & Customer Accounts Receivable (`/sales/invoices`)
+* **Screen ID:** `1036` | **Screen Code:** `SALES_INVOICE` | **Module:** `SALES` | **Database Table:** [`tbl_sales_invoice_header`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql), [`tbl_sales_invoice_item`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql) & [`tbl_sales_ar_payment_receipt`](file:///c:/Projects/KashviraInfotech/ks-mfg/dbscripts/01_schema_objects.sql).
+* **Overview:** The Statutory GST Tax Invoice & Accounts Receivable module is the primary revenue recognition and compliance hub for discrete and process manufacturing operations. Built in strict conformity with **Section 31 and Rule 46 of the CGST Rules, 2017**, and the mandatory B2B E-Invoicing mandate under **Rule 48(4)**, this screen handles end-to-end commercial invoicing, automated 1-Click imports from dispatched Delivery Challans (`challan_id`) and confirmed Sales Orders (`so_id`), real-time calculation of Intra-state (CGST + SGST) versus Inter-state (IGST) tax schedules with TCS and round-off logic, cryptographic SHA-256 Invoice Reference Number (IRN) generation with signed QR code payload and E-Way Bill linkage, customer payment receipt logging across diverse banking modes, real-time Accounts Receivable (AR) balance tracking, and audit-grade Rule 46 printable Tax Invoices.
+* **Core Capabilities & Workflows:**
+  1. **Executive Revenue & Receivables KPIs:**
+     * **Total Invoiced:** Gross cumulative revenue across all generated statutory invoices.
+     * **Realized / Collected:** Total cash and bank receipts collected and allocated against posted invoices.
+     * **Outstanding AR Balance:** Real-time net receivables exposure awaiting customer settlement.
+     * **E-Invoices Generated:** Count of compliant B2B tax invoices successfully cryptographically registered with the GST E-Invoicing portal (IRN status `GENERATED`).
+     * **Pending / Unpaid Invoices:** Count of active invoices carrying unpaid or partial balances requiring credit control follow-ups.
+  2. **Automated Document Numbering & Financial Year Segregation:**
+     * Automatically issues financial-year sequential invoice numbers formatted as `INV-{BRANCH}-{FYEAR}-XXXX` (e.g., `INV-AHM-2627-0001`), resetting sequentially per company branch and fiscal year in adherence to GST Rule 46(b).
+  3. **1-Click Logistics Import Engines:**
+     * **From Dispatched Delivery Challan (`challan_id`):** 1-Click loader imports dispatched items, quantities, UOMs, warehouse references, and billing metadata directly from warehouse gate dispatches, preventing duplicate data entry and ensuring billing matches physical dispatches.
+     * **From Confirmed Sales Order (`so_id`):** 1-Click loader pre-fills commercial line items, contracted unit prices, customer terms, and calculates unbilled order balances.
+  4. **Dual Tax Computation Engine (Intra-State vs. Inter-State):**
+     * Automatically evaluates Supplier Plant State Code vs. Customer Consignee Place of Supply (`pos_state_code`):
+       * **Intra-State Supply (Gujarat State Code 24 $\rightarrow$ 24):** Splits GST rate equally into Central Tax (`cgst_rate = gst_rate / 2`) and State Tax (`sgst_rate = gst_rate / 2`).
+       * **Inter-State Supply (e.g., Gujarat State Code 24 $\rightarrow$ Haryana 06 / Maharashtra 27):** Applies integrated tax (`igst_rate = gst_rate`).
+     * Computes line discounts, line taxable values, line tax splits, header TCS (Tax Collected at Source under Section 206C(1H)), and mathematical round-off to standard currency integers.
+  5. **Commercial Posting & Sales Order Quantity Synchronization (`POST`):**
+     * Final posting transitions invoice status from `DRAFT` to `POSTED`, locking commercial items from modifications.
+     * Atomically increments `invoiced_qty` on linked Sales Order items (`tbl_sales_order_item`), ensuring exact alignment between ordered, dispatched, and billed quantities.
+     * Initializes outstanding accounts receivable balance (`balance_amount = total_invoice_amount`) and sets AR status to `UNPAID`.
+  6. **Statutory E-Invoicing (IRN) Generation Engine (`GENERATE_IRN`):**
+     * In accordance with Rule 48(4) of CGST Rules, 2017, calculates an immutable 64-character SHA-256 cryptographic hash from the concatenated string:
+       $$\text{IRN} = \text{SHA-256}(\text{Supplier GSTIN} + \text{FY} + \text{DocType} + \text{Invoice Number} + \text{Timestamp})$$
+     * Issues statutory Acknowledgement Number (16 digits) and Acknowledgement Timestamp.
+     * Constructs the official signed QR code payload encapsulating Seller GSTIN, Buyer GSTIN, Invoice Number, Document Date, Total Value, Item Count, Main HSN, and IRN hash.
+     * Optionally generates and stores linked E-Way Bill Number and validity date for consignments requiring active transit clearance.
+  7. **Customer Accounts Receivable (AR) Payment Collection (`RECORD_PAYMENT`):**
+     * Records customer payments directly into `tbl_sales_ar_payment_receipt` supporting multiple settlement modes:
+       * `NEFT_RTGS` / `BANK_TRANSFER`: Captures bank UTR reference and issuing bank.
+       * `CHEQUE`: Captures cheque number, cheque date, and clearing bank.
+       * `UPI`: Captures transaction reference ID.
+       * `CASH` / `CREDIT_ADJUSTMENT`: For petty adjustments, advance reconciliations, or credit notes.
+     * Supports TDS Deductions: Records withholding tax deducted by customer under Section 194Q.
+     * Real-time AR balance decrement:
+       $$\text{Paid Amount}_{\text{new}} = \text{Paid Amount}_{\text{old}} + \text{Receipt Amount} + \text{TDS Amount}$$
+       $$\text{Balance Amount}_{\text{new}} = \max(0, \text{Total Invoice Amount} - \text{Paid Amount}_{\text{new}})$$
+     * Automatically transitions header payment status: `UNPAID` $\rightarrow$ `PARTIALLY_PAID` $\rightarrow$ `PAID`.
+  8. **Official Rule 46 Statutory Printable GST Tax Invoice (`PRINT`):**
+     * Generates a fully compliant, production-grade Tax Invoice layout:
+       * Prominent title "TAX INVOICE" with original for recipient declaration.
+       * Complete Seller corporate letterhead: Company Name, Manufacturing Plant Address, CIN, PAN, GSTIN, State Code, Contact Details.
+       * E-Invoicing compliance header: 64-character IRN hash, Acknowledgement Number & Date, and high-density signed QR code.
+       * Transport & Dispatch metadata: Delivery Challan number, Sales Order reference, Customer PO number & date, Transporter name, Vehicle registration number, E-Way Bill number.
+       * Buyer (Bill To) and Consignee (Ship To) blocks with Name, Address, GSTIN, PAN, and State Code.
+       * Comprehensive Schedule of Goods: Item sequence, description, batch/heat numbers, HSN/SAC code, UOM, quantity, unit rate, trade discount, taxable value, CGST/SGST/IGST rates and amounts, and line totals.
+       * HSN/SAC Tax Summary Matrix detailing tax breakups by commodity tariff.
+       * Bank remittance credentials: Bank name, branch, account number, and IFSC code for wire payments.
+       * Mandatory Reverse Charge Mechanism (RCM) declaration ("Tax is NOT payable on reverse charge basis").
+       * 3-tier authorized signatory blocks: Prepared By (Commercial Billing), Checked By (Finance / Accounts), and Authorized Signatory with seal block.
+  9. **Reversible Cancellation Engine (`CANCEL`):**
+     * Reverts posted invoices, releases invoiced quantities on linked Sales Order items, marks IRN status as `CANCELLED`, and retains complete immutable audit trail in `tbl_app_audit_log`.
+* **Action Buttons:** `New Tax Invoice` (`SALES_INVOICE -> ADD`), `Edit Invoice` (`SALES_INVOICE -> EDIT`), `Post Commercial Invoice` (`SALES_INVOICE -> POST`), `Generate IRN / E-Invoice` (`SALES_INVOICE -> GENERATE_IRN`), `Record AR Payment` (`SALES_INVOICE -> RECORD_PAYMENT`), `Print Statutory Invoice` (`SALES_INVOICE -> PRINT`), `Export Register` (`SALES_INVOICE -> EXPORT`), `View Details` (`SALES_INVOICE -> VIEW`), and `Cancel Invoice` (`SALES_INVOICE -> DELETE`).
+
+### 2.38 Sales Returns & Statutory Credit Notes (`/sales/returns`)
+* **Module Code & Title:** `SALES_RETURN` — Sales Returns & Credit Notes
+* **Target Audience:** Quality Control Engineers, Warehouse Store Officers, Billing & AR Accountants, and Sales Operations.
+* **Core Business Purpose:** Manages end-to-end customer return workflows, Return Merchandise Authorization (RMA) inward logistics, quarantine quality inspection, warehouse restocking, and statutory Indian GST Credit Note issuance strictly compliant with **Section 34 of the CGST Act, 2017 & Rule 53 of CGST Rules, 2017**.
+* **Key Functional Capabilities:**
+  1. **Executive Operational KPI Dashboard:**
+     * **Total Returns & RMAs:** Count and velocity of customer returns across fiscal periods.
+     * **Cumulative Credit Note Value:** Total financial credit value issued to customers.
+     * **Pending RMA Quarantine QC:** Units awaiting shopfloor/quality inspection verdicts.
+     * **Pending Warehouse Restock:** Inspected and accepted units awaiting WMS bin put-away.
+     * **Accounts Receivable Adjusted:** Real-time credit note amounts reconciled directly against customer invoice balances.
+  2. **1-Click Tax Invoice Loading & Fiscal Traceability:**
+     * Seamless 1-Click loading of customer metadata, billing addresses, place of supply, invoiced line items, batch/heat numbers, unit prices, and statutory GST tariff rates directly from posted Tax Invoices (`tbl_sales_invoice_header`).
+     * Prevents over-return errors by tracking original invoiced quantities and enforcing return quantity boundaries.
+  3. **RMA Quarantine QC Inspection Engine (`INSPECT`):**
+     * Isolates returned consignments in a designated quarantine holding area.
+     * QC Engineers verify physical goods, record `returned_qty`, and issue granular item verdicts:
+       * `ACCEPT_FOR_RESTOCK`: High-quality return accepted directly for inventory restocking into target warehouse storage bins (`tbl_inv_bin_stock`).
+       * `ACCEPT_FOR_REWORK`: Material routed back to manufacturing shopfloor for re-machining, polishing, or calibration.
+       * `REJECT_SCRAP`: Irreparable defect written off to scrap loss (`tbl_inv_bin_stock`), recording defect category (e.g., `MACHINING_DEFECT`, `TRANSIT_DAMAGE`, `DIMENSIONAL_OUT_OF_SPEC`, `SURFACE_DEFECT`).
+     * Automatically updates return header QC lifecycle: `PENDING` $\rightarrow$ `ACCEPTED`, `PARTIALLY_ACCEPTED`, or `REJECTED`.
+  4. **Statutory GST Credit Note Issuance & Automated AR Rebalancing (`POST_CREDIT_NOTE`):**
+     * Generates financial-year sequential Credit Note numbers formatted as `CN-{BRANCH}-{FYEAR}-XXXX` (e.g., `CN-AHM-2627-0001`) per CGST Rule 53.
+     * Computes commercial credit totals:
+       $$\text{Credit Taxable} = \sum (\text{Returned Qty} \times \text{Unit Price} \times (1 - \text{Discount} / 100))$$
+       $$\text{Total Credit Amount} = \text{Credit Taxable} + \text{CGST} + \text{SGST} + \text{IGST} + \text{Round Off}$$
+     * **Automated AR Invoice Balance Adjustment:** When selected, creates an immutable settlement receipt in `tbl_sales_ar_payment_receipt` with `payment_mode = 'CREDIT_ADJUSTMENT'` and reduces outstanding customer receivables balance on the original Tax Invoice:
+       $$\text{Balance Amount}_{\text{new}} = \max(0, \text{Balance Amount}_{\text{old}} - \text{Total Credit Amount})$$
+  5. **Statutory E-Invoicing (IRN) Generation for Credit Notes (`GENERATE_IRN`):**
+     * In accordance with Rule 48(4) of CGST Rules, 2017, calculates an immutable 64-character SHA-256 cryptographic hash for the Credit Note:
+       $$\text{IRN} = \text{SHA-256}(\text{Supplier GSTIN} + \text{FY} + \text{'CRN'} + \text{Credit Note No} + \text{Timestamp})$$
+     * Assigns statutory 16-digit Acknowledgement Number and constructs signed QR code payload encapsulating Seller/Buyer GSTINs, Credit Note Number, Original Invoice Reference, and Total Credit Value.
+  6. **Automated Warehouse Restocking (`RESTOCK`):**
+     * Puts away accepted items into target warehouse storage bins (`tbl_inv_bin_stock`) via atomic upsert.
+     * Posts immutable inward stock ledger entries in `tbl_inv_stock_ledger`:
+       * `transaction_type = 'SALES_RETURN'`
+       * `reference_doc_type = 'SALES_RETURN'`
+       * `quantity = accepted_qty` (Inward stock accretion)
+     * Transitions header restock status to `RESTOCKED`.
+  7. **Reversible Cancellation Engine (`CANCEL`):**
+     * Safely cancels credit notes: restores adjusted customer invoice balances on `tbl_sales_invoice_header`, removes AR adjustment receipts, posts reversing negative ledger adjustments for restocked bin stock, and marks IRN status as `CANCELLED`.
+  8. **Statutory Rule 53 Printable Credit Note (`PRINT`):**
+     * Generates a fully formatted, statutory Credit Note layout:
+       * Prominent document header "STATUTORY GST CREDIT NOTE" referencing CGST Section 34 / Rule 53.
+       * Complete Supplier and Customer corporate details (CIN, PAN, GSTIN, State Codes, Billing & Shipping addresses).
+       * E-Invoicing compliance header: 64-character SHA-256 IRN hash, Acknowledgement Number & Date, and cryptographic QR code.
+       * Original Invoice cross-reference: Original Invoice Number & Date, Return Reason, RMA & Gate Inward references.
+       * Schedule of Returned Goods: Item code, description, HSN/SAC code, invoiced quantity, returned quantity, unit price, taxable credit, tax breakdown (CGST/SGST/IGST), and total credit value.
+       * 3-tier authorized signatory blocks: Prepared By (QC / Logistics), Checked By (Finance / Accounts), and Authorized Signatory with seal block.
+* **Action Buttons:** `New Sales Return` (`SALES_RETURN -> ADD`), `Edit Return` (`SALES_RETURN -> EDIT`), `Quarantine QC Inspection` (`SALES_RETURN -> INSPECT`), `Issue Statutory Credit Note` (`SALES_RETURN -> POST_CREDIT_NOTE`), `Warehouse Restock` (`SALES_RETURN -> RESTOCK`), `Generate IRN / E-Invoice` (`SALES_RETURN -> GENERATE_IRN`), `Print Credit Note` (`SALES_RETURN -> PRINT`), `Export Register` (`SALES_RETURN -> EXPORT`), `View Details` (`SALES_RETURN -> VIEW`), and `Cancel Return` (`SALES_RETURN -> DELETE`).
 
 

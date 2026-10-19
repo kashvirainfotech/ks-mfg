@@ -2634,3 +2634,883 @@ SELECT setval('seq_material_issue_item_id', GREATEST((SELECT COALESCE(MAX(issue_
 
 
 
+
+-- ============================================================================
+-- DATE: 2026-10-19
+-- FEATURE: Step 6.7 - Sample Production Job Cards & Operation Time Logs
+--          (tbl_mfg_job_card, tbl_mfg_job_card_time_log)
+-- ============================================================================
+
+INSERT INTO tbl_mfg_job_card (
+    job_card_id, job_card_no, job_card_date, wo_id, wo_routing_op_id,
+    op_sequence, op_code, op_name, work_center_id, machine_id, assigned_operator_id,
+    planned_qty, input_qty, completed_qty, scrapped_qty, rework_qty, uom_id,
+    status, scheduled_start_date, scheduled_end_date, actual_start_time, actual_end_time,
+    planned_setup_mins, planned_run_mins, actual_setup_mins, actual_run_mins,
+    downtime_mins, downtime_reason, hourly_rate, actual_cost,
+    is_inspection_required, in_process_qc_status, qc_inspector_id, qc_inspected_at,
+    qc_sample_size, qc_accepted_qty, qc_rejected_qty, qc_remarks,
+    batch_no, heat_no, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. JC-0001: Completed OP-10 CNC Flange Facing for WO-1001
+    (1001, 'JC-AHM-2627-0001', '2026-05-10', 1001, 1001,
+     10, 'OP-10', 'CNC Flange & Body Facing', 1001, 1001, 1001,
+     50.000, 50.000, 48.000, 2.000, 0.000, 1003,
+     'COMPLETED', '2026-05-10', '2026-05-10', '2026-05-10 08:30:00+05:30', '2026-05-10 21:00:00+05:30',
+     30.00, 750.00, 32.00, 720.00,
+     15.00, 'Tool insert index and edge wear replacement', 650.00, 8146.67,
+     TRUE, 'ACCEPTED', 1003, '2026-05-10 21:15:00+05:30',
+     5, 48.000, 2.000, 'Flange thickness and seal face Ra 0.8 μm verified on CMM. 2 pieces rejected due to casting blowholes.',
+     'BATCH-VALVE-26-01', 'HEAT-SS316-441', 'Completed first stage machining. 48 good pieces passed to OP-20.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. JC-0002: In-Progress OP-20 CNC Milling for WO-1001
+    (1002, 'JC-AHM-2627-0002', '2026-05-11', 1001, 1002,
+     20, 'OP-20', 'Multi-Axis Port Milling', 1001, 1002, 1001,
+     48.000, 48.000, 28.000, 0.000, 0.000, 1003,
+     'IN_PROGRESS', '2026-05-11', '2026-05-12', '2026-05-11 09:00:00+05:30', NULL,
+     20.00, 576.00, 22.00, 336.00,
+     0.00, NULL, 650.00, 3878.33,
+     FALSE, 'NA', NULL, NULL,
+     0, 0.000, 0.000, NULL,
+     'BATCH-VALVE-26-01', 'HEAT-SS316-441', 'Day shift in-progress. 28 pieces milled with zero scrap so far.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 3. JC-0003: Pending OP-30 Hydro Testing for WO-1001
+    (1003, 'JC-AHM-2627-0003', '2026-05-12', 1001, 1003,
+     30, 'OP-30', 'Hydrostatic Pressure & Seat Leakage Testing', 1004, 1007, NULL,
+     48.000, 0.000, 0.000, 0.000, 0.000, 1003,
+     'PENDING', '2026-05-12', '2026-05-13', NULL, NULL,
+     15.00, 384.00, 0.00, 0.00,
+     0.00, NULL, 480.00, 0.00,
+     TRUE, 'PENDING', NULL, NULL,
+     0, 0.000, 0.000, NULL,
+     'BATCH-VALVE-26-01', 'HEAT-SS316-441', 'Waiting for OP-20 batch completion to stage hydro testing.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 4. JC-0004: Pending OP-40 Final Assembly for WO-1001
+    (1004, 'JC-AHM-2627-0004', '2026-05-13', 1001, 1004,
+     40, 'OP-40', 'Final Valve Trim Assembly & Torque Tightening', 1003, NULL, NULL,
+     48.000, 0.000, 0.000, 0.000, 0.000, 1003,
+     'PENDING', '2026-05-13', '2026-05-14', NULL, NULL,
+     10.00, 1200.00, 0.00, 0.00,
+     0.00, NULL, 350.00, 0.00,
+     TRUE, 'PENDING', NULL, NULL,
+     0, 0.000, 0.000, NULL,
+     'BATCH-VALVE-26-01', 'HEAT-SS316-441', 'Lineside assembly staging scheduled.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 5. JC-0005: OP-10 for WO-1002 (Valve Body Machining)
+    (1005, 'JC-AHM-2627-0005', '2026-05-11', 1002, 1005,
+     10, 'OP-10', 'Rough Turning & Bore Roughing', 1001, 1001, 1001,
+     120.000, 120.000, 0.000, 0.000, 0.000, 1003,
+     'PENDING', '2026-05-11', '2026-05-12', NULL, NULL,
+     25.00, 2160.00, 0.00, 0.00,
+     0.00, NULL, 650.00, 0.00,
+     FALSE, 'NA', NULL, NULL,
+     0, 0.000, 0.000, NULL,
+     'BATCH-BODY-26-01', 'HEAT-SS316-110', 'Staged at CNC Cell 1 awaiting operator queue.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 6. JC-0006: OP-20 for WO-1002
+    (1006, 'JC-AHM-2627-0006', '2026-05-12', 1002, 1006,
+     20, 'OP-20', 'Finish Boring & Thread Chasing', 1001, 1001, NULL,
+     120.000, 0.000, 0.000, 0.000, 0.000, 1003,
+     'PENDING', '2026-05-12', '2026-05-13', NULL, NULL,
+     15.00, 1680.00, 0.00, 0.00,
+     0.00, NULL, 650.00, 0.00,
+     FALSE, 'NA', NULL, NULL,
+     0, 0.000, 0.000, NULL,
+     'BATCH-BODY-26-01', 'HEAT-SS316-110', 'Scheduled post OP-10 roughing.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, job_card_no) DO NOTHING;
+
+SELECT setval('seq_job_card_id', GREATEST((SELECT COALESCE(MAX(job_card_id), 1006) FROM tbl_mfg_job_card), 1006));
+
+-- Sample Operation Time Logs
+INSERT INTO tbl_mfg_job_card_time_log (
+    log_id, job_card_id, operator_id, machine_id,
+    start_time, end_time, setup_mins, run_mins, downtime_mins, downtime_reason,
+    completed_qty, scrapped_qty, rework_qty, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Logs for JC 1001
+    (1001, 1001, 1001, 1001,
+     '2026-05-10 08:30:00+05:30', '2026-05-10 14:30:00+05:30',
+     32.00, 340.00, 0.00, NULL,
+     24.000, 1.000, 0.000, 'Shift 1: First half batch turning completed', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 1001, 1001,
+     '2026-05-10 15:00:00+05:30', '2026-05-10 21:00:00+05:30',
+     0.00, 380.00, 15.00, 'Tool insert index and edge wear replacement',
+     24.000, 1.000, 0.000, 'Shift 2: Remaining batch completed with 1 scrap unit', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Log for JC 1002 (In Progress)
+    (1003, 1002, 1001, 1002,
+     '2026-05-11 09:00:00+05:30', '2026-05-11 15:00:00+05:30',
+     22.00, 336.00, 0.00, NULL,
+     28.000, 0.000, 0.000, 'Shift 1: 28 units completed; machine running smoothly', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (log_id) DO NOTHING;
+
+SELECT setval('seq_job_card_time_log_id', GREATEST((SELECT COALESCE(MAX(log_id), 1003) FROM tbl_mfg_job_card_time_log), 1003));
+
+-- ============================================================================
+-- DATE: 2026-10-19
+-- FEATURE: Step 6.8 - Sample Subcontractor Job-Work Challans & Inward Receipts
+-- ============================================================================
+INSERT INTO tbl_mfg_job_work_challan (
+    challan_id, challan_no, challan_date, vendor_id, wo_id, wo_routing_op_id, job_card_id,
+    nature_of_processing, from_warehouse_id, expected_return_date,
+    transporter_name, vehicle_no, eway_bill_no, status,
+    total_items, total_sent_qty, total_estimated_value,
+    dispatched_by, dispatched_at, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. Dispatched & Partially Received Challan
+    (1001, 'JW-OUT-AHM-2627-0001', '2026-05-11', 1005, 1001, 1002, 1002,
+     'Subcontract Induction Hardening & Cylindrical Grinding to 58-62 HRC',
+     1003, '2026-05-20',
+     'VRL Logistics Limited', 'GJ-01-BX-8842', '281099847162', 'PARTIALLY_RECEIVED',
+     1, 50.000, 75000.00,
+     1001, '2026-05-11 10:30:00+05:30', 'Dispatched under GST Rule 55 Delivery Challan for induction hardening.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. Fully Dispatched (Awaiting Inward Return)
+    (1002, 'JW-OUT-AHM-2627-0002', '2026-05-13', 1005, 1002, 1005, 1005,
+     'Internal Bore Chrome Plating & Nitriding',
+     1003, '2026-05-25',
+     'VRL Logistics Limited', 'GJ-01-CX-4102', '281099859012', 'DISPATCHED',
+     1, 40.000, 160000.00,
+     1001, '2026-05-13 14:15:00+05:30', 'Critical bore plating process outsourced to Micro Precision.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, challan_no) DO NOTHING;
+
+SELECT setval('seq_job_work_challan_id', GREATEST((SELECT COALESCE(MAX(challan_id), 1002) FROM tbl_mfg_job_work_challan), 1002));
+
+-- Sample Outward Challan Line Items
+INSERT INTO tbl_mfg_job_work_challan_item (
+    challan_item_id, challan_id, item_id, item_description, uom_id,
+    sent_qty, unit_rate, total_value, hsn_code, batch_no, heat_no,
+    received_qty, scrap_returned_qty, loss_qty, pending_qty, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1003, 'SS-316 Gate Valve Spindle Shaft 2" Turned Blank', 1003,
+     50.000, 1500.0000, 75000.00, '8481', 'BATCH-VALVE-26-01', 'HEAT-SS316-441',
+     30.000, 1.000, 0.000, 19.000, '50 turned blanks sent; 30 received back with 1 scrap unit.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1004, 'SS-316 Gate Valve Body Casting 2" Class 150', 1003,
+     40.000, 4000.0000, 160000.00, '8481', 'BATCH-BODY-26-01', 'HEAT-SS316-110',
+     0.000, 0.000, 0.000, 40.000, '40 valve bodies sent for nitriding; in processing at vendor plant.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (challan_item_id) DO NOTHING;
+
+SELECT setval('seq_job_work_challan_item_id', GREATEST((SELECT COALESCE(MAX(challan_item_id), 1002) FROM tbl_mfg_job_work_challan_item), 1002));
+
+-- Sample Inward Job-Work Receipt
+INSERT INTO tbl_mfg_job_work_receipt (
+    receipt_id, receipt_no, receipt_date, challan_id, vendor_id, wo_id,
+    vendor_dc_no, vendor_dc_date, vendor_invoice_no, to_warehouse_id,
+    service_charges, tax_amount, total_amount, status,
+    received_by, qc_inspected_by, qc_status, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'JW-IN-AHM-2627-0001', '2026-05-15', 1001, 1005, 1001,
+     'MP-DC-2026-144', '2026-05-14', 'MP-INV-8891', 1003,
+     10500.00, 1890.00, 12390.00, 'SUBMITTED',
+     1001, 1001, 'ACCEPTED', 'Batch 1 of 30 spindle shafts received hardened to 60 HRC. QC Passed.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, receipt_no) DO NOTHING;
+
+SELECT setval('seq_job_work_receipt_id', GREATEST((SELECT COALESCE(MAX(receipt_id), 1001) FROM tbl_mfg_job_work_receipt), 1001));
+
+-- Sample Inward Receipt Items
+INSERT INTO tbl_mfg_job_work_receipt_item (
+    receipt_item_id, receipt_id, challan_item_id, received_item_id, uom_id,
+    received_qty, accepted_qty, rejected_qty, rework_qty, scrap_qty, loss_qty,
+    processing_rate, processing_amount, batch_no, heat_no, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1003, 1003,
+     30.000, 30.000, 0.000, 0.000, 1.000, 0.000,
+     350.0000, 10500.00, 'BATCH-VALVE-26-01', 'HEAT-SS316-441', '30 good pieces + 1 scrap piece returned.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (receipt_item_id) DO NOTHING;
+
+SELECT setval('seq_job_work_receipt_item_id', GREATEST((SELECT COALESCE(MAX(receipt_item_id), 1001) FROM tbl_mfg_job_work_receipt_item), 1001));
+
+
+-- ============================================================================
+-- DATE: 2026-10-19
+-- FEATURE: Step 6.9 - Finished Goods (FG) Production Receipt, Scrap/By-Product
+--          Accounting & Absorption Cost Rollup (tbl_mfg_fg_receipt_header & tbl_mfg_fg_receipt_byproduct)
+-- ============================================================================
+INSERT INTO tbl_mfg_fg_receipt_header (
+    fg_receipt_id, receipt_no, receipt_date, wo_id, item_id, uom_id,
+    to_warehouse_id, to_bin_id, batch_no, heat_no, manufacturing_date, expiry_date,
+    received_qty, accepted_qty, rejected_qty, rework_qty,
+    qc_status, qc_inspected_by, qc_inspected_at, qc_remarks,
+    material_cost, operation_cost, byproduct_credit, total_cost, unit_cost,
+    status, posted_by, posted_at, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'FGR-AHM-2627-0001', '2026-04-25', 1001, 1008, 1003,
+     1004, 1007, 'BAT-2026-VLV-001', 'HT-SS316-2026-04', '2026-04-25', NULL,
+     10.000, 10.000, 0.000, 0.000,
+     'ACCEPTED', 1001, '2026-04-25 14:30:00+05:30', 'Hydrostatic pressure tested at 1.5x rating. Zero leakage observed. Dimensional compliance verified.',
+     22202.00, 7664.00, 500.00, 29366.00, 2936.6000,
+     'POSTED', 1001, '2026-04-25 16:00:00+05:30', 'Initial finished production lot transferred to bonded FG warehouse.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 'FGR-AHM-2627-0002', '2026-04-27', 1001, 1008, 1003,
+     1004, 1007, 'BAT-2026-VLV-001', 'HT-SS316-2026-05', '2026-04-27', NULL,
+     15.000, 14.000, 1.000, 0.000,
+     'PENDING', NULL, NULL, NULL,
+     33303.00, 11496.00, 750.00, 44049.00, 3146.3571,
+     'DRAFT', NULL, NULL, 'Batch 2 valve assembly awaiting final QA inspector signoff.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, receipt_no) DO NOTHING;
+
+SELECT setval('seq_fg_receipt_id', GREATEST((SELECT COALESCE(MAX(fg_receipt_id), 1002) FROM tbl_mfg_fg_receipt_header), 1002));
+
+INSERT INTO tbl_mfg_fg_receipt_byproduct (
+    receipt_byproduct_id, fg_receipt_id, item_id, uom_id, product_type,
+    quantity, recovery_rate, total_recovery_value, to_warehouse_id, to_bin_id,
+    remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1001, 'RECOVERABLE_SCRAP',
+     5.000, 100.0000, 500.00, 1005, NULL,
+     'SS-316 clean turning chips recovered during body face milling', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1001, 1001, 'RECOVERABLE_SCRAP',
+     7.500, 100.0000, 750.00, 1005, NULL,
+     'SS-316 machining swarf and chips', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (receipt_byproduct_id) DO NOTHING;
+
+SELECT setval('seq_fg_receipt_byproduct_id', GREATEST((SELECT COALESCE(MAX(receipt_byproduct_id), 1002) FROM tbl_mfg_fg_receipt_byproduct), 1002));
+
+
+-- ============================================================================
+-- DATE: 2026-10-19
+-- FEATURE: Step 7.1 - Customer Inquiry & Quotation / Proforma Invoice
+--          (tbl_sales_quotation_header & tbl_sales_quotation_item)
+-- ============================================================================
+INSERT INTO tbl_sales_quotation_header (
+    quotation_id, quotation_no, quotation_date, inquiry_ref_no, inquiry_date,
+    customer_id, customer_name, contact_person, contact_email, contact_phone,
+    billing_address_id, billing_address, shipping_address_id, shipping_address,
+    shipping_state_code, shipping_state_name, customer_gstin, price_list_id,
+    currency_code, exchange_rate, valid_until, delivery_lead_time_days,
+    payment_terms, delivery_terms,
+    subtotal_amount, discount_percent, discount_amount, taxable_amount,
+    cgst_amount, sgst_amount, igst_amount, total_tax_amount,
+    freight_charges, packaging_charges, round_off, grand_total,
+    revision_no, status, submitted_by, submitted_at, sent_at, accepted_at,
+    remarks, terms_and_conditions, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'QT-AHM-2627-0001', '2026-05-02', 'RFQ-MSIL-ENG-2026-441', '2026-04-28',
+     1001, 'Maruti Suzuki India Limited', 'Rakesh Sharma (Head of SCM)', 'rakesh.sharma@maruti.co.in', '+91-9811012345',
+     1001, '1, Nelson Mandela Road, Vasant Kunj, Phase II, New Delhi 110070',
+     1002, 'Palam Gurgaon Road, Sector 18, Automotive Manufacturing Zone, Gurugram 122015',
+     '06', 'Haryana', '06AAACM1234F1Z3', 1001,
+     'INR', 1.0000, '2026-06-02', 21,
+     'NET_45', 'FOR_DESTINATION',
+     878750.00, 0.00, 0.00, 878750.00,
+     0.00, 0.00, 246050.00, 246050.00,
+     15000.00, 5000.00, 0.00, 1144800.00,
+     0, 'SENT', 1001, '2026-05-02 16:30:00+05:30', '2026-05-03 10:15:00+05:30', NULL,
+     'Annual Powertrain Hydromount Contract rate quotation with door delivery to Gurugram plant.',
+     '1. Price validity: 30 days from quotation date. 2. Payment Terms: 45 days PDC from receipt of material. 3. Warranty: 18 months from supply or 12 months from commissioning.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 'QT-AHM-2627-0002', '2026-05-04', 'RFQ-LNT-HAZ-2026-089', '2026-05-01',
+     1002, 'Larsen & Toubro Limited - Heavy Engineering Division', 'Suresh Narayanan (VP Procurement)', 'suresh.n@lntvalves.com', '+91-9820054321',
+     NULL, 'L&T House, Ballard Estate, Mumbai 400001',
+     NULL, 'Hazira Manufacturing Complex, Surat Hazira Road, Gujarat 394510',
+     '24', 'Gujarat', '24AAACL5678G1Z2', 1002,
+     'INR', 1.0000, '2026-06-15', 14,
+     'NET_30', 'EX_WORKS',
+     164900.00, 0.00, 0.00, 164900.00,
+     14841.00, 14841.00, 0.00, 29682.00,
+     2500.00, 1500.00, 0.00, 198682.00,
+     0, 'ACCEPTED', 1001, '2026-05-04 14:00:00+05:30', '2026-05-04 15:30:00+05:30', '2026-05-06 15:45:00+05:30',
+     'Technical bid accepted by Hazira engineering committee. Commercial terms confirmed.',
+     '1. Prices are Ex-Works Ahmedabad. 2. Third-party inspection (TPI) by Bureau Veritas included. 3. Hydrostatic test certificates to accompany dispatch.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 'QT-AHM-2627-0003', '2026-05-08', 'RFQ-MSIL-ENG-2026-512', '2026-05-07',
+     1001, 'Maruti Suzuki India Limited', 'Rakesh Sharma (Head of SCM)', 'rakesh.sharma@maruti.co.in', '+91-9811012345',
+     1001, '1, Nelson Mandela Road, Vasant Kunj, Phase II, New Delhi 110070',
+     1002, 'Palam Gurgaon Road, Sector 18, Automotive Manufacturing Zone, Gurugram 122015',
+     '06', 'Haryana', '06AAACM1234F1Z3', 1001,
+     'INR', 1.0000, '2026-06-08', 28,
+     'NET_45', 'FOR_DESTINATION',
+     2160000.00, 0.00, 0.00, 2160000.00,
+     0.00, 0.00, 604800.00, 604800.00,
+     25000.00, 8000.00, 0.00, 2797800.00,
+     0, 'DRAFT', NULL, NULL, NULL, NULL,
+     'High-volume hydromount quote revision pending internal tooling cost verification.',
+     '1. Delivery in 4 monthly phased call-offs. 2. Packaging in returnable steel stillages.',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, quotation_no, revision_no) DO NOTHING;
+
+SELECT setval('seq_quotation_id', GREATEST((SELECT COALESCE(MAX(quotation_id), 1003) FROM tbl_sales_quotation_header), 1003));
+
+INSERT INTO tbl_sales_quotation_item (
+    quotation_item_id, quotation_id, item_sequence, item_id, item_code, item_name,
+    description, hsn_sac_code, uom_id, quantity, unit_rate,
+    gross_amount, discount_percent, discount_amount, taxable_amount,
+    gst_rate, cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount,
+    total_tax_amount, total_amount, delivery_lead_time_days, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1, 1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     '8708', 1003, 500.000, 1850.0000,
+     925000.00, 5.00, 46250.00, 878750.00,
+     28.00, 0.00, 0.00, 0.00, 0.00, 28.00, 246050.00,
+     246050.00, 1124800.00, 21, 'Batch 1 delivery within 3 weeks of PO signoff', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1, 1008, 'FG-GATE-VALVE-50', 'Industrial SS-316 Flanged Gate Valve 2" Class 150',
+     'API 600 compliant stainless steel gate valve with handwheel actuator and hydrostatic test certificate',
+     '8481', 1003, 25.000, 6800.0000,
+     170000.00, 3.00, 5100.00, 164900.00,
+     18.00, 9.00, 14841.00, 9.00, 14841.00, 0.00, 0.00,
+     29682.00, 194582.00, 14, 'Flanges drilled as per ANSI B16.5 Class 150', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1003, 1, 1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     '8708', 1003, 1200.000, 1800.0000,
+     2160000.00, 0.00, 0.00, 2160000.00,
+     28.00, 0.00, 0.00, 0.00, 0.00, 28.00, 604800.00,
+     604800.00, 2764800.00, 28, 'Volume Tier 2 discount applied on base rate card', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (quotation_item_id) DO NOTHING;
+
+SELECT setval('seq_quotation_item_id', GREATEST((SELECT COALESCE(MAX(quotation_item_id), 1003) FROM tbl_sales_quotation_item), 1003));
+
+
+-- ============================================================================
+-- Finished Goods Bin Stock Balances for ATP Reservation
+-- ============================================================================
+INSERT INTO tbl_inv_bin_stock (
+    bin_stock_id, comp_id, branch_id, fyear_id,
+    warehouse_id, bin_id, item_id, uom_id,
+    batch_no, heat_no,
+    on_hand_qty, reserved_qty, available_qty,
+    unit_cost, total_valuation, last_stock_date,
+    is_active, created_by
+) VALUES
+    (1003, 1001, 1001, 1001,
+     1004, 1007, 1008, 1003,
+     'BAT-2026-VLV-001', 'HT-SS316-2026-04',
+     25.000, 25.000, 0.000,
+     2936.6000, 73415.00, '2026-04-25 16:00:00+05:30',
+     TRUE, 1001),
+    (1004, 1001, 1001, 1001,
+     1004, 1007, 1009, 1003,
+     'BAT-2026-MNT-001', 'HT-MNT-2026-05',
+     150.000, 100.000, 50.000,
+     1450.0000, 217500.00, '2026-04-26 12:00:00+05:30',
+     TRUE, 1001)
+ON CONFLICT (warehouse_id, bin_id, item_id, batch_no) DO NOTHING;
+
+SELECT setval('seq_bin_stock_id', GREATEST((SELECT COALESCE(MAX(bin_stock_id), 1004) FROM tbl_inv_bin_stock), 1004));
+
+
+-- ============================================================================
+-- DATE: 2026-10-19
+-- FEATURE: Step 7.2 - Sales Order (SO), Commercial Credit Check & ATP Stock Reservation
+--          (tbl_sales_order_header & tbl_sales_order_item)
+-- ============================================================================
+INSERT INTO tbl_sales_order_header (
+    so_id, so_no, so_date, quotation_id,
+    customer_id, customer_name, customer_po_no, customer_po_date,
+    contact_person, contact_email, contact_phone,
+    billing_address_id, billing_address, shipping_address_id, shipping_address,
+    shipping_state_code, shipping_state_name, customer_gstin, price_list_id,
+    currency_code, exchange_rate, target_delivery_date,
+    payment_terms, delivery_terms,
+    customer_credit_limit, current_credit_exposure, is_credit_limit_exceeded,
+    credit_override_by, credit_override_at, credit_override_reason,
+    subtotal_amount, discount_percent, discount_amount, taxable_amount,
+    cgst_amount, sgst_amount, igst_amount, total_tax_amount,
+    freight_charges, packaging_charges, round_off, grand_total,
+    status, atp_reservation_status, confirmed_by, confirmed_at,
+    hold_reason, remarks, terms_and_conditions, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'SO-AHM-2627-0001', '2026-05-04', 1001,
+     1001, 'Maruti Suzuki India Limited', 'PO/MSIL/ENG/2026/09912', '2026-05-03',
+     'Rakesh Sharma (Head of SCM)', 'rakesh.sharma@maruti.co.in', '+91-9811012345',
+     1001, '1, Nelson Mandela Road, Vasant Kunj, Phase II, New Delhi 110070',
+     1002, 'Palam Gurgaon Road, Sector 18, Automotive Manufacturing Zone, Gurugram 122015',
+     '06', 'Haryana', '06AAACM1234F1Z3', 1001,
+     'INR', 1.0000, '2026-05-25',
+     'NET_45', 'FOR_DESTINATION',
+     5000000.00, 1144800.00, FALSE,
+     NULL, NULL, NULL,
+     878750.00, 0.00, 0.00, 878750.00,
+     0.00, 0.00, 246050.00, 246050.00,
+     15000.00, 5000.00, 0.00, 1144800.00,
+     'CONFIRMED', 'PARTIAL', 1001, '2026-05-04 11:30:00+05:30',
+     NULL,
+     'Firm purchase order received against Quotation QT-AHM-2627-0001. Partial ATP stock (100 units) reserved. Balance 400 units queued for work order generation.',
+     '1. Prices include door delivery to Gurugram. 2. GST 28% applicable. 3. Warranty 18 months from supply.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 'SO-AHM-2627-0002', '2026-05-06', 1002,
+     1002, 'Larsen & Toubro Limited - Heavy Engineering Division', 'LNT/HAZ/VALVES/PO-8821', '2026-05-06',
+     'Suresh Narayanan (VP Procurement)', 'suresh.n@lntvalves.com', '+91-9820054321',
+     NULL, 'L&T House, Ballard Estate, Mumbai 400001',
+     NULL, 'Hazira Manufacturing Complex, Surat Hazira Road, Gujarat 394510',
+     '24', 'Gujarat', '24AAACL5678G1Z2', 1002,
+     'INR', 1.0000, '2026-05-20',
+     'NET_30', 'EX_WORKS',
+     3500000.00, 198682.00, FALSE,
+     NULL, NULL, NULL,
+     164900.00, 0.00, 0.00, 164900.00,
+     14841.00, 14841.00, 0.00, 29682.00,
+     2500.00, 1500.00, 0.00, 198682.00,
+     'READY_FOR_DISPATCH', 'FULL', 1001, '2026-05-06 16:00:00+05:30',
+     NULL,
+     'Complete stock of 25 units allocated from Batch BAT-2026-VLV-001. Packaged for Hazira pickup.',
+     '1. Ex-works Ahmedabad. 2. Third-party inspection (TPI) certificate and hydrostatic test reports attached.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 'SO-AHM-2627-0003', '2026-05-10', NULL,
+     1001, 'Maruti Suzuki India Limited', 'PO/MSIL/ENG/2026/09988', '2026-05-09',
+     'Rakesh Sharma (Head of SCM)', 'rakesh.sharma@maruti.co.in', '+91-9811012345',
+     1001, '1, Nelson Mandela Road, Vasant Kunj, Phase II, New Delhi 110070',
+     1002, 'Palam Gurgaon Road, Sector 18, Automotive Manufacturing Zone, Gurugram 122015',
+     '06', 'Haryana', '06AAACM1234F1Z3', 1001,
+     'INR', 1.0000, '2026-06-01',
+     'NET_45', 'FOR_DESTINATION',
+     5000000.00, 1602720.00, FALSE,
+     NULL, NULL, NULL,
+     351500.00, 0.00, 0.00, 351500.00,
+     0.00, 0.00, 98420.00, 98420.00,
+     6000.00, 2000.00, 0.00, 457920.00,
+     'DRAFT', 'PENDING', NULL, NULL,
+     NULL,
+     'Direct spot purchase order received for 200 hydromount units. Pending commercial confirmation and credit approval.',
+     'Standard MSIL OEM purchase order terms & vendor code of conduct apply.',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, so_no) DO NOTHING;
+
+SELECT setval('seq_sales_order_id', GREATEST((SELECT COALESCE(MAX(so_id), 1003) FROM tbl_sales_order_header), 1003));
+
+INSERT INTO tbl_sales_order_item (
+    so_item_id, so_id, item_sequence, item_id, item_code, item_name,
+    description, hsn_sac_code, uom_id,
+    ordered_qty, reserved_qty, delivered_qty, invoiced_qty, cancelled_qty,
+    unit_rate, gross_amount, discount_percent, discount_amount, taxable_amount,
+    gst_rate, cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount,
+    total_tax_amount, total_amount, target_delivery_date,
+    reservation_status, work_order_id, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1, 1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     '8708', 1003,
+     500.000, 100.000, 0.000, 0.000, 0.000,
+     1850.0000, 925000.00, 5.00, 46250.00, 878750.00,
+     28.00, 0.00, 0.00, 0.00, 0.00, 28.00, 246050.00,
+     246050.00, 1124800.00, '2026-05-25',
+     'PARTIAL', NULL,
+     '100 units reserved from FG warehouse bin. Remaining 400 to be manufactured.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1, 1008, 'FG-GATE-VALVE-50', 'Industrial SS-316 Flanged Gate Valve 2" Class 150',
+     'API 600 compliant stainless steel gate valve with handwheel actuator and hydrostatic test certificate',
+     '8481', 1003,
+     25.000, 25.000, 0.000, 0.000, 0.000,
+     6800.0000, 170000.00, 3.00, 5100.00, 164900.00,
+     18.00, 9.00, 14841.00, 9.00, 14841.00, 0.00, 0.00,
+     29682.00, 194582.00, '2026-05-20',
+     'FULL', 1001,
+     'Fully reserved from Batch BAT-2026-VLV-001. Packaged for delivery.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1003, 1, 1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     '8708', 1003,
+     200.000, 0.000, 0.000, 0.000, 0.000,
+     1850.0000, 370000.00, 5.00, 18500.00, 351500.00,
+     28.00, 0.00, 0.00, 0.00, 0.00, 28.00, 98420.00,
+     98420.00, 449920.00, '2026-06-01',
+     'PENDING', NULL,
+     'Draft order pending credit clearance and confirmation.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (so_item_id) DO NOTHING;
+
+SELECT setval('seq_so_item_id', GREATEST((SELECT COALESCE(MAX(so_item_id), 1003) FROM tbl_sales_order_item), 1003));
+
+
+
+-- ============================================================================
+-- Phase 7: Step 7.3 — Outward Sales Delivery Challans (tbl_sales_delivery_challan_header / item)
+-- ============================================================================
+INSERT INTO tbl_sales_delivery_challan_header (
+    challan_id, challan_no, challan_date, so_id, so_no,
+    customer_id, customer_name, contact_person, contact_phone,
+    billing_address_id, billing_address, shipping_address_id, shipping_address,
+    shipping_state_code, shipping_state_name, customer_gstin,
+    dispatch_purpose, transporter_id, transporter_name, vehicle_no,
+    lr_rr_no, lr_rr_date, e_way_bill_no, e_way_bill_date,
+    delivery_terms, total_packages, package_type, gross_weight_kg, net_weight_kg,
+    warehouse_id, total_quantity, total_value, status,
+    picked_by, picked_at, packed_by, packed_at, dispatched_by, dispatched_at,
+    remarks, terms_and_conditions, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'DC-AHM-2627-0001', '2026-05-18', 1002, 'SO-AHM-2627-0002',
+     1002, 'Larsen & Toubro Ltd - Heavy Engineering Division', 'Mr. Rajesh K. Mehta', '+91 98250 11223',
+     1003, 'L&T Hazira Manufacturing Complex, Surat-Hazira Road, Surat, Gujarat 394510',
+     1003, 'L&T Hazira Manufacturing Complex, Surat-Hazira Road, Surat, Gujarat 394510',
+     '24', 'Gujarat', '24AAACL0149P1ZM',
+     'SUPPLY_ON_SALE', 1004, 'V-Trans (India) Limited', 'GJ-01-BX-8821',
+     'LR-789012', '2026-05-18', 'EWB-2627-891023', '2026-05-18',
+     'EX_WORKS', 2, 'Wooden Crates', 320.000, 300.000,
+     1001, 25.000, 164900.00, 'DISPATCHED',
+     1001, '2026-05-18 10:15:00+05:30', 1001, '2026-05-18 11:45:00+05:30', 1001, '2026-05-18 14:30:00+05:30',
+     'Full dispatch for SO-AHM-2627-0002. Dispatched via dedicated open-body truck with hydrostatic test certificates and warranty cards.',
+     'Goods dispatched in sound condition per Rule 55 of CGST Rules 2017. Acceptance of delivery constitutes acceptance of commercial invoice terms.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 'DC-AHM-2627-0002', '2026-05-19', 1001, 'SO-AHM-2627-0001',
+     1001, 'Maruti Suzuki India Limited', 'Mr. Vikram Singhania', '+91 98110 54321',
+     1001, '1, Nelson Mandela Road, Vasant Kunj, New Delhi 110070',
+     1002, 'Plot No. 1, Phase 3A, IMT Manesar, Gurugram, Haryana 122051',
+     '06', 'Haryana', '07AABCM8529R1ZE',
+     'SUPPLY_ON_SALE', 1004, 'V-Trans (India) Limited', 'GJ-06-TY-4412',
+     'LR-789456', '2026-05-19', 'EWB-2627-891055', '2026-05-19',
+     'FOR_DESTINATION', 5, 'Heavy Corrugated Cartons', 155.000, 140.000,
+     1001, 50.000, 87875.00, 'PACKED',
+     1001, '2026-05-19 09:30:00+05:30', 1001, '2026-05-19 11:00:00+05:30', NULL, NULL,
+     'First partial lot of 50 hydromount assemblies packed and staged in Outward Bay 2. Awaiting transporter vehicle placement for gate dispatch.',
+     'Material subject to destination inward inspection at MSIL Manesar plant.',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, challan_no) DO NOTHING;
+
+SELECT setval('seq_delivery_challan_id', GREATEST((SELECT COALESCE(MAX(challan_id), 1002) FROM tbl_sales_delivery_challan_header), 1002));
+
+INSERT INTO tbl_sales_delivery_challan_item (
+    challan_item_id, challan_id, so_item_id, item_sequence,
+    item_id, item_code, item_name, description, hsn_sac_code, uom_id,
+    ordered_qty, dispatched_qty, warehouse_id, bin_id, batch_no, heat_no,
+    unit_rate, total_amount, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1002, 1,
+     1008, 'FG-GATE-VALVE-50', 'Industrial SS-316 Flanged Gate Valve 2" Class 150',
+     'API 600 compliant stainless steel gate valve with handwheel actuator and hydrostatic test certificate',
+     '8481', 1003,
+     25.000, 25.000, 1001, 1003, 'BAT-2026-VLV-001', 'HT-7821',
+     6596.0000, 164900.00, '25 units picked from Bin A-01-01 and loaded into Crate 1 & 2', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1001, 1,
+     1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     '8708', 1003,
+     500.000, 50.000, 1001, 1004, 'BAT-2026-MNT-001', 'HT-MNT-44',
+     1757.5000, 87875.00, '50 units packed in 5 cartons (10 pcs/box)', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (challan_item_id) DO NOTHING;
+
+SELECT setval('seq_challan_item_id', GREATEST((SELECT COALESCE(MAX(challan_item_id), 1002) FROM tbl_sales_delivery_challan_item), 1002));
+
+-- Update delivered_qty and status for SO-AHM-2627-0002 (so_id = 1002)
+UPDATE tbl_sales_order_item
+SET delivered_qty = 25.000,
+    reserved_qty = 0.000
+WHERE so_item_id = 1002;
+
+UPDATE tbl_sales_order_header
+SET status = 'COMPLETED',
+    atp_reservation_status = 'FULL'
+WHERE so_id = 1002;
+
+-- Record stock ledger outward dispatch for DC 1001
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date,
+    transaction_type, reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, from_bin_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance,
+    remarks, is_active, created_by
+) VALUES (
+    1001, 1001, 1001, '2026-05-18 14:30:00+05:30',
+    'SALES_DISPATCH', 'DELIVERY_CHALLAN', 1001, 'DC-AHM-2627-0001',
+    1001, 1003, NULL, 1008, 1003,
+    'BAT-2026-VLV-001', 'HT-7821', 0.000, 25.000, 5800.0000, 145000.00, 15.000,
+    'Outward sales dispatch against Delivery Challan DC-AHM-2627-0001', TRUE, 1001
+);
+
+-- Deduct on-hand stock and reserved stock in tbl_inv_bin_stock for bin 1003
+UPDATE tbl_inv_bin_stock
+SET on_hand_qty = GREATEST(0, on_hand_qty - 25.000),
+    reserved_qty = GREATEST(0, reserved_qty - 25.000),
+    available_qty = GREATEST(0, on_hand_qty - 25.000) - GREATEST(0, reserved_qty - 25.000),
+    last_stock_date = CURRENT_TIMESTAMP
+WHERE bin_id = 1003 AND item_id = 1008;
+
+
+-- ============================================================================
+-- Phase 7: Step 7.4 — Demo Sales Tax Invoices & Customer AR Payment Receipts
+-- ============================================================================
+INSERT INTO tbl_sales_invoice_header (
+    invoice_id, invoice_no, invoice_date, invoice_type, challan_id, so_id,
+    customer_id, customer_name, contact_person, contact_phone,
+    billing_address_id, billing_address, shipping_address_id, shipping_address,
+    place_of_supply, customer_gstin, customer_pan, supply_type, reverse_charge_applicable,
+    transporter_name, vehicle_no, lr_rr_no, lr_rr_date,
+    irn_status, irn_no, ack_no, ack_date, signed_qr_code, e_way_bill_no, e_way_bill_date,
+    payment_terms_days, due_date, currency_code,
+    subtotal_amount, discount_amount, taxable_amount,
+    cgst_amount, sgst_amount, igst_amount, total_tax_amount,
+    freight_charges, insurance_charges, packaging_charges,
+    tcs_rate, tcs_amount, round_off,
+    total_invoice_amount, paid_amount, balance_amount,
+    status, payment_status, posted_by, posted_at,
+    remarks, terms_and_conditions, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Invoice 1001: Dispatched against DC-AHM-2627-0001 to L&T (Intra-state Gujarat), Posted, IRN Generated, Partially Paid
+    (1001, 'INV-AHM-2627-0001', '2026-05-18', 'TAX_INVOICE', 1001, 1002,
+     1002, 'Larsen & Toubro Limited - Heavy Engineering Division', 'Mr. Rajesh Desai', '+91-265-2834567',
+     1002, 'Gate No. 4, L&T Heavy Engineering Complex, Ranoli, Vadodara, Gujarat - 391750',
+     1002, 'Gate No. 4, L&T Heavy Engineering Complex, Ranoli, Vadodara, Gujarat - 391750',
+     '24 - Gujarat', '24AAACL0149A1ZW', 'AAACL0149A', 'INTRA_STATE', FALSE,
+     'V-Trans India Ltd', 'GJ-06-AX-8942', 'VT-BRD-89104', '2026-05-18',
+     'GENERATED', 'c4b12a89d3e871e41f69209581c74a0e98f0293817456bc912384a78129034ef', '1126101984291', '2026-05-18 16:15:00+05:30',
+     '{"Irn":"c4b12a89d3e871e41f69209581c74a0e98f0293817456bc912384a78129034ef","SellerGstin":"24AABCK1234F1Z5","BuyerGstin":"24AAACL0149A1ZW","DocNo":"INV-AHM-2627-0001","DocTyp":"INV","DocDt":"18/05/2026","TotInvVal":194582.00,"ItemCnt":1,"MainHsnCode":"8481"}',
+     '241829304918', '2026-05-18',
+     30, '2026-06-17', 'INR',
+     164900.00, 0.00, 164900.00,
+     14841.00, 14841.00, 0.00, 29682.00,
+     0.00, 0.00, 0.00,
+     0.000, 0.00, 0.00,
+     194582.00, 100000.00, 94582.00,
+     'POSTED', 'PARTIALLY_PAID', 1001, '2026-05-18 16:30:00+05:30',
+     'Tax Invoice against Outward Delivery Challan DC-AHM-2627-0001 for 25 Gate Valves.',
+     '1. Payment due within 30 days of invoice date. 2. Interest @ 18% p.a. chargeable on overdue bills.',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    -- Invoice 1002: Billed against SO-AHM-2627-0001 (Maruti Suzuki, Haryana - Inter-state), Draft
+    (1002, 'INV-AHM-2627-0002', '2026-05-19', 'TAX_INVOICE', NULL, 1001,
+     1001, 'Maruti Suzuki India Limited', 'Mr. Vikram Malhotra', '+91-124-4321000',
+     1001, 'Plot No. 1, Maruti Joint Venture Complex, Sector 18, Gurugram, Haryana - 122015',
+     1001, 'Plot No. 1, Maruti Joint Venture Complex, Sector 18, Gurugram, Haryana - 122015',
+     '06 - Haryana', '06AAAAC1234F1Z2', 'AAAAC1234F', 'INTER_STATE', FALSE,
+     'SafeXpress Logistics', 'HR-55-AB-7788', 'SX-GGN-78129', '2026-05-19',
+     'NOT_GENERATED', NULL, NULL, NULL, NULL, '061928374612', '2026-05-19',
+     30, '2026-06-18', 'INR',
+     87875.00, 0.00, 87875.00,
+     0.00, 0.00, 15817.50, 15817.50,
+     0.00, 0.00, 0.00,
+     0.000, 0.00, 0.50,
+     103693.00, 0.00, 103693.00,
+     'DRAFT', 'UNPAID', NULL, NULL,
+     'Commercial tax invoice for lot of 50 Automotive Hydromount Assemblies against SO-AHM-2627-0001.',
+     '1. Payment due within 30 days. 2. Subject to Ahmedabad jurisdiction.',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, invoice_no) DO NOTHING;
+
+SELECT setval('seq_sales_invoice_id', GREATEST((SELECT COALESCE(MAX(invoice_id), 1002) FROM tbl_sales_invoice_header), 1002));
+
+INSERT INTO tbl_sales_invoice_item (
+    invoice_item_id, invoice_id, so_item_id, challan_item_id, item_sequence,
+    item_id, item_code, item_name, description, hsn_sac_code, uom_id,
+    quantity, unit_rate, gross_amount, discount_percent, discount_amount, taxable_amount,
+    gst_rate, cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount,
+    total_tax_amount, total_item_amount, batch_no, heat_no, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1002, 1001, 1,
+     1008, 'FG-GATE-VALVE-50', 'Industrial SS-316 Flanged Gate Valve 2" Class 150',
+     'API 600 compliant stainless steel gate valve with handwheel actuator and hydrostatic test certificate',
+     '8481', 1003,
+     25.000, 6596.0000, 164900.00, 0.00, 0.00, 164900.00,
+     18.00, 9.00, 14841.00, 9.00, 14841.00, 0.00, 0.00,
+     29682.00, 194582.00, 'BAT-2026-VLV-001', 'HT-7821', 'Dispatched per DC-AHM-2627-0001', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1001, NULL, 1,
+     1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly',
+     '8708', 1003,
+     50.000, 1757.5000, 87875.00, 0.00, 0.00, 87875.00,
+     18.00, 0.00, 0.00, 0.00, 0.00, 18.00, 15817.50,
+     15817.50, 103692.50, 'BAT-2026-MNT-001', 'HT-MNT-44', 'Lot 1 of 500 under SO-AHM-2627-0001', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (invoice_item_id) DO NOTHING;
+
+SELECT setval('seq_sales_invoice_item_id', GREATEST((SELECT COALESCE(MAX(invoice_item_id), 1002) FROM tbl_sales_invoice_item), 1002));
+
+-- Customer AR Payment Receipt (tbl_sales_ar_payment_receipt)
+INSERT INTO tbl_sales_ar_payment_receipt (
+    payment_id, receipt_no, receipt_date, invoice_id, customer_id,
+    payment_mode, reference_no, payment_amount, tds_amount, total_allocated_amount,
+    bank_name, cheque_date, remarks, recorded_by, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'REC-AHM-2627-0001', '2026-05-25', 1001, 1002,
+     'NEFT_RTGS', 'HDFCR52026052500912', 100000.00, 0.00, 100000.00,
+     'HDFC Bank Ltd', NULL, 'On-account partial payment received via RTGS against INV-AHM-2627-0001', 1001, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, receipt_no) DO NOTHING;
+
+SELECT setval('seq_ar_payment_id', GREATEST((SELECT COALESCE(MAX(payment_id), 1001) FROM tbl_sales_ar_payment_receipt), 1001));
+
+-- Synchronize invoiced_qty on Sales Order Item 1002
+UPDATE tbl_sales_order_item
+SET invoiced_qty = 25.000
+WHERE so_item_id = 1002;
+
+-- ============================================================================
+-- Phase 7: Step 7.5 — Sales Return, RMA & Statutory GST Credit Note (tbl_sales_return_header & tbl_sales_return_item)
+-- ============================================================================
+INSERT INTO tbl_sales_return_header (
+    return_id, return_no, return_date, return_type,
+    credit_note_no, credit_note_date,
+    invoice_id, invoice_no, invoice_date,
+    customer_id, customer_name, customer_gstin, customer_pan,
+    billing_address, billing_city, billing_state, billing_pincode, billing_state_code,
+    place_of_supply, pos_state_code,
+    rma_reference_no, rma_reference_date,
+    gate_entry_no, gate_entry_date,
+    vehicle_no, transporter_name, lr_no, lr_date,
+    currency_code, exchange_rate,
+    subtotal_amount, discount_amount, taxable_amount,
+    cgst_amount, sgst_amount, igst_amount, round_off_amount,
+    total_credit_amount, ar_adjusted_amount,
+    irn_status, irn_no, ack_no, ack_date, signed_qr_code,
+    return_reason,
+    qc_status, qc_inspected_by, qc_inspected_at, qc_remarks,
+    restock_status, restocked_by, restocked_at,
+    credit_note_status, credit_posted_by, credit_posted_at,
+    status, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'SR-AHM-2627-0001', '2026-05-28', 'QUALITY_REJECTION',
+     'CN-AHM-2627-0001', '2026-05-29',
+     1001, 'INV-AHM-2627-0001', '2026-05-20',
+     1002, 'Larsen & Toubro Heavy Engineering Ltd', '24AAACL1234F1Z8', 'AAACL1234F',
+     'Hazira Manufacturing Complex, Surat-Hazira Road', 'Surat', 'Gujarat', '394510', '24',
+     'Gujarat (24)', '24',
+     'LT-RMA-2627-04', '2026-05-26',
+     'GE-IN-2627-088', '2026-05-27',
+     'GJ-05-BT-4412', 'V-Trans India Ltd', 'VT-SUR-99021', '2026-05-27',
+     'INR', 1.0000,
+     13192.00, 0.00, 13192.00,
+     1187.28, 1187.28, 0.00, -0.56,
+     15566.00, 15566.00,
+     'GENERATED', 'e4d7a8b9c0123456789abcdef0123456789abcdef0123456789abcdef0123456', '142627000098124', '2026-05-29 11:20:00+05:30', 'eyJwYXlsb2FkIjoie1wic2VsbGVyR3N0aW5cIjpcIjI0QUFBQ0sxMjM0QzFaNVwiLFwiZG9jTm9cIjpcIkNOLUFITS0yNjI3LTAwMDFcIn0ifQ==',
+     '2 valves returned from lot of 25: 1 flange lap blemish (reworkable/restockable) & 1 casting wall porosity leak',
+     'PARTIALLY_ACCEPTED', 1001, '2026-05-28 15:30:00+05:30', 'Pressure decay test: Valve #1 meets API 598 seat seal; Valve #2 failed hydrostatic body shell test. 1 unit restocked to Bin FG-BAY-01, 1 scrapped.',
+     'RESTOCKED', 1001, '2026-05-29 14:00:00+05:30',
+     'POSTED', 1001, '2026-05-29 16:00:00+05:30',
+     'COMPLETED', 'Statutory GST Credit Note issued per Sec 34. Adjusted ₹15,566 against INV-AHM-2627-0001 AR balance.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 'SR-AHM-2627-0002', '2026-06-02', 'TRANSIT_DAMAGE',
+     NULL, NULL,
+     1002, 'INV-AHM-2627-0002', '2026-05-22',
+     1001, 'Maruti Suzuki India Limited', '06AAAAC1234G1Z2', 'AAAAC1234G',
+     'Plot No. 1, Nelson Mandela Road, Vasant Kunj', 'New Delhi', 'Delhi', '110070', '07',
+     'Haryana (06)', '06',
+     'MSIL-RMA-2627-11', '2026-06-01',
+     'GE-IN-2627-095', '2026-06-02',
+     'HR-55-E-8812', 'Safexpress Pvt Ltd', 'SFX-DEL-55109', '2026-06-01',
+     'INR', 1.0000,
+     8787.50, 0.00, 8787.50,
+     0.00, 0.00, 1581.75, 0.25,
+     10369.50, 0.00,
+     'NOT_APPLICABLE', NULL, NULL, NULL, NULL,
+     '5 powertrain hydromount assemblies damaged during carrier transit - torn elastomer bellows',
+     'PENDING', NULL, NULL, NULL,
+     'PENDING', NULL, NULL,
+     'DRAFT', NULL, NULL,
+     'DRAFT', 'RMA shipment staged in Central Inward Quarantine Bay awaiting technical tear-down review', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, return_no) DO NOTHING;
+
+SELECT setval('seq_sales_return_id', GREATEST((SELECT COALESCE(MAX(return_id), 1002) FROM tbl_sales_return_header), 1002));
+
+-- Sales Return Line Items
+INSERT INTO tbl_sales_return_item (
+    return_item_id, return_id, invoice_item_id, item_sequence,
+    item_id, item_code, item_name, description, hsn_sac_code, uom_id,
+    invoiced_qty, returned_qty, accepted_qty, rejected_scrap_qty,
+    unit_price, discount_percent, discount_amount, taxable_amount,
+    gst_rate, cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount,
+    line_total, target_warehouse_id, target_bin_id,
+    batch_no, heat_no, defect_type, qc_verdict, action_taken, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, 1001, 1,
+     1008, 'FG-GATE-VALVE-50', 'Industrial SS-316 Flanged Gate Valve 2" Class 150',
+     'API 600 compliant stainless steel gate valve with handwheel actuator', '8481', 1003,
+     25.000, 2.000, 1.000, 1.000,
+     6596.0000, 0.00, 0.00, 13192.00,
+     18.00, 9.00, 1187.28, 9.00, 1187.28, 0.00, 0.00,
+     15566.56, 1004, 1007,
+     'BAT-2026-VLV-001', 'HT-7821', 'SURFACE_AND_POROSITY', 'ACCEPT_FOR_RESTOCK',
+     '1 unit lap-polished & re-tested for bin restock; 1 unit tagged for scrap metallographic review',
+     'QC clearance certificate QC-RMA-2627-001', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 1002, 1,
+     1009, 'FG-AUTO-MNT-DRV', 'Automotive Hydromount Powertrain Assembly',
+     'OEM-spec liquid-filled vibration damping powertrain engine mount assembly', '8708', 1003,
+     50.000, 5.000, 0.000, 0.000,
+     1757.5000, 0.00, 0.00, 8787.50,
+     18.00, 0.00, 0.00, 0.00, 0.00, 18.00, 1581.75,
+     10369.25, 1004, 1007,
+     'BAT-2026-MNT-001', 'HT-MNT-44', 'TRANSIT_CRUSH', 'PENDING',
+     'Awaiting QC physical tear-down inspection',
+     'Physical goods staged in Bay Q-01', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (return_item_id) DO NOTHING;
+
+SELECT setval('seq_sales_return_item_id', GREATEST((SELECT COALESCE(MAX(return_item_id), 1002) FROM tbl_sales_return_item), 1002));
+
+-- Adjust INV-AHM-2627-0001 balance for Credit Note CN-AHM-2627-0001
+UPDATE tbl_sales_invoice_header
+SET balance_amount = 79016.00,
+    paid_amount = 100000.00
+WHERE invoice_id = 1001;
+
+-- Update Bin Stock for Restocked 1 Valve (Bin 1007, Item 1008)
+UPDATE tbl_inv_bin_stock
+SET on_hand_qty = 1.000,
+    available_qty = 1.000,
+    total_valuation = 2936.60
+WHERE warehouse_id = 1004 AND bin_id = 1007 AND item_id = 1008 AND batch_no = 'BAT-2026-VLV-001';
+
+-- Post Stock Ledger Inward for Restocked Sales Return
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, remarks, created_by
+) VALUES (
+    1001, 1001, 1001, '2026-05-29 14:00:00+05:30', 'SALES_RETURN',
+    'SALES_RETURN', 1001, 'SR-AHM-2627-0001',
+    1004, 1007, 1008, 1003,
+    'BAT-2026-VLV-001', 'HT-7821', 1.000, 0.000, 2936.6000, 2936.60,
+    'Sales return restock inward from SR-AHM-2627-0001 (1 unit accepted after lap-polish QC)', 1001
+);
+
+

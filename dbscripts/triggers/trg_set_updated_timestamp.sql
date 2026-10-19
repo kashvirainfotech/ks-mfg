@@ -322,3 +322,102 @@ BEFORE UPDATE ON tbl_mfg_material_issue_item
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
 
 
+
+DROP TRIGGER IF EXISTS trg_mfg_job_card_updated_date ON tbl_mfg_job_card;
+CREATE TRIGGER trg_mfg_job_card_updated_date
+BEFORE UPDATE ON tbl_mfg_job_card
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_job_card_time_log_updated_date ON tbl_mfg_job_card_time_log;
+CREATE TRIGGER trg_mfg_job_card_time_log_updated_date
+BEFORE UPDATE ON tbl_mfg_job_card_time_log
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_job_work_challan_updated_date ON tbl_mfg_job_work_challan;
+CREATE TRIGGER trg_mfg_job_work_challan_updated_date
+BEFORE UPDATE ON tbl_mfg_job_work_challan
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_job_work_challan_item_updated_date ON tbl_mfg_job_work_challan_item;
+CREATE TRIGGER trg_mfg_job_work_challan_item_updated_date
+BEFORE UPDATE ON tbl_mfg_job_work_challan_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_job_work_receipt_updated_date ON tbl_mfg_job_work_receipt;
+CREATE TRIGGER trg_mfg_job_work_receipt_updated_date
+BEFORE UPDATE ON tbl_mfg_job_work_receipt
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_job_work_receipt_item_updated_date ON tbl_mfg_job_work_receipt_item;
+CREATE TRIGGER trg_mfg_job_work_receipt_item_updated_date
+BEFORE UPDATE ON tbl_mfg_job_work_receipt_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_fg_receipt_header_updated_date ON tbl_mfg_fg_receipt_header;
+CREATE TRIGGER trg_mfg_fg_receipt_header_updated_date
+BEFORE UPDATE ON tbl_mfg_fg_receipt_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_fg_receipt_byproduct_updated_date ON tbl_mfg_fg_receipt_byproduct;
+CREATE TRIGGER trg_mfg_fg_receipt_byproduct_updated_date
+BEFORE UPDATE ON tbl_mfg_fg_receipt_byproduct
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_quotation_header_updated_date ON tbl_sales_quotation_header;
+CREATE TRIGGER trg_sales_quotation_header_updated_date
+BEFORE UPDATE ON tbl_sales_quotation_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_quotation_item_updated_date ON tbl_sales_quotation_item;
+CREATE TRIGGER trg_sales_quotation_item_updated_date
+BEFORE UPDATE ON tbl_sales_quotation_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_order_header_updated_date ON tbl_sales_order_header;
+CREATE TRIGGER trg_sales_order_header_updated_date
+BEFORE UPDATE ON tbl_sales_order_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_order_item_updated_date ON tbl_sales_order_item;
+CREATE TRIGGER trg_sales_order_item_updated_date
+BEFORE UPDATE ON tbl_sales_order_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+
+
+DROP TRIGGER IF EXISTS trg_sales_delivery_challan_header_updated_date ON tbl_sales_delivery_challan_header;
+CREATE TRIGGER trg_sales_delivery_challan_header_updated_date
+BEFORE UPDATE ON tbl_sales_delivery_challan_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_delivery_challan_item_updated_date ON tbl_sales_delivery_challan_item;
+CREATE TRIGGER trg_sales_delivery_challan_item_updated_date
+BEFORE UPDATE ON tbl_sales_delivery_challan_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_invoice_header_updated_date ON tbl_sales_invoice_header;
+CREATE TRIGGER trg_sales_invoice_header_updated_date
+BEFORE UPDATE ON tbl_sales_invoice_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_invoice_item_updated_date ON tbl_sales_invoice_item;
+CREATE TRIGGER trg_sales_invoice_item_updated_date
+BEFORE UPDATE ON tbl_sales_invoice_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_ar_payment_receipt_updated_date ON tbl_sales_ar_payment_receipt;
+CREATE TRIGGER trg_sales_ar_payment_receipt_updated_date
+BEFORE UPDATE ON tbl_sales_ar_payment_receipt
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_return_header_updated_date ON tbl_sales_return_header;
+CREATE TRIGGER trg_sales_return_header_updated_date
+BEFORE UPDATE ON tbl_sales_return_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_sales_return_item_updated_date ON tbl_sales_return_item;
+CREATE TRIGGER trg_sales_return_item_updated_date
+BEFORE UPDATE ON tbl_sales_return_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+

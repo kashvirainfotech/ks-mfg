@@ -34,6 +34,14 @@ import { RoutingModule } from './modules/manufacturing/routing/routing.module';
 import { MrpModule } from './modules/manufacturing/mrp/mrp.module';
 import { WorkOrderModule } from './modules/manufacturing/work-order/work-order.module';
 import { MaterialIssueModule } from './modules/manufacturing/material-issue/material-issue.module';
+import { JobCardModule } from './modules/manufacturing/job-card/job-card.module';
+import { JobWorkModule } from './modules/manufacturing/job-work/job-work.module';
+import { FgReceiptModule } from './modules/manufacturing/fg-receipt/fg-receipt.module';
+import { QuotationModule } from './modules/sales/quotation/quotation.module';
+import { OrderModule } from './modules/sales/order/order.module';
+import { DeliveryChallanModule } from './modules/sales/delivery-challan/challan.module';
+import { SalesInvoiceModule } from './modules/sales/invoice/invoice.module';
+import { SalesReturnModule } from './modules/sales/return/return.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -78,6 +86,14 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     MrpModule,
     WorkOrderModule,
     MaterialIssueModule,
+    JobCardModule,
+    JobWorkModule,
+    FgReceiptModule,
+    QuotationModule,
+    OrderModule,
+    DeliveryChallanModule,
+    SalesInvoiceModule,
+    SalesReturnModule,
   ],
   controllers: [AppController],
   providers: [

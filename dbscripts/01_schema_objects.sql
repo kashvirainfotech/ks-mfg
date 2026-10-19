@@ -1655,9 +1655,9 @@ CREATE TABLE IF NOT EXISTS tbl_inv_stock_ledger (
     fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
     transaction_date            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     transaction_type            VARCHAR(50)     NOT NULL
-                                                CHECK (transaction_type IN ('PUTAWAY_INWARD', 'QUARANTINE_HOLD', 'QC_RELEASE', 'INTERNAL_TRANSFER', 'PRODUCTION_ISSUE', 'SCRAP_WRITE_OFF', 'ADJUSTMENT')),
+                                                CHECK (transaction_type IN ('PUTAWAY_INWARD', 'QUARANTINE_HOLD', 'QC_RELEASE', 'INTERNAL_TRANSFER', 'PRODUCTION_ISSUE', 'SCRAP_WRITE_OFF', 'ADJUSTMENT', 'SALES_DISPATCH', 'SALES_RETURN')),
     reference_doc_type          VARCHAR(50)     NOT NULL
-                                                CHECK (reference_doc_type IN ('GRN', 'QC_INSPECTION', 'PUTAWAY', 'TRANSFER', 'WORK_ORDER', 'ADJUSTMENT')),
+                                                CHECK (reference_doc_type IN ('GRN', 'QC_INSPECTION', 'PUTAWAY', 'TRANSFER', 'WORK_ORDER', 'ADJUSTMENT', 'DELIVERY_CHALLAN', 'SALES_RETURN')),
     reference_doc_id            BIGINT          NOT NULL,
     reference_doc_no            VARCHAR(50)     NOT NULL,
     warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
@@ -2463,5 +2463,1055 @@ CREATE TABLE IF NOT EXISTS tbl_mfg_material_issue_item (
 CREATE INDEX IF NOT EXISTS idx_mfg_mi_item_issue ON tbl_mfg_material_issue_item (issue_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_mfg_mi_item_item ON tbl_mfg_material_issue_item (item_id);
 CREATE INDEX IF NOT EXISTS idx_mfg_mi_item_wo_bom ON tbl_mfg_material_issue_item (wo_bom_item_id);
+
+
+
+
+-- ============================================================================
+-- 58. PRODUCTION JOB CARDS (tbl_mfg_job_card)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_job_card_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_job_card (
+    job_card_id                 BIGINT          PRIMARY KEY DEFAULT nextval('seq_job_card_id'),
+    job_card_no                 VARCHAR(50)     NOT NULL,
+    job_card_date               DATE            NOT NULL DEFAULT CURRENT_DATE,
+    wo_id                       BIGINT          NOT NULL REFERENCES tbl_mfg_wo_header(wo_id),
+    wo_routing_op_id            BIGINT          NOT NULL REFERENCES tbl_mfg_wo_routing_op(wo_routing_op_id),
+    op_sequence                 INT             NOT NULL,
+    op_code                     VARCHAR(50)     NOT NULL,
+    op_name                     VARCHAR(200)    NOT NULL,
+    work_center_id              BIGINT          NOT NULL REFERENCES tbl_mfg_work_center(work_center_id),
+    machine_id                  BIGINT          REFERENCES tbl_mfg_work_center_machine(wc_machine_id),
+    assigned_operator_id        BIGINT          REFERENCES tbl_sec_user(user_id),
+    planned_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    input_qty                   NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    completed_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scrapped_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (status IN ('PENDING', 'IN_PROGRESS', 'PAUSED', 'COMPLETED', 'CANCELLED')),
+    scheduled_start_date        DATE,
+    scheduled_end_date          DATE,
+    actual_start_time           TIMESTAMPTZ,
+    actual_end_time             TIMESTAMPTZ,
+    planned_setup_mins          NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    planned_run_mins            NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    actual_setup_mins           NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    actual_run_mins             NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    downtime_mins               NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    downtime_reason             VARCHAR(250),
+    hourly_rate                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    actual_cost                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    is_inspection_required      BOOLEAN         NOT NULL DEFAULT FALSE,
+    in_process_qc_status        VARCHAR(30)     NOT NULL DEFAULT 'NA'
+                                                CHECK (in_process_qc_status IN ('NA', 'PENDING', 'INSPECTION_IN_PROGRESS', 'ACCEPTED', 'REJECTED', 'DEVIATION_ACCEPTED')),
+    qc_inspector_id             BIGINT          REFERENCES tbl_sec_user(user_id),
+    qc_inspected_at             TIMESTAMPTZ,
+    qc_sample_size              INT             DEFAULT 0,
+    qc_accepted_qty             NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    qc_rejected_qty             NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    qc_remarks                  VARCHAR(400),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    remarks                     VARCHAR(400),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_job_card_no UNIQUE (comp_id, branch_id, job_card_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_job_card_comp_branch ON tbl_mfg_job_card (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_job_card_wo ON tbl_mfg_job_card (wo_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_job_card_wo_op ON tbl_mfg_job_card (wo_routing_op_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_job_card_wc ON tbl_mfg_job_card (work_center_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_job_card_status ON tbl_mfg_job_card (status);
+CREATE INDEX IF NOT EXISTS idx_mfg_job_card_qc ON tbl_mfg_job_card (in_process_qc_status);
+
+
+-- ============================================================================
+-- 59. PRODUCTION JOB CARD TIME & OUTPUT LOGS (tbl_mfg_job_card_time_log)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_job_card_time_log_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_job_card_time_log (
+    log_id                      BIGINT          PRIMARY KEY DEFAULT nextval('seq_job_card_time_log_id'),
+    job_card_id                 BIGINT          NOT NULL REFERENCES tbl_mfg_job_card(job_card_id) ON DELETE CASCADE,
+    operator_id                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    machine_id                  BIGINT          REFERENCES tbl_mfg_work_center_machine(wc_machine_id),
+    start_time                  TIMESTAMPTZ     NOT NULL,
+    end_time                    TIMESTAMPTZ,
+    setup_mins                  NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    run_mins                    NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    downtime_mins               NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    downtime_reason             VARCHAR(250),
+    completed_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scrapped_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_jc_log_job_card ON tbl_mfg_job_card_time_log (job_card_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_jc_log_operator ON tbl_mfg_job_card_time_log (operator_id);
+
+-- ============================================================================
+-- 60. SUBCONTRACTOR JOB-WORK OUTWARD DELIVERY CHALLAN (tbl_mfg_job_work_challan)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_job_work_challan_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_job_work_challan (
+    challan_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_job_work_challan_id'),
+    challan_no                  VARCHAR(50)     NOT NULL,
+    challan_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    vendor_id                   BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    wo_id                       BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    wo_routing_op_id            BIGINT          REFERENCES tbl_mfg_wo_routing_op(wo_routing_op_id),
+    job_card_id                 BIGINT          REFERENCES tbl_mfg_job_card(job_card_id),
+    nature_of_processing        VARCHAR(250)    NOT NULL,
+    from_warehouse_id           BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    expected_return_date        DATE,
+    transporter_name            VARCHAR(150),
+    vehicle_no                  VARCHAR(50),
+    eway_bill_no                VARCHAR(60),
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'DISPATCHED', 'PARTIALLY_RECEIVED', 'COMPLETED', 'CANCELLED')),
+    total_items                 INT             NOT NULL DEFAULT 0,
+    total_sent_qty              NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    total_estimated_value       NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    dispatched_by               BIGINT          REFERENCES tbl_sec_user(user_id),
+    dispatched_at               TIMESTAMPTZ,
+    remarks                     VARCHAR(400),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_jw_challan_no UNIQUE (comp_id, branch_id, challan_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_comp_branch ON tbl_mfg_job_work_challan (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_vendor ON tbl_mfg_job_work_challan (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_wo ON tbl_mfg_job_work_challan (wo_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_status ON tbl_mfg_job_work_challan (status);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_date ON tbl_mfg_job_work_challan (challan_date);
+
+
+-- ============================================================================
+-- 61. SUBCONTRACTOR JOB-WORK CHALLAN ITEMS (tbl_mfg_job_work_challan_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_job_work_challan_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_job_work_challan_item (
+    challan_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_job_work_challan_item_id'),
+    challan_id                  BIGINT          NOT NULL REFERENCES tbl_mfg_job_work_challan(challan_id) ON DELETE CASCADE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_description            VARCHAR(250),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    sent_qty                    NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_rate                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    total_value                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    hsn_code                    VARCHAR(30),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    received_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scrap_returned_qty          NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    loss_qty                    NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    pending_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_item_ch ON tbl_mfg_job_work_challan_item (challan_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_challan_item_it ON tbl_mfg_job_work_challan_item (item_id);
+
+
+-- ============================================================================
+-- 62. SUBCONTRACTOR JOB-WORK INWARD RECEIPT (tbl_mfg_job_work_receipt)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_job_work_receipt_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_job_work_receipt (
+    receipt_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_job_work_receipt_id'),
+    receipt_no                  VARCHAR(50)     NOT NULL,
+    receipt_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    challan_id                  BIGINT          NOT NULL REFERENCES tbl_mfg_job_work_challan(challan_id),
+    vendor_id                   BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    wo_id                       BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    vendor_dc_no                VARCHAR(60),
+    vendor_dc_date              DATE,
+    vendor_invoice_no           VARCHAR(60),
+    to_warehouse_id             BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    service_charges             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    tax_amount                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'SUBMITTED'
+                                                CHECK (status IN ('DRAFT', 'SUBMITTED', 'CANCELLED')),
+    received_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    qc_inspected_by             BIGINT          REFERENCES tbl_sec_user(user_id),
+    qc_status                   VARCHAR(30)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (qc_status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'DEVIATION_ACCEPTED')),
+    remarks                     VARCHAR(400),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_jw_receipt_no UNIQUE (comp_id, branch_id, receipt_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_receipt_comp_branch ON tbl_mfg_job_work_receipt (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_receipt_challan ON tbl_mfg_job_work_receipt (challan_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_receipt_vendor ON tbl_mfg_job_work_receipt (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_receipt_status ON tbl_mfg_job_work_receipt (status);
+
+
+-- ============================================================================
+-- 63. SUBCONTRACTOR JOB-WORK RECEIPT ITEMS (tbl_mfg_job_work_receipt_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_job_work_receipt_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_job_work_receipt_item (
+    receipt_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_job_work_receipt_item_id'),
+    receipt_id                  BIGINT          NOT NULL REFERENCES tbl_mfg_job_work_receipt(receipt_id) ON DELETE CASCADE,
+    challan_item_id             BIGINT          REFERENCES tbl_mfg_job_work_challan_item(challan_item_id),
+    received_item_id            BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    received_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    accepted_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rejected_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scrap_qty                   NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    loss_qty                    NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    processing_rate             NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    processing_amount           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_receipt_item_rc ON tbl_mfg_job_work_receipt_item (receipt_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_jw_receipt_item_it ON tbl_mfg_job_work_receipt_item (received_item_id);
+
+
+-- ============================================================================
+-- 64. FINISHED GOODS (FG) PRODUCTION RECEIPT HEADER (tbl_mfg_fg_receipt_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_fg_receipt_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_fg_receipt_header (
+    fg_receipt_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_fg_receipt_id'),
+    receipt_no                  VARCHAR(50)     NOT NULL, -- e.g. 'FGR-AHM-2627-0001'
+    receipt_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    wo_id                       BIGINT          NOT NULL REFERENCES tbl_mfg_wo_header(wo_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    to_warehouse_id             BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    to_bin_id                   BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    manufacturing_date          DATE            NOT NULL DEFAULT CURRENT_DATE,
+    expiry_date                 DATE,
+    received_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    accepted_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rejected_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    qc_status                   VARCHAR(30)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (qc_status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'DEVIATION_ACCEPTED')),
+    qc_inspected_by             BIGINT          REFERENCES tbl_sec_user(user_id),
+    qc_inspected_at             TIMESTAMPTZ,
+    qc_remarks                  VARCHAR(350),
+    material_cost               NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    operation_cost              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    byproduct_credit            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_cost                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'POSTED', 'CANCELLED')),
+    posted_by                   BIGINT          REFERENCES tbl_sec_user(user_id),
+    posted_at                   TIMESTAMPTZ,
+    remarks                     VARCHAR(400),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_fg_receipt_no UNIQUE (comp_id, branch_id, receipt_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_comp_branch ON tbl_mfg_fg_receipt_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_wo ON tbl_mfg_fg_receipt_header (wo_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_item ON tbl_mfg_fg_receipt_header (item_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_status ON tbl_mfg_fg_receipt_header (status);
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_date ON tbl_mfg_fg_receipt_header (receipt_date);
+
+
+-- ============================================================================
+-- 65. FG RECEIPT SCRAP & BY-PRODUCT ACCOUNTING (tbl_mfg_fg_receipt_byproduct)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_fg_receipt_byproduct_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_fg_receipt_byproduct (
+    receipt_byproduct_id        BIGINT          PRIMARY KEY DEFAULT nextval('seq_fg_receipt_byproduct_id'),
+    fg_receipt_id               BIGINT          NOT NULL REFERENCES tbl_mfg_fg_receipt_header(fg_receipt_id) ON DELETE CASCADE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    product_type                VARCHAR(30)     NOT NULL DEFAULT 'RECOVERABLE_SCRAP'
+                                                CHECK (product_type IN ('CO_PRODUCT', 'BY_PRODUCT', 'RECOVERABLE_SCRAP', 'HAZARDOUS_WASTE')),
+    quantity                    NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    recovery_rate               NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    total_recovery_value        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    to_warehouse_id             BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    to_bin_id                   BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_byproduct_fgr ON tbl_mfg_fg_receipt_byproduct (fg_receipt_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_fgr_byproduct_item ON tbl_mfg_fg_receipt_byproduct (item_id);
+
+
+-- ============================================================================
+-- 66. CUSTOMER INQUIRY & SALES QUOTATION HEADER (tbl_sales_quotation_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_quotation_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_quotation_header (
+    quotation_id                BIGINT          PRIMARY KEY DEFAULT nextval('seq_quotation_id'),
+    quotation_no                VARCHAR(50)     NOT NULL,
+    quotation_date              DATE            NOT NULL DEFAULT CURRENT_DATE,
+    inquiry_ref_no              VARCHAR(80),
+    inquiry_date                DATE,
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    customer_name               VARCHAR(150)    NOT NULL,
+    contact_person              VARCHAR(100),
+    contact_email               VARCHAR(150),
+    contact_phone               VARCHAR(25),
+    billing_address_id          BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    billing_address             TEXT,
+    shipping_address_id         BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    shipping_address            TEXT,
+    shipping_state_code         VARCHAR(10)     NOT NULL DEFAULT '24',
+    shipping_state_name         VARCHAR(100)    NOT NULL DEFAULT 'Gujarat',
+    customer_gstin              VARCHAR(20),
+    price_list_id               BIGINT          REFERENCES tbl_crm_price_list(price_list_id),
+    currency_code               VARCHAR(10)     NOT NULL DEFAULT 'INR',
+    exchange_rate               NUMERIC(10, 4)  NOT NULL DEFAULT 1.0000,
+    valid_until                 DATE            NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '30 days'),
+    delivery_lead_time_days     INTEGER         NOT NULL DEFAULT 14,
+    payment_terms               VARCHAR(100)    NOT NULL DEFAULT 'NET_30',
+    delivery_terms              VARCHAR(100)    NOT NULL DEFAULT 'EX_WORKS',
+    subtotal_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_percent            NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    freight_charges             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    packaging_charges           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    round_off                   NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    grand_total                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    revision_no                 INTEGER         NOT NULL DEFAULT 0,
+    revision_date               DATE,
+    revision_reason             VARCHAR(255),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'SUBMITTED', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CONVERTED_TO_SO')),
+    submitted_by                BIGINT          REFERENCES tbl_sec_user(user_id),
+    submitted_at                TIMESTAMPTZ,
+    sent_at                     TIMESTAMPTZ,
+    accepted_at                 TIMESTAMPTZ,
+    converted_to_so_id          BIGINT,
+    converted_at                TIMESTAMPTZ,
+    remarks                     VARCHAR(500),
+    terms_and_conditions        TEXT,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_sales_quotation_no UNIQUE (comp_id, branch_id, quotation_no, revision_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_qt_comp_branch ON tbl_sales_quotation_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_sales_qt_customer ON tbl_sales_quotation_header (customer_id);
+CREATE INDEX IF NOT EXISTS idx_sales_qt_status ON tbl_sales_quotation_header (status);
+CREATE INDEX IF NOT EXISTS idx_sales_qt_date ON tbl_sales_quotation_header (quotation_date);
+
+
+-- ============================================================================
+-- 67. CUSTOMER INQUIRY & SALES QUOTATION ITEMS (tbl_sales_quotation_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_quotation_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_quotation_item (
+    quotation_item_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_quotation_item_id'),
+    quotation_id                BIGINT          NOT NULL REFERENCES tbl_sales_quotation_header(quotation_id) ON DELETE CASCADE,
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    description                 VARCHAR(400),
+    hsn_sac_code                VARCHAR(20),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    quantity                    NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    unit_rate                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    gross_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_percent            NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    gst_rate                    NUMERIC(5, 2)   NOT NULL DEFAULT 18.00,
+    cgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    delivery_lead_time_days     INTEGER         DEFAULT 14,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_qt_item_qt ON tbl_sales_quotation_item (quotation_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_sales_qt_item_item ON tbl_sales_quotation_item (item_id);
+
+
+-- ============================================================================
+-- 68. SALES ORDER HEADER & CREDIT EXPOSURE MANAGEMENT (tbl_sales_order_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_sales_order_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_order_header (
+    so_id                       BIGINT          PRIMARY KEY DEFAULT nextval('seq_sales_order_id'),
+    so_no                       VARCHAR(50)     NOT NULL,
+    so_date                     DATE            NOT NULL DEFAULT CURRENT_DATE,
+    quotation_id                BIGINT          REFERENCES tbl_sales_quotation_header(quotation_id),
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    customer_name               VARCHAR(150)    NOT NULL,
+    customer_po_no              VARCHAR(80),
+    customer_po_date            DATE,
+    contact_person              VARCHAR(100),
+    contact_email               VARCHAR(150),
+    contact_phone               VARCHAR(25),
+    billing_address_id          BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    billing_address             TEXT,
+    shipping_address_id         BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    shipping_address            TEXT,
+    shipping_state_code         VARCHAR(10)     NOT NULL DEFAULT '24',
+    shipping_state_name         VARCHAR(100)    NOT NULL DEFAULT 'Gujarat',
+    customer_gstin              VARCHAR(20),
+    price_list_id               BIGINT          REFERENCES tbl_crm_price_list(price_list_id),
+    currency_code               VARCHAR(10)     NOT NULL DEFAULT 'INR',
+    exchange_rate               NUMERIC(10, 4)  NOT NULL DEFAULT 1.0000,
+    target_delivery_date        DATE            NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '21 days'),
+    payment_terms               VARCHAR(100)    NOT NULL DEFAULT 'NET_30',
+    delivery_terms              VARCHAR(100)    NOT NULL DEFAULT 'EX_WORKS',
+    customer_credit_limit       NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    current_credit_exposure     NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    is_credit_limit_exceeded    BOOLEAN         NOT NULL DEFAULT FALSE,
+    credit_override_by          BIGINT          REFERENCES tbl_sec_user(user_id),
+    credit_override_at          TIMESTAMPTZ,
+    credit_override_reason      VARCHAR(255),
+    subtotal_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_percent            NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    freight_charges             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    packaging_charges           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    round_off                   NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    grand_total                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'CONFIRMED', 'IN_PRODUCTION', 'READY_FOR_DISPATCH', 'PARTIALLY_DELIVERED', 'COMPLETED', 'CANCELLED', 'ON_HOLD')),
+    atp_reservation_status      VARCHAR(25)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (atp_reservation_status IN ('PENDING', 'PARTIAL', 'FULL', 'RELEASED')),
+    confirmed_by                BIGINT          REFERENCES tbl_sec_user(user_id),
+    confirmed_at                TIMESTAMPTZ,
+    hold_reason                 VARCHAR(255),
+    remarks                     VARCHAR(500),
+    terms_and_conditions        TEXT,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_sales_order_no UNIQUE (comp_id, branch_id, so_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_so_comp_branch ON tbl_sales_order_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_so_customer ON tbl_sales_order_header (customer_id);
+CREATE INDEX IF NOT EXISTS idx_so_quotation ON tbl_sales_order_header (quotation_id);
+CREATE INDEX IF NOT EXISTS idx_so_status ON tbl_sales_order_header (status);
+CREATE INDEX IF NOT EXISTS idx_so_date ON tbl_sales_order_header (so_date);
+
+
+-- ============================================================================
+-- 69. SALES ORDER ITEMS & ATP RESERVATION (tbl_sales_order_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_so_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_order_item (
+    so_item_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_so_item_id'),
+    so_id                       BIGINT          NOT NULL REFERENCES tbl_sales_order_header(so_id) ON DELETE CASCADE,
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    description                 VARCHAR(400),
+    hsn_sac_code                VARCHAR(20),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    ordered_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    reserved_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    delivered_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    invoiced_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    cancelled_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_rate                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    gross_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_percent            NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    gst_rate                    NUMERIC(5, 2)   NOT NULL DEFAULT 18.00,
+    cgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    target_delivery_date        DATE,
+    reservation_status          VARCHAR(25)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (reservation_status IN ('PENDING', 'PARTIAL', 'FULL', 'RELEASED')),
+    work_order_id               BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_so_item_so ON tbl_sales_order_item (so_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_so_item_item ON tbl_sales_order_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_so_item_wo ON tbl_sales_order_item (work_order_id);
+
+
+
+
+-- ============================================================================
+-- 70. OUTWARD SALES DELIVERY CHALLAN HEADER (tbl_sales_delivery_challan_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_delivery_challan_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_delivery_challan_header (
+    challan_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_delivery_challan_id'),
+    challan_no                  VARCHAR(50)     NOT NULL,
+    challan_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    so_id                       BIGINT          REFERENCES tbl_sales_order_header(so_id),
+    so_no                       VARCHAR(50),
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    customer_name               VARCHAR(150)    NOT NULL,
+    contact_person              VARCHAR(100),
+    contact_phone               VARCHAR(25),
+    billing_address_id          BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    billing_address             TEXT,
+    shipping_address_id         BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    shipping_address            TEXT,
+    shipping_state_code         VARCHAR(10)     NOT NULL DEFAULT '24',
+    shipping_state_name         VARCHAR(100)    NOT NULL DEFAULT 'Gujarat',
+    customer_gstin              VARCHAR(20),
+    dispatch_purpose            VARCHAR(50)     NOT NULL DEFAULT 'SUPPLY_ON_SALE'
+                                                CHECK (dispatch_purpose IN ('SUPPLY_ON_SALE', 'SAMPLE_DEMO', 'JOB_WORK_RETURN', 'EXHIBITION', 'APPROVAL_BASIS', 'OTHERS')),
+    transporter_id              BIGINT          REFERENCES tbl_crm_party(party_id),
+    transporter_name            VARCHAR(150),
+    vehicle_no                  VARCHAR(50),
+    lr_rr_no                    VARCHAR(80),
+    lr_rr_date                  DATE,
+    e_way_bill_no               VARCHAR(50),
+    e_way_bill_date             DATE,
+    delivery_terms              VARCHAR(100)    NOT NULL DEFAULT 'EX_WORKS',
+    total_packages              INTEGER         NOT NULL DEFAULT 1,
+    package_type                VARCHAR(80)     DEFAULT 'Corrugated Boxes',
+    gross_weight_kg             NUMERIC(10, 3)  DEFAULT 0.000,
+    net_weight_kg               NUMERIC(10, 3)  DEFAULT 0.000,
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    total_quantity              NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    total_value                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'PICKED', 'PACKED', 'DISPATCHED', 'DELIVERED', 'CANCELLED')),
+    picked_by                   BIGINT          REFERENCES tbl_sec_user(user_id),
+    picked_at                   TIMESTAMPTZ,
+    packed_by                   BIGINT          REFERENCES tbl_sec_user(user_id),
+    packed_at                   TIMESTAMPTZ,
+    dispatched_by               BIGINT          REFERENCES tbl_sec_user(user_id),
+    dispatched_at               TIMESTAMPTZ,
+    delivered_at                TIMESTAMPTZ,
+    remarks                     VARCHAR(500),
+    terms_and_conditions        TEXT,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_sales_delivery_challan_no UNIQUE (comp_id, branch_id, challan_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_dc_comp_branch ON tbl_sales_delivery_challan_header (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_customer ON tbl_sales_delivery_challan_header (customer_id);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_so ON tbl_sales_delivery_challan_header (so_id);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_status ON tbl_sales_delivery_challan_header (status);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_date ON tbl_sales_delivery_challan_header (challan_date);
+
+-- ============================================================================
+-- 71. OUTWARD SALES DELIVERY CHALLAN ITEM (tbl_sales_delivery_challan_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_challan_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_delivery_challan_item (
+    challan_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_challan_item_id'),
+    challan_id                  BIGINT          NOT NULL REFERENCES tbl_sales_delivery_challan_header(challan_id) ON DELETE CASCADE,
+    so_item_id                  BIGINT          REFERENCES tbl_sales_order_item(so_item_id),
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    description                 VARCHAR(400),
+    hsn_sac_code                VARCHAR(20),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    ordered_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    dispatched_qty              NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    bin_id                      BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    unit_rate                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    total_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_dc_item_challan ON tbl_sales_delivery_challan_item (challan_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_item_item ON tbl_sales_delivery_challan_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_item_so_item ON tbl_sales_delivery_challan_item (so_item_id);
+CREATE INDEX IF NOT EXISTS idx_sales_dc_item_wh_bin ON tbl_sales_delivery_challan_item (warehouse_id, bin_id);
+
+
+-- ============================================================================
+-- 72. STATUTORY SALES TAX INVOICE & E-INVOICE HEADER (tbl_sales_invoice_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_sales_invoice_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_invoice_header (
+    invoice_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_sales_invoice_id'),
+    invoice_no                  VARCHAR(50)     NOT NULL,
+    invoice_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    invoice_type                VARCHAR(30)     NOT NULL DEFAULT 'TAX_INVOICE'
+                                                CHECK (invoice_type IN ('TAX_INVOICE', 'EXPORT_INVOICE', 'PROFORMA_INVOICE', 'DEBIT_NOTE', 'BILL_OF_SUPPLY')),
+    challan_id                  BIGINT          REFERENCES tbl_sales_delivery_challan_header(challan_id),
+    so_id                       BIGINT          REFERENCES tbl_sales_order_header(so_id),
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    customer_name               VARCHAR(150)    NOT NULL,
+    contact_person              VARCHAR(100),
+    contact_phone               VARCHAR(25),
+    billing_address_id          BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    billing_address             TEXT,
+    shipping_address_id         BIGINT          REFERENCES tbl_crm_party_address(address_id),
+    shipping_address            TEXT,
+    place_of_supply             VARCHAR(100)    NOT NULL DEFAULT '24 - Gujarat',
+    customer_gstin              VARCHAR(20),
+    customer_pan                VARCHAR(15),
+    supply_type                 VARCHAR(30)     NOT NULL DEFAULT 'INTRA_STATE'
+                                                CHECK (supply_type IN ('INTRA_STATE', 'INTER_STATE', 'EXPORT_WITH_PAY', 'EXPORT_WITHOUT_PAY')),
+    reverse_charge_applicable   BOOLEAN         NOT NULL DEFAULT FALSE,
+    transporter_name            VARCHAR(150),
+    vehicle_no                  VARCHAR(50),
+    lr_rr_no                    VARCHAR(80),
+    lr_rr_date                  DATE,
+    irn_status                  VARCHAR(25)     NOT NULL DEFAULT 'NOT_GENERATED'
+                                                CHECK (irn_status IN ('NOT_GENERATED', 'GENERATED', 'CANCELLED', 'FAILED')),
+    irn_no                      VARCHAR(64),
+    ack_no                      VARCHAR(30),
+    ack_date                    TIMESTAMPTZ,
+    signed_qr_code              TEXT,
+    e_way_bill_no               VARCHAR(50),
+    e_way_bill_date             DATE,
+    payment_terms_days          INTEGER         NOT NULL DEFAULT 30,
+    due_date                    DATE            NOT NULL,
+    currency_code               VARCHAR(5)      NOT NULL DEFAULT 'INR',
+    subtotal_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    freight_charges             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    insurance_charges           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    packaging_charges           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    tcs_rate                    NUMERIC(6, 3)   NOT NULL DEFAULT 0.000,
+    tcs_amount                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    round_off                   NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    total_invoice_amount        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    paid_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    balance_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'POSTED', 'PAID', 'PARTIALLY_PAID', 'CANCELLED')),
+    payment_status              VARCHAR(25)     NOT NULL DEFAULT 'UNPAID'
+                                                CHECK (payment_status IN ('UNPAID', 'PARTIALLY_PAID', 'PAID')),
+    posted_by                   BIGINT          REFERENCES tbl_sec_user(user_id),
+    posted_at                   TIMESTAMPTZ,
+    cancelled_by                BIGINT          REFERENCES tbl_sec_user(user_id),
+    cancelled_at                TIMESTAMPTZ,
+    cancellation_reason         VARCHAR(350),
+    remarks                     VARCHAR(500),
+    terms_and_conditions        TEXT,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_sales_invoice_no UNIQUE (comp_id, branch_id, invoice_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_inv_comp_branch ON tbl_sales_invoice_header (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_customer ON tbl_sales_invoice_header (customer_id);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_so ON tbl_sales_invoice_header (so_id);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_dc ON tbl_sales_invoice_header (challan_id);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_status ON tbl_sales_invoice_header (status);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_pay_status ON tbl_sales_invoice_header (payment_status);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_date ON tbl_sales_invoice_header (invoice_date, due_date);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_irn ON tbl_sales_invoice_header (irn_status, irn_no);
+
+
+-- ============================================================================
+-- 73. SALES TAX INVOICE LINE ITEMS (tbl_sales_invoice_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_sales_invoice_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_invoice_item (
+    invoice_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_sales_invoice_item_id'),
+    invoice_id                  BIGINT          NOT NULL REFERENCES tbl_sales_invoice_header(invoice_id) ON DELETE CASCADE,
+    so_item_id                  BIGINT          REFERENCES tbl_sales_order_item(so_item_id),
+    challan_item_id             BIGINT          REFERENCES tbl_sales_delivery_challan_item(challan_item_id),
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    description                 VARCHAR(400),
+    hsn_sac_code                VARCHAR(20),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    quantity                    NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    unit_rate                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    gross_amount                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_percent            NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    gst_rate                    NUMERIC(5, 2)   NOT NULL DEFAULT 18.00,
+    cgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_tax_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_item_amount           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_inv_item_invoice ON tbl_sales_invoice_item (invoice_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_item_item ON tbl_sales_invoice_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_item_so_item ON tbl_sales_invoice_item (so_item_id);
+CREATE INDEX IF NOT EXISTS idx_sales_inv_item_dc_item ON tbl_sales_invoice_item (challan_item_id);
+
+
+-- ============================================================================
+-- 74. CUSTOMER AR PAYMENT RECEIPTS & CLEARANCES (tbl_sales_ar_payment_receipt)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_ar_payment_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_ar_payment_receipt (
+    payment_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_ar_payment_id'),
+    receipt_no                  VARCHAR(50)     NOT NULL,
+    receipt_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    invoice_id                  BIGINT          NOT NULL REFERENCES tbl_sales_invoice_header(invoice_id),
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    payment_mode                VARCHAR(30)     NOT NULL DEFAULT 'NEFT_RTGS'
+                                                CHECK (payment_mode IN ('NEFT_RTGS', 'CHEQUE', 'UPI', 'CASH', 'BANK_TRANSFER', 'CREDIT_ADJUSTMENT')),
+    reference_no                VARCHAR(100),
+    payment_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    tds_amount                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_allocated_amount      NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    bank_name                   VARCHAR(100),
+    cheque_date                 DATE,
+    remarks                     VARCHAR(350),
+    recorded_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_sales_ar_receipt_no UNIQUE (comp_id, branch_id, receipt_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_ar_comp_branch ON tbl_sales_ar_payment_receipt (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ar_invoice ON tbl_sales_ar_payment_receipt (invoice_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ar_customer ON tbl_sales_ar_payment_receipt (customer_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ar_date ON tbl_sales_ar_payment_receipt (receipt_date);
+
+
+-- ============================================================================
+-- 75. SALES RETURN / RMA & CREDIT NOTE HEADER (tbl_sales_return_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_sales_return_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_return_header (
+    return_id                   BIGINT          PRIMARY KEY DEFAULT nextval('seq_sales_return_id'),
+    return_no                   VARCHAR(50)     NOT NULL,
+    return_date                 DATE            NOT NULL DEFAULT CURRENT_DATE,
+    return_type                 VARCHAR(30)     NOT NULL DEFAULT 'COMMERCIAL_RETURN'
+                                                CHECK (return_type IN ('COMMERCIAL_RETURN', 'QUALITY_REJECTION', 'TRANSIT_DAMAGE', 'WRONG_SHIPMENT', 'WARRANTY_REPLACEMENT')),
+    credit_note_no              VARCHAR(50),
+    credit_note_date            DATE,
+    invoice_id                  BIGINT          NOT NULL REFERENCES tbl_sales_invoice_header(invoice_id),
+    invoice_no                  VARCHAR(50)     NOT NULL,
+    invoice_date                DATE            NOT NULL,
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    customer_name               VARCHAR(150)    NOT NULL,
+    customer_gstin              VARCHAR(15),
+    customer_pan                VARCHAR(10),
+    billing_address             VARCHAR(400)    NOT NULL,
+    billing_city                VARCHAR(50),
+    billing_state               VARCHAR(50),
+    billing_pincode             VARCHAR(10),
+    billing_state_code          VARCHAR(2)      NOT NULL DEFAULT '24',
+    place_of_supply             VARCHAR(50)     NOT NULL DEFAULT 'Gujarat (24)',
+    pos_state_code              VARCHAR(2)      NOT NULL DEFAULT '24',
+    rma_reference_no            VARCHAR(50),
+    rma_reference_date          DATE,
+    gate_entry_no               VARCHAR(50),
+    gate_entry_date             DATE,
+    vehicle_no                  VARCHAR(50),
+    transporter_name            VARCHAR(100),
+    lr_no                       VARCHAR(50),
+    lr_date                     DATE,
+    currency_code               VARCHAR(10)     NOT NULL DEFAULT 'INR',
+    exchange_rate               NUMERIC(10, 4)  NOT NULL DEFAULT 1.0000,
+    subtotal_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    round_off_amount            NUMERIC(8, 2)   NOT NULL DEFAULT 0.00,
+    total_credit_amount         NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    ar_adjusted_amount          NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    irn_status                  VARCHAR(20)     NOT NULL DEFAULT 'NOT_APPLICABLE'
+                                                CHECK (irn_status IN ('NOT_APPLICABLE', 'PENDING', 'GENERATED', 'CANCELLED', 'FAILED')),
+    irn_no                      VARCHAR(64),
+    ack_no                      VARCHAR(50),
+    ack_date                    TIMESTAMPTZ,
+    signed_qr_code              TEXT,
+    return_reason               VARCHAR(300)    NOT NULL,
+    qc_status                   VARCHAR(20)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (qc_status IN ('PENDING', 'INSPECTED', 'ACCEPTED', 'REJECTED', 'PARTIALLY_ACCEPTED')),
+    qc_inspected_by             BIGINT          REFERENCES tbl_sec_user(user_id),
+    qc_inspected_at             TIMESTAMPTZ,
+    qc_remarks                  VARCHAR(400),
+    restock_status              VARCHAR(20)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (restock_status IN ('PENDING', 'RESTOCKED', 'SCRAPPED', 'PARTIALLY_RESTOCKED')),
+    restocked_by                BIGINT          REFERENCES tbl_sec_user(user_id),
+    restocked_at                TIMESTAMPTZ,
+    credit_note_status          VARCHAR(20)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (credit_note_status IN ('DRAFT', 'POSTED', 'CANCELLED')),
+    credit_posted_by            BIGINT          REFERENCES tbl_sec_user(user_id),
+    credit_posted_at            TIMESTAMPTZ,
+    status                      VARCHAR(20)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'INSPECTED', 'CREDITED', 'RESTOCKED', 'COMPLETED', 'CANCELLED')),
+    remarks                     VARCHAR(500),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_sales_return_no UNIQUE (comp_id, branch_id, return_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_ret_comp_branch ON tbl_sales_return_header (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_customer ON tbl_sales_return_header (customer_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_invoice ON tbl_sales_return_header (invoice_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_status ON tbl_sales_return_header (status);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_qc_status ON tbl_sales_return_header (qc_status);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_date ON tbl_sales_return_header (return_date);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_cn_no ON tbl_sales_return_header (credit_note_no);
+
+-- ============================================================================
+-- 76. SALES RETURN / RMA ITEM DETAILS (tbl_sales_return_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_sales_return_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_sales_return_item (
+    return_item_id              BIGINT          PRIMARY KEY DEFAULT nextval('seq_sales_return_item_id'),
+    return_id                   BIGINT          NOT NULL REFERENCES tbl_sales_return_header(return_id) ON DELETE CASCADE,
+    invoice_item_id             BIGINT          REFERENCES tbl_sales_invoice_item(invoice_item_id),
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    description                 VARCHAR(400),
+    hsn_sac_code                VARCHAR(20)     NOT NULL,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    invoiced_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    returned_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    accepted_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rejected_scrap_qty          NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_price                  NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    discount_percent            NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    discount_amount             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    taxable_amount              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    gst_rate                    NUMERIC(5, 2)   NOT NULL DEFAULT 18.00,
+    cgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 9.00,
+    cgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    sgst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 9.00,
+    sgst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    igst_rate                   NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    igst_amount                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    line_total                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    target_warehouse_id         BIGINT          REFERENCES tbl_inv_warehouse(warehouse_id),
+    target_bin_id               BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    defect_type                 VARCHAR(100),
+    qc_verdict                  VARCHAR(30)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (qc_verdict IN ('PENDING', 'ACCEPT_FOR_RESTOCK', 'ACCEPT_FOR_REWORK', 'REJECT_SCRAP')),
+    action_taken                VARCHAR(100),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_ret_item_return ON tbl_sales_return_item (return_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_item_item ON tbl_sales_return_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_item_inv_item ON tbl_sales_return_item (invoice_item_id);
+CREATE INDEX IF NOT EXISTS idx_sales_ret_item_target_bin ON tbl_sales_return_item (target_bin_id);
 
 
