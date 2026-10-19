@@ -2242,3 +2242,226 @@ CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_run ON tbl_mfg_mrp_planned_order (mr
 CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_item ON tbl_mfg_mrp_planned_order (item_id);
 CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_dates ON tbl_mfg_mrp_planned_order (order_release_date, required_by_date);
 CREATE INDEX IF NOT EXISTS idx_mfg_mrp_plan_type ON tbl_mfg_mrp_planned_order (order_type, status);
+
+-- ============================================================================
+-- 53. MANUFACTURING WORK ORDER HEADER (tbl_mfg_wo_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_wo_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_wo_header (
+    wo_id                       BIGINT          PRIMARY KEY DEFAULT nextval('seq_wo_id'),
+    wo_no                       VARCHAR(50)     NOT NULL, -- e.g. 'WO-AHM-2627-0001'
+    wo_date                     DATE            NOT NULL,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    bom_id                      BIGINT          REFERENCES tbl_mfg_bom_header(bom_id),
+    routing_id                  BIGINT          REFERENCES tbl_mfg_routing_header(routing_id),
+    target_warehouse_id         BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    wip_warehouse_id            BIGINT          REFERENCES tbl_inv_warehouse(warehouse_id),
+    planned_qty                 NUMERIC(14, 3)  NOT NULL,
+    completed_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scrapped_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    scheduled_start_date        DATE            NOT NULL,
+    scheduled_end_date          DATE            NOT NULL,
+    actual_start_date           TIMESTAMPTZ,
+    actual_end_date             TIMESTAMPTZ,
+    priority                    VARCHAR(20)     NOT NULL DEFAULT 'MEDIUM'
+                                                CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL_URGENT')),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'RELEASED', 'IN_PROGRESS', 'COMPLETED', 'CLOSED', 'CANCELLED')),
+    sales_order_id              BIGINT,
+    mrp_planned_order_id        BIGINT          REFERENCES tbl_mfg_mrp_planned_order(planned_order_id),
+    batch_no                    VARCHAR(100),   -- Shopfloor production lot / melt batch
+    estimated_material_cost     NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    estimated_operation_cost    NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    estimated_total_cost        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    actual_material_cost        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    actual_operation_cost       NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    actual_total_cost           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    released_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    released_date               TIMESTAMPTZ,
+    remarks                     VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_wo_no UNIQUE (comp_id, branch_id, wo_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_comp_branch ON tbl_mfg_wo_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_item ON tbl_mfg_wo_header (item_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_status ON tbl_mfg_wo_header (status);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_dates ON tbl_mfg_wo_header (scheduled_start_date, scheduled_end_date);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_mrp ON tbl_mfg_wo_header (mrp_planned_order_id);
+
+
+-- ============================================================================
+-- 54. WORK ORDER BOM COMPONENT SNAPSHOT (tbl_mfg_wo_bom_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_wo_bom_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_wo_bom_item (
+    wo_bom_item_id              BIGINT          PRIMARY KEY DEFAULT nextval('seq_wo_bom_item_id'),
+    wo_id                       BIGINT          NOT NULL REFERENCES tbl_mfg_wo_header(wo_id) ON DELETE CASCADE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_description            VARCHAR(250),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    standard_qty_per_unit       NUMERIC(14, 4)  NOT NULL,
+    scrap_factor_percent        NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    required_qty                NUMERIC(14, 3)  NOT NULL,
+    issued_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    consumed_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    returned_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    estimated_cost              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    actual_cost                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    source_type                 VARCHAR(25)     NOT NULL DEFAULT 'PURCHASED'
+                                                CHECK (source_type IN ('PURCHASED', 'MANUFACTURED', 'SUBCONTRACT')),
+    operation_seq               INT,
+    is_critical                 BOOLEAN         NOT NULL DEFAULT FALSE,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_wo_bom_item UNIQUE (wo_id, item_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_bom_wo ON tbl_mfg_wo_bom_item (wo_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_bom_item ON tbl_mfg_wo_bom_item (item_id);
+
+
+-- ============================================================================
+-- 55. WORK ORDER ROUTING OPERATIONS SNAPSHOT (tbl_mfg_wo_routing_op)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_wo_routing_op_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_wo_routing_op (
+    wo_routing_op_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_wo_routing_op_id'),
+    wo_id                       BIGINT          NOT NULL REFERENCES tbl_mfg_wo_header(wo_id) ON DELETE CASCADE,
+    op_sequence                 INT             NOT NULL,
+    op_code                     VARCHAR(30)     NOT NULL,
+    op_name                     VARCHAR(200)    NOT NULL,
+    work_center_id              BIGINT          NOT NULL REFERENCES tbl_mfg_work_center(work_center_id),
+    machine_id                  BIGINT          REFERENCES tbl_mfg_work_center_machine(wc_machine_id),
+    planned_setup_time_mins     NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    planned_run_time_mins       NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    actual_setup_time_mins      NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    actual_run_time_mins        NUMERIC(10, 2)  NOT NULL DEFAULT 0.00,
+    planned_cost                NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    actual_cost                 NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    planned_qty                 NUMERIC(14, 3)  NOT NULL,
+    completed_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    scrapped_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'SKIPPED')),
+    scheduled_start_date        DATE,
+    scheduled_end_date          DATE,
+    is_inspection_required      BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_subcontracted            BOOLEAN         NOT NULL DEFAULT FALSE,
+    subcontract_vendor_id       BIGINT          REFERENCES tbl_crm_party(party_id),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_wo_op_seq UNIQUE (wo_id, op_sequence)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_routing_wo ON tbl_mfg_wo_routing_op (wo_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_routing_wc ON tbl_mfg_wo_routing_op (work_center_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_wo_routing_status ON tbl_mfg_wo_routing_op (status);
+
+
+-- ============================================================================
+-- 56. SHOPFLOOR MATERIAL ISSUE HEADER (tbl_mfg_material_issue_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_material_issue_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_material_issue_header (
+    issue_id                    BIGINT          PRIMARY KEY DEFAULT nextval('seq_material_issue_id'),
+    issue_no                    VARCHAR(50)     NOT NULL,
+    issue_date                  DATE            NOT NULL DEFAULT CURRENT_DATE,
+    wo_id                       BIGINT          NOT NULL REFERENCES tbl_mfg_wo_header(wo_id),
+    issue_type                  VARCHAR(30)     NOT NULL DEFAULT 'STANDARD_ISSUE'
+                                                CHECK (issue_type IN ('STANDARD_ISSUE', 'RETURN_TO_STORE', 'SCRAP_ADJUSTMENT', 'LINESIDE_TRANSFER')),
+    from_warehouse_id           BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    to_warehouse_id             BIGINT          REFERENCES tbl_inv_warehouse(warehouse_id),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'SUBMITTED', 'POSTED', 'CANCELLED')),
+    total_items                 INT             NOT NULL DEFAULT 0,
+    total_quantity              NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    total_cost                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    issued_by                   BIGINT          REFERENCES tbl_sec_user(user_id),
+    received_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    remarks                     VARCHAR(400),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_mfg_material_issue_no UNIQUE (comp_id, branch_id, issue_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_material_issue_comp_branch ON tbl_mfg_material_issue_header (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_material_issue_wo ON tbl_mfg_material_issue_header (wo_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_material_issue_status ON tbl_mfg_material_issue_header (status);
+CREATE INDEX IF NOT EXISTS idx_mfg_material_issue_date ON tbl_mfg_material_issue_header (issue_date);
+
+
+-- ============================================================================
+-- 57. SHOPFLOOR MATERIAL ISSUE ITEMS (tbl_mfg_material_issue_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_material_issue_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_mfg_material_issue_item (
+    issue_item_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_material_issue_item_id'),
+    issue_id                    BIGINT          NOT NULL REFERENCES tbl_mfg_material_issue_header(issue_id) ON DELETE CASCADE,
+    wo_bom_item_id              BIGINT          REFERENCES tbl_mfg_wo_bom_item(wo_bom_item_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    required_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    previously_issued_qty       NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    issue_qty                   NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    total_cost                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    bin_location                VARCHAR(60),
+    remarks                     VARCHAR(255),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT,
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfg_mi_item_issue ON tbl_mfg_material_issue_item (issue_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mfg_mi_item_item ON tbl_mfg_material_issue_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_mfg_mi_item_wo_bom ON tbl_mfg_material_issue_item (wo_bom_item_id);
+
+

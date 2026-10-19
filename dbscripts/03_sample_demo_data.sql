@@ -2342,3 +2342,295 @@ ON CONFLICT (planned_order_id) DO NOTHING;
 
 SELECT setval('seq_mrp_planned_order_id', GREATEST((SELECT COALESCE(MAX(planned_order_id), 1011) FROM tbl_mfg_mrp_planned_order), 1011));
 
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.5 - Production Work Orders (WO), Scheduling, BOM Snapshot &
+--          Operation Routing Release (tbl_mfg_wo_header, tbl_mfg_wo_bom_item, tbl_mfg_wo_routing_op)
+-- ============================================================================
+INSERT INTO tbl_mfg_wo_header (
+    wo_id, wo_no, wo_date, item_id, bom_id, routing_id,
+    target_warehouse_id, wip_warehouse_id, planned_qty, completed_qty, scrapped_qty,
+    uom_id, scheduled_start_date, scheduled_end_date, actual_start_date, actual_end_date,
+    priority, status, sales_order_id, mrp_planned_order_id, batch_no,
+    estimated_material_cost, estimated_operation_cost, estimated_total_cost,
+    actual_material_cost, actual_operation_cost, actual_total_cost,
+    released_by, released_date, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- WO 1: Finished SS-316 Gate Valve 2" (IN_PROGRESS)
+    (1001, 'WO-AHM-2627-0001', '2026-04-20', 1008, 1002, 1001,
+     1004, 1003, 30.000, 10.000, 0.000,
+     1003, '2026-05-10', '2026-05-15', '2026-05-10 08:30:00+05:30', NULL,
+     'HIGH', 'IN_PROGRESS', NULL, 1001, 'BAT-2026-VLV-001',
+     66606.00, 22992.00, 89598.00,
+     22202.00, 7664.00, 29866.00,
+     1001, '2026-04-20 10:00:00+05:30', 'Production of Class 150 gate valves for Petrochem dispatch. Priority lot.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- WO 2: Machined Valve Body Sub-Assembly (RELEASED)
+    (1002, 'WO-AHM-2627-0002', '2026-04-20', 1005, 1004, 1003,
+     1003, 1003, 45.000, 0.000, 0.000,
+     1003, '2026-05-06', '2026-05-10', NULL, NULL,
+     'HIGH', 'RELEASED', NULL, 1002, 'BAT-2026-VBD-001',
+     69277.50, 13972.50, 83250.00,
+     0.00, 0.00, 0.00,
+     1001, '2026-04-20 10:15:00+05:30', 'Valve body machining sub-assembly for parent WO-AHM-2627-0001.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- WO 3: Automotive Hydromount Powertrain Assembly (DRAFT)
+    (1003, 'WO-AHM-2627-0003', '2026-04-22', 1009, 1001, 1002,
+     1004, 1003, 80.000, 0.000, 0.000,
+     1003, '2026-04-29', '2026-05-02', NULL, NULL,
+     'CRITICAL_URGENT', 'DRAFT', NULL, 1006, 'BAT-2026-MNT-001',
+     45066.00, 15860.00, 60926.00,
+     0.00, 0.00, 0.00,
+     NULL, NULL, 'OEM monthly call-off order buffer fulfillment.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, wo_no) DO NOTHING;
+
+SELECT setval('seq_wo_id', GREATEST((SELECT COALESCE(MAX(wo_id), 1003) FROM tbl_mfg_wo_header), 1003));
+
+-- Update MRP Planned Order status for converted order
+UPDATE tbl_mfg_mrp_planned_order
+SET status = 'CONVERTED_TO_WO', converted_wo_id = 1001
+WHERE planned_order_id = 1001;
+
+UPDATE tbl_mfg_mrp_planned_order
+SET status = 'CONVERTED_TO_WO', converted_wo_id = 1002
+WHERE planned_order_id = 1002;
+
+-- Work Order BOM Component Snapshots (tbl_mfg_wo_bom_item)
+INSERT INTO tbl_mfg_wo_bom_item (
+    wo_bom_item_id, wo_id, item_id, item_description, uom_id,
+    standard_qty_per_unit, scrap_factor_percent, required_qty,
+    issued_qty, consumed_qty, returned_qty, unit_cost, estimated_cost, actual_cost,
+    source_type, operation_seq, is_critical, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Items for WO 1001 (Gate Valve Assembly)
+    (1001, 1001, 1005, 'Machined SS-316 Gate Valve Body Casting 2" 150#', 1003,
+     1.0100, 1.00, 30.300,
+     30.000, 10.000, 0.000, 1850.0000, 56055.00, 18500.00,
+     'MANUFACTURED', 10, TRUE, 'Primary pressure boundary casting', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 1001, 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     0.8200, 2.50, 24.600,
+     24.600, 8.200, 0.000, 385.0000, 9471.00, 3157.00,
+     'PURCHASED', 20, TRUE, 'Stem & Wedge machining trim', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1001, 1010, 'Fully Synthetic High-Pressure CNC Cutting Fluid', 1007,
+     0.2000, 0.00, 6.000,
+     6.000, 2.000, 0.000, 180.0000, 1080.00, 360.00,
+     'PURCHASED', 30, FALSE, 'Hydrostatic test fluid medium', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Items for WO 1002 (Valve Body Machining Sub-Assembly)
+    (1004, 1002, 1001, 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     3.8880, 8.00, 174.960,
+     0.000, 0.000, 0.000, 385.0000, 67359.60, 0.00,
+     'PURCHASED', 10, TRUE, 'Solid bar for valve cavity boring', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 1002, 1011, 'Tungsten Carbide Turning Insert CNMG 120408-PM', 1003,
+     0.4000, 0.00, 18.000,
+     0.000, 0.000, 0.000, 240.0000, 4320.00, 0.00,
+     'PURCHASED', 20, FALSE, 'Precision finish turning inserts', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Items for WO 1003 (Hydromount Assembly)
+    (1006, 1003, 1007, 'Stamped Sheet Metal Outer Door Panel Shell', 1003,
+     1.0200, 2.00, 81.600,
+     0.000, 0.000, 0.000, 420.0000, 34272.00, 0.00,
+     'MANUFACTURED', 10, TRUE, 'Deep-drawn stamped outer shell', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1007, 1003, 1004, 'Polypropylene Copolymer Granules Injection Grade', 1001,
+     0.5150, 3.00, 41.200,
+     0.000, 0.000, 0.000, 105.0000, 4326.00, 0.00,
+     'PURCHASED', 20, FALSE, 'Rubber cushion injection elastomer', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1008, 1003, 1001, 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     0.2100, 5.00, 16.800,
+     0.000, 0.000, 0.000, 385.0000, 6468.00, 0.00,
+     'PURCHASED', 30, TRUE, 'Center pin machining stock', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (wo_id, item_id) DO NOTHING;
+
+SELECT setval('seq_wo_bom_item_id', GREATEST((SELECT COALESCE(MAX(wo_bom_item_id), 1008) FROM tbl_mfg_wo_bom_item), 1008));
+
+-- Work Order Routing Operations Snapshot (tbl_mfg_wo_routing_op)
+INSERT INTO tbl_mfg_wo_routing_op (
+    wo_routing_op_id, wo_id, op_sequence, op_code, op_name,
+    work_center_id, machine_id, planned_setup_time_mins, planned_run_time_mins,
+    actual_setup_time_mins, actual_run_time_mins, planned_cost, actual_cost,
+    planned_qty, completed_qty, scrapped_qty, rework_qty, status,
+    scheduled_start_date, scheduled_end_date, is_inspection_required,
+    is_subcontracted, subcontract_vendor_id, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Routing for WO 1001 (Gate Valve Assembly)
+    (1001, 1001, 10, 'OP-10', 'CNC Rough Turning & Flange Facing',
+     1001, 1001, 30.00, 15.00,
+     30.00, 450.00, 6000.00, 6000.00,
+     30.000, 30.000, 0.000, 0.000, 'COMPLETED',
+     '2026-05-10', '2026-05-11', TRUE,
+     FALSE, NULL, 'Flange face flatness 0.02mm confirmed', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 20, 'OP-20', 'Multi-Axis VMC Milling & Drilling',
+     1001, 1002, 20.00, 12.00,
+     20.00, 120.00, 4800.00, 1600.00,
+     30.000, 10.000, 0.000, 0.000, 'IN_PROGRESS',
+     '2026-05-11', '2026-05-12', TRUE,
+     FALSE, NULL, '10 of 30 valves drilled and tapped', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1001, 30, 'OP-30', 'Atmosphere Gas Carburizing & Quenching',
+     1003, 1006, 45.00, 60.00,
+     0.00, 0.00, 6392.00, 0.00,
+     30.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-13', '2026-05-14', TRUE,
+     FALSE, NULL, 'Hardness 52-56 HRC specification', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1004, 1001, 40, 'OP-40', 'Hydrostatic Pressure Testing (API 598)',
+     1004, 1008, 15.00, 20.00,
+     0.00, 0.00, 5800.00, 0.00,
+     30.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-14', '2026-05-15', TRUE,
+     FALSE, NULL, 'Shell test 30 bar, seat test 22 bar', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing for WO 1002 (Valve Body Machining)
+    (1005, 1002, 10, 'OP-10', 'CNC Rough Boring & Internal Facing',
+     1001, 1001, 30.00, 22.00,
+     0.00, 0.00, 6500.00, 0.00,
+     45.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-06', '2026-05-07', TRUE,
+     FALSE, NULL, 'Internal bore diameter 48.5mm', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1006, 1002, 20, 'OP-20', 'Bonnet Mating Face Milling & Drilled Ports',
+     1001, 1002, 20.00, 14.00,
+     0.00, 0.00, 4200.00, 0.00,
+     45.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-07', '2026-05-08', TRUE,
+     FALSE, NULL, 'M16x2.0 tapped holes', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1007, 1002, 30, 'OP-30', 'Carburizing & Quenching Hardening',
+     1003, 1006, 30.00, 45.00,
+     0.00, 0.00, 3272.50, 0.00,
+     45.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-08', '2026-05-10', TRUE,
+     FALSE, NULL, 'Hardness 50-54 HRC wear treatment', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Routing for WO 1003 (Hydromount Assembly)
+    (1008, 1003, 10, 'OP-10', 'Core Pin CNC Turning & Grooving',
+     1001, 1001, 25.00, 6.00,
+     0.00, 0.00, 4200.00, 0.00,
+     80.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-04-29', '2026-04-30', TRUE,
+     FALSE, NULL, 'Pin diameter Ø25.00 ± 0.01 mm', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1009, 1003, 20, 'OP-20', 'Robotic Bracket MIG Welding',
+     1002, 1005, 20.00, 8.00,
+     0.00, 0.00, 4800.00, 0.00,
+     80.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-04-30', '2026-05-01', TRUE,
+     FALSE, NULL, 'Weld throat 4.5mm min penetration', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1010, 1003, 30, 'OP-30', 'Automated Powder Coating & Polymer Curing',
+     1005, 1010, 15.00, 10.00,
+     0.00, 0.00, 4000.00, 0.00,
+     80.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-01', '2026-05-01', TRUE,
+     FALSE, NULL, 'Epoxy coating thickness 60-90 µm', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1011, 1003, 40, 'OP-40', 'Hydraulic Glycol Filling & Dynamic Testing',
+     1004, 1008, 20.00, 12.00,
+     0.00, 0.00, 2860.00, 0.00,
+     80.000, 0.000, 0.000, 0.000, 'PENDING',
+     '2026-05-02', '2026-05-02', TRUE,
+     FALSE, NULL, 'Dynamic damping coefficient test', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (wo_id, op_sequence) DO NOTHING;
+
+SELECT setval('seq_wo_routing_op_id', GREATEST((SELECT COALESCE(MAX(wo_routing_op_id), 1011) FROM tbl_mfg_wo_routing_op), 1011));
+
+
+-- ============================================================================
+-- DATE: 2026-10-18
+-- FEATURE: Step 6.6 - Sample Shopfloor Material Issue & Staging Records
+--          (tbl_mfg_material_issue_header, tbl_mfg_material_issue_item)
+-- ============================================================================
+
+INSERT INTO tbl_mfg_material_issue_header (
+    issue_id, issue_no, issue_date, wo_id, issue_type,
+    from_warehouse_id, to_warehouse_id, status,
+    total_items, total_quantity, total_cost,
+    issued_by, received_by, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. Full Material Issue for Active Work Order 1001 (Gate Valve Assembly) - POSTED
+    (1001, 'MI-AHM-2627-0001', '2026-05-10', 1001, 'STANDARD_ISSUE',
+     1001, 1002, 'POSTED',
+     3, 70.050, 62419.75,
+     1001, 1001, 'Initial full material batch issuance for WO-AHM-2627-0001 shopfloor execution', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. Staging Requisition for Released Work Order 1002 (Valve Body Machining) - DRAFT
+    (1002, 'MI-AHM-2627-0002', '2026-05-11', 1002, 'STANDARD_ISSUE',
+     1001, 1002, 'DRAFT',
+     2, 192.960, 71679.60,
+     1001, 1001, 'Draft store staging requisition for valve body CNC machining batch', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, issue_no) DO NOTHING;
+
+SELECT setval('seq_material_issue_id', GREATEST((SELECT COALESCE(MAX(issue_id), 1002) FROM tbl_mfg_material_issue_header), 1002));
+
+INSERT INTO tbl_mfg_material_issue_item (
+    issue_item_id, issue_id, wo_bom_item_id, item_id, uom_id,
+    required_qty, previously_issued_qty, issue_qty,
+    unit_cost, total_cost, batch_no, heat_no, bin_location, remarks,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Items for Issue 1001 (WO 1001)
+    (1001, 1001, 1001, 1005, 1003,
+     30.300, 0.000, 30.300,
+     1850.0000, 56055.00, 'BATCH-CST-2026-08', 'HEAT-SS316-441', 'BIN-A1-04', 'Cast body parts staged to Assembly Bay 1',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1002, 1001, 1002, 1001, 1001,
+     15.750, 0.000, 15.750,
+     385.0000, 6063.75, 'BATCH-BAR-2026-11', 'HEAT-SS316-109', 'RACK-B-02', 'SS bar stock for stem turning',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1003, 1001, 1003, 1003, 1003,
+     24.000, 0.000, 24.000,
+     12.5000, 300.00, 'BATCH-FST-2026-01', NULL, 'BIN-D2-11', 'Fastener sets released from stores',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    -- Items for Issue 1002 (WO 1002)
+    (1004, 1002, 1004, 1001, 1001,
+     174.960, 0.000, 174.960,
+     385.0000, 67359.60, 'BATCH-BAR-2026-12', 'HEAT-SS316-110', 'RACK-B-03', 'SS-316 round bar raw materials',
+     TRUE, 1001, 1001, 1001, 1001),
+
+    (1005, 1002, 1005, 1011, 1003,
+     18.000, 0.000, 18.000,
+     240.0000, 4320.00, 'TOOL-CNMG-2026-04', NULL, 'TOOL-CRIB-01', 'Turning inserts from tool crib',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (issue_item_id) DO NOTHING;
+
+SELECT setval('seq_material_issue_item_id', GREATEST((SELECT COALESCE(MAX(issue_item_id), 1005) FROM tbl_mfg_material_issue_item), 1005));
+
+
+

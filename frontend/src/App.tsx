@@ -37,6 +37,8 @@ import { BomMasterPage } from './pages/manufacturing/BomMasterPage';
 import { WorkCenterMasterPage } from './pages/manufacturing/WorkCenterMasterPage';
 import { RoutingMasterPage } from './pages/manufacturing/RoutingMasterPage';
 import { MrpMasterPage } from './pages/manufacturing/MrpMasterPage';
+import { WorkOrderMasterPage } from './pages/manufacturing/WorkOrderMasterPage';
+import { MaterialIssueMasterPage } from './pages/manufacturing/MaterialIssueMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -305,6 +307,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <MrpMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/work-orders"
+              element={
+                <ProtectedLayout>
+                  <WorkOrderMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/manufacturing/material-issues"
+              element={
+                <ProtectedLayout>
+                  <MaterialIssueMasterPage />
                 </ProtectedLayout>
               }
             />

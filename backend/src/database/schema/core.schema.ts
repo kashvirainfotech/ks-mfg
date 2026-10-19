@@ -2611,3 +2611,348 @@ export const tblMfgMrpPlannedOrder = pgTable(
     ...standardAuditColumns,
   },
 );
+
+// ============================================================================
+// 53. Work Order Header
+// ============================================================================
+export const tblMfgWoHeader = pgTable(
+  'tbl_mfg_wo_header',
+  {
+    woId: bigint('wo_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_wo_id')`),
+    woNo: varchar('wo_no', { length: 50 }).notNull(),
+    woDate: date('wo_date').notNull(),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    bomId: bigint('bom_id', { mode: 'number' }).references(
+      () => tblMfgBomHeader.bomId,
+    ),
+    routingId: bigint('routing_id', { mode: 'number' }).references(
+      () => tblMfgRoutingHeader.routingId,
+    ),
+    targetWarehouseId: bigint('target_warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    wipWarehouseId: bigint('wip_warehouse_id', { mode: 'number' }).references(
+      () => tblInvWarehouse.warehouseId,
+    ),
+    plannedQty: numeric('planned_qty', { precision: 14, scale: 3 }).notNull(),
+    completedQty: numeric('completed_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    scrappedQty: numeric('scrapped_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    scheduledStartDate: date('scheduled_start_date').notNull(),
+    scheduledEndDate: date('scheduled_end_date').notNull(),
+    actualStartDate: timestamp('actual_start_date', { withTimezone: true }),
+    actualEndDate: timestamp('actual_end_date', { withTimezone: true }),
+    priority: varchar('priority', { length: 20 })
+      .notNull()
+      .default('MEDIUM'), // 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL_URGENT'
+    status: varchar('status', { length: 25 })
+      .notNull()
+      .default('DRAFT'), // 'DRAFT', 'RELEASED', 'IN_PROGRESS', 'COMPLETED', 'CLOSED', 'CANCELLED'
+    salesOrderId: bigint('sales_order_id', { mode: 'number' }),
+    mrpPlannedOrderId: bigint('mrp_planned_order_id', { mode: 'number' }).references(
+      () => tblMfgMrpPlannedOrder.plannedOrderId,
+    ),
+    batchNo: varchar('batch_no', { length: 100 }),
+    estimatedMaterialCost: numeric('estimated_material_cost', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    estimatedOperationCost: numeric('estimated_operation_cost', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    estimatedTotalCost: numeric('estimated_total_cost', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    actualMaterialCost: numeric('actual_material_cost', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    actualOperationCost: numeric('actual_operation_cost', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    actualTotalCost: numeric('actual_total_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    releasedBy: bigint('released_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    releasedDate: timestamp('released_date', { withTimezone: true }),
+    remarks: varchar('remarks', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgWoNo: unique('uq_mfg_wo_no').on(table.compId, table.branchId, table.woNo),
+  }),
+);
+
+// ============================================================================
+// 54. Work Order BOM Component Snapshot
+// ============================================================================
+export const tblMfgWoBomItem = pgTable(
+  'tbl_mfg_wo_bom_item',
+  {
+    woBomItemId: bigint('wo_bom_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_wo_bom_item_id')`),
+    woId: bigint('wo_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWoHeader.woId, { onDelete: 'cascade' }),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemDescription: varchar('item_description', { length: 250 }),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    standardQtyPerUnit: numeric('standard_qty_per_unit', {
+      precision: 14,
+      scale: 4,
+    }).notNull(),
+    scrapFactorPercent: numeric('scrap_factor_percent', {
+      precision: 5,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    requiredQty: numeric('required_qty', { precision: 14, scale: 3 }).notNull(),
+    issuedQty: numeric('issued_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    consumedQty: numeric('consumed_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    returnedQty: numeric('returned_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    unitCost: numeric('unit_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    estimatedCost: numeric('estimated_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    actualCost: numeric('actual_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    sourceType: varchar('source_type', { length: 25 })
+      .notNull()
+      .default('PURCHASED'),
+    operationSeq: integer('operation_seq'),
+    isCritical: boolean('is_critical').notNull().default(false),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgWoBomItem: unique('uq_mfg_wo_bom_item').on(table.woId, table.itemId),
+  }),
+);
+
+// ============================================================================
+// 55. Work Order Routing Operations Snapshot
+// ============================================================================
+export const tblMfgWoRoutingOp = pgTable(
+  'tbl_mfg_wo_routing_op',
+  {
+    woRoutingOpId: bigint('wo_routing_op_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_wo_routing_op_id')`),
+    woId: bigint('wo_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWoHeader.woId, { onDelete: 'cascade' }),
+    opSequence: integer('op_sequence').notNull(),
+    opCode: varchar('op_code', { length: 30 }).notNull(),
+    opName: varchar('op_name', { length: 200 }).notNull(),
+    workCenterId: bigint('work_center_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWorkCenter.workCenterId),
+    machineId: bigint('machine_id', { mode: 'number' }).references(
+      () => tblMfgWorkCenterMachine.wcMachineId,
+    ),
+    plannedSetupTimeMins: numeric('planned_setup_time_mins', {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    plannedRunTimeMins: numeric('planned_run_time_mins', {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    actualSetupTimeMins: numeric('actual_setup_time_mins', {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    actualRunTimeMins: numeric('actual_run_time_mins', {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    plannedCost: numeric('planned_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    actualCost: numeric('actual_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    plannedQty: numeric('planned_qty', { precision: 14, scale: 3 }).notNull(),
+    completedQty: numeric('completed_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    scrappedQty: numeric('scrapped_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    reworkQty: numeric('rework_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    status: varchar('status', { length: 25 })
+      .notNull()
+      .default('PENDING'), // 'PENDING', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'SKIPPED'
+    scheduledStartDate: date('scheduled_start_date'),
+    scheduledEndDate: date('scheduled_end_date'),
+    isInspectionRequired: boolean('is_inspection_required')
+      .notNull()
+      .default(false),
+    isSubcontracted: boolean('is_subcontracted').notNull().default(false),
+    subcontractVendorId: bigint('subcontract_vendor_id', {
+      mode: 'number',
+    }).references(() => tblCrmParty.partyId),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgWoOpSeq: unique('uq_mfg_wo_op_seq').on(table.woId, table.opSequence),
+  }),
+);
+
+// ============================================================================
+// 56. Shopfloor Material Issue Header
+// ============================================================================
+export const tblMfgMaterialIssueHeader = pgTable(
+  'tbl_mfg_material_issue_header',
+  {
+    issueId: bigint('issue_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_material_issue_id')`),
+    issueNo: varchar('issue_no', { length: 50 }).notNull(),
+    issueDate: date('issue_date').notNull().default(sql`CURRENT_DATE`),
+    woId: bigint('wo_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWoHeader.woId),
+    issueType: varchar('issue_type', { length: 30 })
+      .notNull()
+      .default('STANDARD_ISSUE'), // 'STANDARD_ISSUE', 'RETURN_TO_STORE', 'SCRAP_ADJUSTMENT', 'LINESIDE_TRANSFER'
+    fromWarehouseId: bigint('from_warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    toWarehouseId: bigint('to_warehouse_id', { mode: 'number' }).references(
+      () => tblInvWarehouse.warehouseId,
+    ),
+    status: varchar('status', { length: 25 })
+      .notNull()
+      .default('DRAFT'), // 'DRAFT', 'SUBMITTED', 'POSTED', 'CANCELLED'
+    totalItems: integer('total_items').notNull().default(0),
+    totalQuantity: numeric('total_quantity', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    totalCost: numeric('total_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    issuedBy: bigint('issued_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    receivedBy: bigint('received_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    remarks: varchar('remarks', { length: 400 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqMfgMaterialIssueNo: unique('uq_mfg_material_issue_no').on(
+      table.compId,
+      table.branchId,
+      table.issueNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 57. Shopfloor Material Issue Items
+// ============================================================================
+export const tblMfgMaterialIssueItem = pgTable(
+  'tbl_mfg_material_issue_item',
+  {
+    issueItemId: bigint('issue_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_material_issue_item_id')`),
+    issueId: bigint('issue_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgMaterialIssueHeader.issueId, {
+        onDelete: 'cascade',
+      }),
+    woBomItemId: bigint('wo_bom_item_id', { mode: 'number' }).references(
+      () => tblMfgWoBomItem.woBomItemId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    requiredQty: numeric('required_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    previouslyIssuedQty: numeric('previously_issued_qty', {
+      precision: 14,
+      scale: 3,
+    })
+      .notNull()
+      .default('0.000'),
+    issueQty: numeric('issue_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    unitCost: numeric('unit_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    totalCost: numeric('total_cost', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    binLocation: varchar('bin_location', { length: 60 }),
+    remarks: varchar('remarks', { length: 255 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+);
+
+

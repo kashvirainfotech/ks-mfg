@@ -295,3 +295,30 @@ DROP TRIGGER IF EXISTS trg_mfg_mrp_planned_order_updated_date ON tbl_mfg_mrp_pla
 CREATE TRIGGER trg_mfg_mrp_planned_order_updated_date
 BEFORE UPDATE ON tbl_mfg_mrp_planned_order
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_wo_header_updated_date ON tbl_mfg_wo_header;
+CREATE TRIGGER trg_mfg_wo_header_updated_date
+BEFORE UPDATE ON tbl_mfg_wo_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_wo_bom_item_updated_date ON tbl_mfg_wo_bom_item;
+CREATE TRIGGER trg_mfg_wo_bom_item_updated_date
+BEFORE UPDATE ON tbl_mfg_wo_bom_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_wo_routing_op_updated_date ON tbl_mfg_wo_routing_op;
+CREATE TRIGGER trg_mfg_wo_routing_op_updated_date
+BEFORE UPDATE ON tbl_mfg_wo_routing_op
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_material_issue_header_updated_date ON tbl_mfg_material_issue_header;
+CREATE TRIGGER trg_mfg_material_issue_header_updated_date
+BEFORE UPDATE ON tbl_mfg_material_issue_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_mfg_material_issue_item_updated_date ON tbl_mfg_material_issue_item;
+CREATE TRIGGER trg_mfg_material_issue_item_updated_date
+BEFORE UPDATE ON tbl_mfg_material_issue_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+

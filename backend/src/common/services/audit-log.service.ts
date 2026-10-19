@@ -25,7 +25,9 @@ export type AuditActionType =
   | 'ASSIGN'
   | 'CONFIRM'
   | 'RUN_MRP'
-  | 'CONVERT';
+  | 'CONVERT'
+  | 'CLOSE'
+  | 'RETURN';
 
 export interface RecordAuditLogParams {
   userId: number;

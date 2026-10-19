@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
+  Boxes,
   Building2,
   Calculator,
   CalendarRange,
@@ -206,6 +207,20 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Material Requirements (MRP)',
         path: '/manufacturing/mrp',
         icon: Calculator,
+        badge: 'Live',
+      },
+      {
+        code: 'MFG_WORK_ORDER',
+        label: 'Production Work Orders',
+        path: '/manufacturing/work-orders',
+        icon: Factory,
+        badge: 'Live',
+      },
+      {
+        code: 'MFG_MATERIAL_ISSUE',
+        label: 'Material Issues & Staging',
+        path: '/manufacturing/material-issues',
+        icon: Boxes,
         badge: 'Live',
       },
     ],

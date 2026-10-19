@@ -32,7 +32,9 @@ export type PermissionAction =
   | 'EXPLODE'
   | 'MAINTENANCE'
   | 'RUN_MRP'
-  | 'CONVERT';
+  | 'CONVERT'
+  | 'CLOSE'
+  | 'RETURN';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

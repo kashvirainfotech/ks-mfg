@@ -32,6 +32,8 @@ import { BomModule } from './modules/manufacturing/bom/bom.module';
 import { WorkCenterModule } from './modules/manufacturing/work-center/work-center.module';
 import { RoutingModule } from './modules/manufacturing/routing/routing.module';
 import { MrpModule } from './modules/manufacturing/mrp/mrp.module';
+import { WorkOrderModule } from './modules/manufacturing/work-order/work-order.module';
+import { MaterialIssueModule } from './modules/manufacturing/material-issue/material-issue.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -74,6 +76,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     WorkCenterModule,
     RoutingModule,
     MrpModule,
+    WorkOrderModule,
+    MaterialIssueModule,
   ],
   controllers: [AppController],
   providers: [

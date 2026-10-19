@@ -803,3 +803,100 @@ Each screen or feature documentation entry must contain:
      * **Order Calculation Drill-down Modal (`Eye`):** Formula breakdown and backward scheduling timeline.
      * **Printable Schedule Modal (`PRINT`):** Formatted printable schedule with corporate manufacturing layout.
 
+
+### 2.29 Step 6.5 — Production Work Orders (WO), Scheduling, BOM Snapshot & Operation Routing Release (`/manufacturing/work-orders`)
+
+1. **Database Objects (`dbscripts/` & `backend/src/database/schema/core.schema.ts`):**
+   * Tables:
+     * `tbl_mfg_wo_header` (`wo_id` BIGINT PK backed by `seq_wo_id`, `wo_no` VARCHAR(50) NOT NULL, `wo_date` DATE NOT NULL DEFAULT CURRENT_DATE, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `bom_id` BIGINT REFERENCES `tbl_mfg_bom_header(bom_id)`, `routing_id` BIGINT REFERENCES `tbl_mfg_routing_header(routing_id)`, `target_warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`, `wip_warehouse_id` BIGINT REFERENCES `tbl_inv_warehouse(warehouse_id)`, `planned_qty` NUMERIC(14,3) NOT NULL, `completed_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `scrapped_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`, `scheduled_start_date` DATE NOT NULL, `scheduled_end_date` DATE NOT NULL, `actual_start_date` TIMESTAMPTZ, `actual_end_date` TIMESTAMPTZ, `priority` VARCHAR(25) NOT NULL DEFAULT `'MEDIUM'` CHECK IN (`'LOW'`, `'MEDIUM'`, `'HIGH'`, `'CRITICAL_URGENT'`), `status` VARCHAR(25) NOT NULL DEFAULT `'DRAFT'` CHECK IN (`'DRAFT'`, `'RELEASED'`, `'IN_PROGRESS'`, `'COMPLETED'`, `'CLOSED'`, `'CANCELLED'`), `sales_order_id` BIGINT, `mrp_planned_order_id` BIGINT REFERENCES `tbl_mfg_mrp_planned_order(planned_order_id)` ON DELETE SET NULL, `batch_no` VARCHAR(60), `estimated_material_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `estimated_operation_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `estimated_total_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `actual_material_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `actual_operation_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `actual_total_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `released_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `released_date` TIMESTAMPTZ, `remarks` VARCHAR(400), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns, UNIQUE `(comp_id, branch_id, wo_no)`).
+     * `tbl_mfg_wo_bom_item` (`wo_bom_item_id` BIGINT PK backed by `seq_wo_bom_item_id`, `wo_id` BIGINT NOT NULL REFERENCES `tbl_mfg_wo_header(wo_id)` ON DELETE CASCADE, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `item_description` VARCHAR(255), `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`, `standard_qty_per_unit` NUMERIC(14,4) NOT NULL DEFAULT 1.0000, `scrap_factor_percent` NUMERIC(5,2) NOT NULL DEFAULT 0.00, `required_qty` NUMERIC(14,3) NOT NULL, `issued_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `consumed_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `unit_cost` NUMERIC(14,4) NOT NULL DEFAULT 0.0000, `estimated_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `actual_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `source_type` VARCHAR(25) NOT NULL DEFAULT `'PURCHASED'` CHECK IN (`'PURCHASED'`, `'MANUFACTURED'`, `'SUBCONTRACT'`), `operation_seq` INT, `is_critical` BOOLEAN NOT NULL DEFAULT FALSE, `remarks` VARCHAR(255), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns).
+     * `tbl_mfg_wo_routing_op` (`wo_routing_op_id` BIGINT PK backed by `seq_wo_routing_op_id`, `wo_id` BIGINT NOT NULL REFERENCES `tbl_mfg_wo_header(wo_id)` ON DELETE CASCADE, `op_sequence` INT NOT NULL, `op_code` VARCHAR(50) NOT NULL, `op_name` VARCHAR(150) NOT NULL, `work_center_id` BIGINT NOT NULL REFERENCES `tbl_mfg_work_center(work_center_id)`, `machine_id` BIGINT REFERENCES `tbl_mfg_machine(machine_id)`, `planned_setup_time_mins` NUMERIC(8,2) NOT NULL DEFAULT 0.00, `planned_run_time_mins` NUMERIC(8,2) NOT NULL DEFAULT 0.00, `actual_setup_time_mins` NUMERIC(8,2) NOT NULL DEFAULT 0.00, `actual_run_time_mins` NUMERIC(8,2) NOT NULL DEFAULT 0.00, `planned_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `actual_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `planned_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `completed_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `scrapped_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `status` VARCHAR(25) NOT NULL DEFAULT `'PENDING'` CHECK IN (`'PENDING'`, `'IN_PROGRESS'`, `'COMPLETED'`, `'SKIPPED'`), `scheduled_start_date` DATE, `scheduled_end_date` DATE, `is_inspection_required` BOOLEAN NOT NULL DEFAULT FALSE, `is_subcontracted` BOOLEAN NOT NULL DEFAULT FALSE, `subcontract_vendor_id` BIGINT REFERENCES `tbl_party_master(party_id)`, `remarks` VARCHAR(255), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns).
+   * Sequences: `seq_wo_id`, `seq_wo_bom_item_id`, `seq_wo_routing_op_id` (starting at 1001).
+   * Indexes: `idx_mfg_wo_comp_branch`, `idx_mfg_wo_item`, `idx_mfg_wo_status`, `idx_mfg_wo_dates`, `idx_mfg_wo_mrp_order`, `idx_mfg_wo_bom_wo_id`, `idx_mfg_wo_bom_item`, `idx_mfg_wo_routing_wo_id`, `idx_mfg_wo_routing_wc`.
+   * Triggers: `trg_mfg_wo_header_updated_date`, `trg_mfg_wo_bom_item_updated_date`, and `trg_mfg_wo_routing_op_updated_date` calling `fn_set_updated_timestamp()`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1028` (`MFG_WORK_ORDER`) with actions `1085` (`EXPORT`), `1086` (`PRINT`), `1087` (`RELEASE`), and `1088` (`CLOSE`). Granular role permissions assigned to `SUPER_ADMIN`, `PLANT_MANAGER`, and `STORE_MGR`.
+     * `03_sample_demo_data.sql`: 3 realistic Work Orders (`WO-AHM-2627-0001` in `IN_PROGRESS`, `WO-AHM-2627-0002` in `RELEASED`, `WO-AHM-2627-0003` in `DRAFT`), 8 frozen BOM component items, and 11 routing operations.
+2. **Backend Architecture & API Contracts (`backend/src/modules/manufacturing/work-order/`):**
+   * Controller: `WorkOrderController` mapped to `/api/v1/manufacturing/work-orders`.
+   * Endpoints:
+     * `GET /manufacturing/work-orders/summary` (`@RequirePermission('MFG_WORK_ORDER', 'VIEW')`) — returns KPI summary (`totalWorkOrders`, `activeJobs`, `completedQtyTotal`, `overdueCount`, `totalEstimatedCost`).
+     * `GET /manufacturing/work-orders/lookups` (`@RequirePermission('MFG_WORK_ORDER', 'VIEW')`) — returns items, active BOMs, active Routings, Warehouses, and open MRP Make orders.
+     * `GET /manufacturing/work-orders` (`@RequirePermission('MFG_WORK_ORDER', 'VIEW')`) — paginated listing with filtering by `status`, `priority`, `targetWarehouseId`, `isOverdue`, and search.
+     * `GET /manufacturing/work-orders/:id` (`@RequirePermission('MFG_WORK_ORDER', 'VIEW')`) — single work order with fully populated child BOM snapshot (`bomItems`) and routing operations (`routingOps`).
+     * `POST /manufacturing/work-orders` (`@RequirePermission('MFG_WORK_ORDER', 'ADD')`) — creates Work Order with automatic BOM & Routing snapshotting within an ACID transaction.
+     * `PUT /manufacturing/work-orders/:id` (`@RequirePermission('MFG_WORK_ORDER', 'EDIT')`) — updates draft Work Order parameters and recalculates required material/operation allocations.
+     * `DELETE /manufacturing/work-orders/:id` (`@RequirePermission('MFG_WORK_ORDER', 'DELETE')`) — deletes draft or cancelled work order and its frozen snapshot rows.
+     * `POST /manufacturing/work-orders/:id/release` (`@RequirePermission('MFG_WORK_ORDER', 'RELEASE')`) — executes shopfloor dispatch transition (`DRAFT` $\rightarrow$ `RELEASED`) and stamps release authority.
+     * `POST /manufacturing/work-orders/:id/close` (`@RequirePermission('MFG_WORK_ORDER', 'CLOSE')`) — executes production closure transition (`COMPLETED` / `CLOSED`), recording finished good and scrap quantities.
+     * `POST /manufacturing/work-orders/convert-mrp` (`@RequirePermission('MFG_WORK_ORDER', 'ADD')`) — converts an open MRP Make order into a formal Work Order, setting `converted_wo_id`.
+3. **Domain Snapshot & Calculation Engine:**
+   * **BOM Material Freezing:**
+     $$\text{Required Qty} = \text{Planned Batch Qty} \times \left(\frac{\text{Gross Component Qty}}{\text{BOM Batch Size}}\right)$$
+     $$\text{Estimated Cost} = \text{Required Qty} \times \text{Unit Cost}$$
+   * **Routing Operation Freezing:**
+     $$\text{Planned Run Time} = \text{Planned Batch Qty} \times \text{Run Time Mins per Unit}$$
+     $$\text{Planned Operation Cost} = \text{Planned Batch Qty} \times \text{Total Cost per Unit}$$
+   * **Total Work Order Cost Rollup:**
+     $$\text{Estimated Total Cost} = \sum \text{Estimated Cost}_{\text{BOM}} + \sum \text{Planned Cost}_{\text{Routing}}$$
+4. **Frontend Architecture (`frontend/src/pages/manufacturing/WorkOrderMasterPage.tsx`):**
+   * Accessible at route `/manufacturing/work-orders` under `MANUFACTURING & PRODUCTION` with `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<PermissionGate screen="MFG_WORK_ORDER">`, and `<ConfirmDeleteModal>`.
+   * 4 KPI summary cards (`Total Work Orders`, `Active Shopfloor Jobs`, `Total Output Delivered`, `Overdue Alerts`).
+   * Filter controls (`status`, `priority`, `targetWarehouseId`, `isOverdue`, search).
+   * Visual planned vs completed progress bar with scrap indicators and overdue badges.
+   * Modals & Drawers:
+     * **Work Order Details Drawer (`Eye`):** 3-tab slideout view displaying frozen BOM component lines (required, issued, consumed), sequential routing operations with work centers and status, and timeline & cost variances.
+     * **Create / Edit Modal (3 Tabs):** Tab 1 Order Specifications, Tab 2 Live BOM snapshot preview, Tab 3 Live Routing workflow preview.
+     * **1-Click Convert MRP Make Order Modal:** Direct order generation from open MRP planning records.
+     * **Release Modal (`RELEASE`):** Dispatches job to production lines with shift notes.
+     * **Complete & Close Modal (`CLOSE`):** Captures good units, scrap units, and computes yield efficiency.
+     * **Printable Job Card / Route Traveler Sheet (`PRINT`):** Formatted route traveler with barcode simulation, picking verifications, and multi-department sign-offs.
+
+
+### 2.30 Step 6.6 — Shopfloor Material Issue, Lineside Staging & Backflushing (`/manufacturing/material-issues`)
+
+1. **Database Objects (`dbscripts/` & `backend/src/database/schema/core.schema.ts`):**
+   * Tables:
+     * `tbl_mfg_material_issue_header` (`issue_id` BIGINT PK backed by `seq_material_issue_id`, `issue_no` VARCHAR(50) NOT NULL, `issue_date` DATE NOT NULL DEFAULT CURRENT_DATE, `wo_id` BIGINT NOT NULL REFERENCES `tbl_mfg_wo_header(wo_id)`, `issue_type` VARCHAR(30) NOT NULL DEFAULT `'STANDARD_ISSUE'` CHECK IN (`'STANDARD_ISSUE'`, `'RETURN_TO_STORE'`, `'SCRAP_ADJUSTMENT'`, `'LINESIDE_TRANSFER'`), `from_warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`, `to_warehouse_id` BIGINT REFERENCES `tbl_inv_warehouse(warehouse_id)`, `status` VARCHAR(25) NOT NULL DEFAULT `'DRAFT'` CHECK IN (`'DRAFT'`, `'SUBMITTED'`, `'POSTED'`, `'CANCELLED'`), `total_items` INT NOT NULL DEFAULT 0, `total_quantity` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `total_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `issued_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `received_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `remarks` VARCHAR(350), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns, UNIQUE `(comp_id, branch_id, issue_no)`).
+     * `tbl_mfg_material_issue_item` (`issue_item_id` BIGINT PK backed by `seq_material_issue_item_id`, `issue_id` BIGINT NOT NULL REFERENCES `tbl_mfg_material_issue_header(issue_id)` ON DELETE CASCADE, `wo_bom_item_id` BIGINT REFERENCES `tbl_mfg_wo_bom_item(wo_bom_item_id)`, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`, `required_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `previously_issued_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `issue_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `unit_cost` NUMERIC(14,4) NOT NULL DEFAULT 0.0000, `total_cost` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `batch_no` VARCHAR(60), `heat_no` VARCHAR(60), `bin_location` VARCHAR(60), `remarks` VARCHAR(255), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns).
+   * Sequences: `seq_material_issue_id`, `seq_material_issue_item_id` (starting at 1001).
+   * Indexes: `idx_mfg_mat_issue_comp_branch`, `idx_mfg_mat_issue_wo`, `idx_mfg_mat_issue_status`, `idx_mfg_mat_issue_dates`, `idx_mfg_mat_issue_wh`, `idx_mfg_mat_issue_item_issue`, `idx_mfg_mat_issue_item_item`.
+   * Triggers: `trg_mfg_material_issue_header_updated_date` and `trg_mfg_material_issue_item_updated_date` executing `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1029` (`MFG_MATERIAL_ISSUE`) with actions `1089` (`EXPORT`), `1090` (`PRINT`), `1091` (`SUBMIT`), and `1092` (`RETURN`). Granular role permissions assigned to `SUPER_ADMIN`, `PLANT_MANAGER`, and `STORE_MGR`.
+     * `03_sample_demo_data.sql`: 2 realistic Material Issue vouchers (`MI-AHM-2627-0001` for WO 1001 in `POSTED` status, `MI-AHM-2627-0002` for WO 1002 in `DRAFT` status) and 5 component issue items with lot numbers and warehouse bin coordinates.
+2. **Backend Architecture & API Contracts (`backend/src/modules/manufacturing/material-issue/`):**
+   * Controller: `MaterialIssueController` mapped to `/api/v1/manufacturing/material-issues`.
+   * Endpoints:
+     * `GET /manufacturing/material-issues/summary` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'VIEW')`) — returns KPI summary (`totalIssues`, `postedIssues`, `draftIssues`, `totalMaterialValue`, `activeWipOrders`, `pendingPickingOrders`).
+     * `GET /manufacturing/material-issues/lookups` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'VIEW')`) — returns active Work Orders (`RELEASED` / `IN_PROGRESS`), storage warehouses, catalog items, and personnel.
+     * `GET /manufacturing/material-issues/wo-bom-items/:woId` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'VIEW')`) — retrieves frozen BOM component items with required quantity, previously issued quantity, pending picking balance, and current on-hand store stock.
+     * `GET /manufacturing/material-issues` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'VIEW')`) — paginated listing with filtering by `status`, `issueType`, `fromWarehouseId`, `toWarehouseId`, `woId`, date range, and free-text search.
+     * `GET /manufacturing/material-issues/:id` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'VIEW')`) — retrieves single issue voucher with full header metadata and component line items.
+     * `POST /manufacturing/material-issues` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'ADD')`) — creates draft material issue voucher with automatic document sequence numbering (`MI-{BRANCH}-{FYEAR}-XXXX`).
+     * `PUT /manufacturing/material-issues/:id` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'EDIT')`) — updates draft issue slip parameters and line item quantities.
+     * `DELETE /manufacturing/material-issues/:id` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'DELETE')`) — deletes draft issue slips with dependency validation.
+     * `POST /manufacturing/material-issues/:id/submit` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'SUBMIT')`) — submits and posts issue slip:
+       * Updates `tbl_mfg_wo_bom_item.issued_qty = issued_qty + issue_qty`.
+       * If Work Order is in `RELEASED` status, auto-transitions status to `IN_PROGRESS` and sets `actual_start_date`.
+       * Accumulates issued value into `tbl_mfg_wo_header.actual_material_cost`.
+       * Inserts stock ledger movements into `tbl_inv_stock_ledger` (`transaction_type = 'ISSUE_TO_WIP'`).
+       * Records immutable audit log in `tbl_sys_audit_log`.
+     * `POST /manufacturing/material-issues/return-to-store` (`@RequirePermission('MFG_MATERIAL_ISSUE', 'RETURN')`) — handles unconsumed shopfloor material return:
+       * Creates and immediately posts `RETURN_TO_STORE` issue voucher.
+       * Decrements `tbl_mfg_wo_bom_item.issued_qty`.
+       * Reverses cost on `tbl_mfg_wo_header.actual_material_cost`.
+       * Inserts return stock ledger movements (`transaction_type = 'WIP_RETURN_TO_STORE'`).
+       * Records audit log in `tbl_sys_audit_log`.
+3. **Frontend Architecture (`frontend/src/pages/manufacturing/MaterialIssueMasterPage.tsx`):**
+   * Accessible at route `/manufacturing/material-issues` under `MANUFACTURING & PRODUCTION` with `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<PermissionGate screen="MFG_MATERIAL_ISSUE">`, and `<ConfirmDeleteModal>`.
+   * 4 KPI summary cards (`Total Issue Slips`, `Total Material Issued`, `Active WIP Orders`, `Pending Picking Allocations`).
+   * Filter controls (`status`, `issueType`, `fromWarehouseId`, `woId`, search).
+   * Modals & Drawers:
+     * **Material Issue Details Drawer (`Eye`):** High-density slideout showing header details, linked Work Order snapshot, component lines table with lot numbers and bin coordinates, and audit timestamps.
+     * **Create Material Issue Modal:** Select active Work Order, choose source store and lineside WIP warehouse, 1-Click **"1-Click Load BOM Items"** button pre-populating pending balances, custom line add/remove, and instant or draft saving.
+     * **Submit & Post Confirmation Modal (`SUBMIT`):** Highlights stock ledger deductions, WO status transitions, and cost accumulations.
+     * **Return to Store Modal (`RETURN`):** Shopfloor surplus return workflow with validation preventing returns in excess of issued quantities.
+     * **Printable Material Issue Voucher (`PRINT`):** Formatted store requisition voucher with corporate header, barcode, items breakdown, and 3-tier signature blocks (Prepared By, Issued By, Received On Shopfloor).
