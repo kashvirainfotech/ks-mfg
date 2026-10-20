@@ -1471,3 +1471,180 @@ Each screen or feature documentation entry must contain:
      * **Register Serial Unit Modal (`Barcode`):** Serial number, barcode, and RFID registration.
      * **Link Genealogy Modal (`Link`):** Parent-child transformation mapping with transformation types (`RAW_TO_WIP`, `WIP_TO_FG`, `BLENDING`, `REWORK`, `SPLIT`).
      * **Statutory EN 10204 Type 3.1 & ISO 9001:2015 Material Inspection Certificate (`PRINT`):** Formatted printable sheet with company letterhead, CIN, GSTIN, chemical spectrometry table against specified limits, mechanical test results, ASTM/ASME standards citations, compliance statements, and 3-tier authorized signatory blocks (Metallurgical QA Engineer, Head of QA, Plant Manager / Director).
+
+
+### 2.43 Inventory Aging, Dead Stock Analysis & Reorder Level Alert Dashboard (`/inventory/aging`)
+1. **Database Schema & DDL Objects (`dbscripts/01_schema_objects.sql`):**
+   * Tables:
+     * `tbl_inv_stock_provision_header`:
+       * Primary Key: `provision_id` BIGINT (`seq_inv_provision_id`, starts at 1001).
+       * Multi-tenant: `company_id` BIGINT NOT NULL REFERENCES `tbl_sec_company(company_id)`, `branch_id` BIGINT NOT NULL REFERENCES `tbl_sec_branch(branch_id)`.
+       * Review Identification: `provision_no` VARCHAR(50) NOT NULL, `provision_date` DATE NOT NULL DEFAULT CURRENT_DATE, `valuation_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Filter Scope: `warehouse_id` BIGINT REFERENCES `tbl_inv_warehouse(warehouse_id)`, `category_id` BIGINT REFERENCES `tbl_inv_item_category(category_id)`.
+       * Totals & Valuation Brackets: `total_items_evaluated` INT NOT NULL DEFAULT 0, `total_gross_valuation` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `fresh_stock_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00 (0-30 Days), `normal_stock_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00 (31-60 Days), `slow_moving_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00 (61-90 Days), `stagnant_stock_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00 (91-180 Days), `dormant_stock_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00 (181-365 Days), `dead_stock_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00 (>365 Days).
+       * Write-Down Provisions: `recommended_provision_amount` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `approved_provision_amount` NUMERIC(14,2) NOT NULL DEFAULT 0.00.
+       * Lifecycle & Approvals: `status` VARCHAR(25) NOT NULL DEFAULT `'DRAFT'` (`DRAFT`, `SUBMITTED`, `APPROVED`, `REJECTED`, `POSTED`), `reviewed_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `reviewed_at` TIMESTAMPTZ, `approved_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `approved_at` TIMESTAMPTZ.
+       * Compliance & Audit: `audit_standard_citation` VARCHAR(150) NOT NULL DEFAULT `'Ind AS 2 (Inventories) & CARO 2020 Clause 3(ii)'`, `provision_policy_matrix` JSONB, `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraints: Unique constraint on `(comp_id, branch_id, provision_no)`.
+     * `tbl_inv_stock_provision_item`:
+       * Primary Key: `provision_item_id` BIGINT (`seq_inv_provision_item_id`, starts at 1001).
+       * Foreign Keys: `provision_id` BIGINT NOT NULL REFERENCES `tbl_inv_stock_provision_header(provision_id)` ON DELETE CASCADE, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`, `bin_id` BIGINT REFERENCES `tbl_inv_storage_bin(bin_id)`, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`.
+       * Item & Lot Data: `item_code` VARCHAR(50) NOT NULL, `item_name` VARCHAR(200) NOT NULL, `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Stock & Valuation: `on_hand_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `unit_cost` NUMERIC(14,4) NOT NULL DEFAULT 0.0000, `gross_valuation` NUMERIC(14,2) NOT NULL DEFAULT 0.00.
+       * Aging & FSN: `first_inward_date` DATE, `last_movement_date` DATE, `age_in_days` INT NOT NULL DEFAULT 0, `aging_bracket` VARCHAR(30) NOT NULL DEFAULT `'0_30'` (`0_30`, `31_60`, `61_90`, `91_180`, `181_365`, `GT_365`), `fsn_classification` VARCHAR(20) NOT NULL DEFAULT `'FAST'` (`FAST`, `SLOW`, `NON_MOVING`).
+       * Write-down & NRV: `provision_rate_percent` NUMERIC(5,2) NOT NULL DEFAULT 0.00, `provision_amount` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `net_realizable_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `justification` VARCHAR(250), `remarks` VARCHAR(250), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraints: Unique constraint on `(provision_id, item_id, warehouse_id, batch_no)`.
+   * Sequences: `seq_inv_provision_id`, `seq_inv_provision_item_id` (all starting at 1001).
+   * Indexes: `idx_inv_provision_comp_branch`, `idx_inv_provision_date`, `idx_inv_provision_status`, `idx_inv_provision_wh`, `idx_inv_provision_item_prov`, `idx_inv_provision_item_item`, `idx_inv_provision_item_bracket`, `idx_inv_provision_item_fsn`.
+   * Triggers: `trg_inv_stock_provision_header_updated_date` and `trg_inv_stock_provision_item_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1042` (`STOCK_AGING`, `/inventory/aging`, `Hourglass`, sort order 42) with actions `1149` (`EXPORT`), `1150` (`PRINT`), `1151` (`PROVISION`), and `1152` (`REORDER`). Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded `PROV-AHM-2627-0001` (Q1 Inventory Aging & Valuation Review, total valuation ₹445,450.00 across 6 demo items showcasing all aging brackets and FSN categories with recommended provision of ₹39,935.00).
+2. **Backend Architecture & API Contracts (`backend/src/modules/inventory/aging/`):**
+   * Controller: `StockAgingController` mapped to `/api/v1/inventory/aging`.
+   * Service: `StockAgingService` injecting `PG_POOL`, `DrizzleDb`, and `AuditLogService`.
+   * Endpoints:
+     * `GET /inventory/aging/summary` (`@RequirePermission('STOCK_AGING', 'VIEW')`) — returns KPI metrics (`totalInventoryValuation`, `totalTrackedLines`, `totalTrackedSkus`, `agingBrackets`, `fsnAnalysis`, `reorderAlerts`, `provisioning`).
+     * `GET /inventory/aging/lookups` (`@RequirePermission('STOCK_AGING', 'VIEW')`) — returns active warehouses, categories, items, UOMs, suppliers, and departments.
+     * `GET /inventory/aging/analysis` (`@RequirePermission('STOCK_AGING', 'VIEW')`) — returns dynamically calculated item-level aging and FSN velocity table filtered by bracket, warehouse, and category.
+     * `GET /inventory/aging/reorder-alerts` (`@RequirePermission('STOCK_AGING', 'VIEW')`) — returns SKUs with deficit stock below ROP or Safety buffer with estimated replenishment valuation.
+     * `POST /inventory/aging/trigger-pr` (`@RequirePermission('STOCK_AGING', 'REORDER')`) — 1-Click Purchase Requisition generator inserting into `tbl_pr_header` and `tbl_pr_item` (`PR-AHM-2627-XXXX`).
+     * `GET /inventory/aging/provisions` (`@RequirePermission('STOCK_AGING', 'VIEW')`) — listing of formal valuation reviews.
+     * `GET /inventory/aging/provisions/:id` (`@RequirePermission('STOCK_AGING', 'VIEW')`) — single review with item schedule.
+     * `POST /inventory/aging/provisions` (`@RequirePermission('STOCK_AGING', 'PROVISION')`) — creates new valuation write-down review (`PROV-AHM-2627-XXXX`).
+     * `POST /inventory/aging/provisions/:id/approve` (`@RequirePermission('STOCK_AGING', 'PROVISION')`) — approves provision proposal with sign-off stamp.
+3. **Frontend Architecture (`frontend/src/pages/inventory/AgingDashboardPage.tsx`):**
+   * Accessible at route `/inventory/aging` under `INVENTORY & WMS` with `Hourglass` icon and `'Live'` badge.
+   * Built with `<PermissionGate screen="STOCK_AGING">`.
+   * 4 KPI summary cards (`Gross Inventory Valuation`, `Active Fresh Stock`, `Slow & Dead Stock`, `Critical ROP & Safety Alerts`).
+   * Visual interactive multi-segment colored progress bar representing capital allocation across the 6 aging brackets with 1-click filter.
+   * 4 Primary Tab Views:
+     * **Tab 1: Inventory Aging & FSN Matrix:** Itemized SKU/batch grid with age in days, bracket badges, FSN velocity badges, unit rates, gross valuations, provision percentages, and net realizable values.
+     * **Tab 2: Reorder Point & Safety Stock Alerts Console:** Live buffer alert list with stockout warnings, ROP deficit calculations, lead time, and 1-Click "Trigger PR" button.
+     * **Tab 3: Dead Stock & Provisioning Register (Ind AS 2 / CARO 2020):** List of historical and active provisioning reviews with item schedules and approval triggers.
+     * **Tab 4: Warehouse & Category Distribution:** Multi-warehouse and category valuation breakdown.
+   * Modals:
+     * **Run New Valuation Review Modal (`PROVISION`):** Customizable percentage provision rules per bracket with automatic line-item calculation.
+     * **1-Click Purchase Requisition Modal (`REORDER`):** Pre-filled PR indent form creating official purchase requisitions for deficit SKUs.
+     * **Statutory CARO 2020 & Ind AS 2 Inventory Valuation Certificate (`PRINT`):** Formatted printable sheet with company letterhead, CIN, GSTIN, aging bracket schedule, write-down amount in words, statutory management attestation, and 3-tier authorized signatory blocks (Store Officer, Cost Accountant, CFO / Statutory Auditor).
+
+---
+
+### 2.44 In-Process & Stage-Wise Quality Inspection Architecture (`/quality/in-process-qc`)
+1. **Database Schema & Relational Model:**
+   * Tables Created:
+     * `tbl_qc_in_process_header` (Section 86):
+       * Primary Key: `ipqc_id` BIGINT (`seq_qc_in_process_id`, starts at 1001).
+       * Document Number: `ipqc_no` VARCHAR(50) NOT NULL (e.g. `IPQC-AHM-2627-0001`).
+       * Date & Context: `ipqc_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Relational Links: `wo_id` BIGINT NOT NULL REFERENCES `tbl_mfg_wo_header(wo_id)`, `job_card_id` BIGINT REFERENCES `tbl_mfg_job_card(job_card_id)`, `wo_routing_op_id` BIGINT REFERENCES `tbl_mfg_wo_routing_op(wo_routing_op_id)`, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `work_center_id` BIGINT REFERENCES `tbl_mfg_work_center(work_center_id)`, `machine_id` BIGINT REFERENCES `tbl_mfg_work_center_machine(wc_machine_id)`, `assigned_operator_id` BIGINT REFERENCES `tbl_sec_user(user_id)`, `inspector_id` BIGINT NOT NULL REFERENCES `tbl_sec_user(user_id)`.
+       * Stage & Shift: `inspection_stage` VARCHAR(40) NOT NULL DEFAULT `'STAGE_COMPLETION'` (`FIRST_PIECE`, `PATROL_INSPECTION`, `STAGE_COMPLETION`, `LAST_PIECE`), `shift_name` VARCHAR(30) NOT NULL DEFAULT `'Shift A'`.
+       * Heat & Batch: `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Quantities: `lot_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `sample_size` INT NOT NULL DEFAULT 5, `accepted_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `rejected_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `rework_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000.
+       * Verdict & Concession: `overall_result` VARCHAR(30) NOT NULL DEFAULT `'PENDING'` (`PENDING`, `ACCEPTED`, `REJECTED`, `ACCEPTED_UNDER_DEVIATION`), `disposition_type` VARCHAR(50) DEFAULT `'DIRECT_ACCEPT'` (`DIRECT_ACCEPT`, `SCRAP`, `REWORK_SAME_OP`, `REWORK_NEW_OP`, `CONCESSION_USE_AS_IS`), `deviation_reason` VARCHAR(500), `approver_id` BIGINT REFERENCES `tbl_sec_user(user_id)`, `approval_date` TIMESTAMPTZ, `is_capa_required` BOOLEAN NOT NULL DEFAULT FALSE, `ncr_no` VARCHAR(50), `remarks` VARCHAR(500), `status` VARCHAR(25) NOT NULL DEFAULT `'DRAFT'` (`DRAFT`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, branch_id, ipqc_no)`.
+     * `tbl_qc_in_process_param` (Section 87):
+       * Primary Key: `ipqc_param_id` BIGINT (`seq_qc_in_process_param_id`, starts at 1001).
+       * Foreign Key: `ipqc_id` BIGINT NOT NULL REFERENCES `tbl_qc_in_process_header(ipqc_id)` ON DELETE CASCADE.
+       * Characteristic Spec: `param_sequence` INT NOT NULL DEFAULT 1, `param_name` VARCHAR(150) NOT NULL, `param_category` VARCHAR(50) NOT NULL DEFAULT `'DIMENSIONAL'` (`DIMENSIONAL`, `METALLURGICAL`, `SURFACE_FINISH`, `VISUAL`, `FUNCTIONAL`, `TORQUE_TENSION`), `instrument_name` VARCHAR(150), `nominal_val` NUMERIC(12,4), `min_tolerance` NUMERIC(12,4), `max_tolerance` NUMERIC(12,4), `uom_code` VARCHAR(20) DEFAULT `'mm'`.
+       * 5-Point Observations: `obs_val_1` to `obs_val_5` NUMERIC(12,4), `mean_val` NUMERIC(12,4), `visual_result` VARCHAR(20) DEFAULT `'PASS'`, `param_result` VARCHAR(20) NOT NULL DEFAULT `'PASS'` (`PASS`, `FAIL`, `CONCESSION`), `deviation_remarks` VARCHAR(250), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+   * Sequences: `seq_qc_in_process_id`, `seq_qc_in_process_param_id` (starting at 1001).
+   * Indexes: `idx_qc_in_process_comp_branch`, `idx_qc_in_process_wo`, `idx_qc_in_process_jc`, `idx_qc_in_process_item`, `idx_qc_in_process_status`, `idx_qc_in_process_result`, `idx_qc_in_process_dates`, `idx_qc_in_process_param_header`, `idx_qc_in_process_param_result`.
+   * Triggers: `trg_qc_in_process_header_updated_date` and `trg_qc_in_process_param_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1043` (`IN_PROCESS_QC`, `/quality/in-process-qc`, `CheckCircle2`, sort order 43) with actions `1153` (`EXPORT`), `1154` (`PRINT`), `1155` (`APPROVE`), and `1156` (`DEVIATION`). Doc Series `AHM-IPQC-2627` added to `tbl_sys_doc_number_series`. Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded `IPQC-AHM-2627-0001` (Accepted Stage Completion on WO-1001 / JC-1001 OP-10 with 5 characteristics), `IPQC-AHM-2627-0002` (First-Piece Setup with Concession on OP-20), and `IPQC-AHM-2627-0003` (In-Progress Hydro Pressure Hold on OP-30).
+2. **Backend Architecture & API Contracts (`backend/src/modules/quality/in-process-qc/`):**
+   * Controller: `InProcessQcController` mapped to `/api/v1/quality/in-process-qc`.
+   * Service: `InProcessQcService` injecting `PG_POOL` and `AuditLogService`.
+   * Endpoints:
+     * `GET /quality/in-process-qc/summary` (`@RequirePermission('IN_PROCESS_QC', 'VIEW')`) — KPI metrics (`totalInspections`, `firstPieceApproved`, `deviationCount`, `rejectedCount`, `activePendingCount`).
+     * `GET /quality/in-process-qc/lookups` (`@RequirePermission('IN_PROCESS_QC', 'VIEW')`) — work orders, active job cards, work centers, machines, users, and items.
+     * `GET /quality/in-process-qc/:id` (`@RequirePermission('IN_PROCESS_QC', 'VIEW')`) — single inspection protocol with full characteristic parameter matrix and observations.
+     * `GET /quality/in-process-qc` (`@RequirePermission('IN_PROCESS_QC', 'VIEW')`) — multi-parameter filtered query with WO/JC/item joins and pass/fail counts.
+     * `POST /quality/in-process-qc` (`@RequirePermission('IN_PROCESS_QC', 'ADD')`) — atomic creation of header and parameter rows with auto document numbering.
+     * `PUT /quality/in-process-qc/:id` (`@RequirePermission('IN_PROCESS_QC', 'EDIT')`) — updates header and parameter rows while in draft/in-progress.
+     * `POST /quality/in-process-qc/:id/approve` (`@RequirePermission('IN_PROCESS_QC', 'APPROVE')`) — records QA verdict, updates `tbl_mfg_job_card` QC status, inspector ID, accepted/rejected quantities, and marks inspection `COMPLETED`.
+     * `POST /quality/in-process-qc/:id/deviation` (`@RequirePermission('IN_PROCESS_QC', 'DEVIATION')`) — authorizes technical concession / engineering waiver, sets verdict `ACCEPTED_UNDER_DEVIATION`, and updates job card to `DEVIATION_ACCEPTED`.
+     * `DELETE /quality/in-process-qc/:id` (`@RequirePermission('IN_PROCESS_QC', 'DELETE')`) — soft-cancels inspection and resets job card QC status.
+3. **Frontend Architecture (`frontend/src/pages/quality/InProcessQcMasterPage.tsx`):**
+   * Accessible at route `/quality/in-process-qc` under `QUALITY ASSURANCE & QC` with `CheckCircle2` icon and `'Live'` badge.
+   * Built with `<PermissionGate screen="IN_PROCESS_QC">`.
+   * 4 KPI summary cards (`Total Stage Inspections`, `1st Piece Setup Passes`, `Concessions & Deviations`, `Stage Rejections & Scraps`).
+   * Filter toolbar with search, stage dropdown, verdict dropdown, and status dropdown.
+   * Tab-based view (`All Inspections`, `1st-Piece Setup Approvals`, `Technical Concessions & Deviations`, `Rejections & Scraps`).
+   * Dynamic Characteristic Parameter Matrix:
+     * Interactive 5-point observation entry (`Obs 1` to `Obs 5`) with live calculated average (`Mean`).
+     * Auto tolerance evaluation: Real-time visual comparison of mean value against tolerance boundaries (`PASS` in emerald, `FAIL` in rose).
+     * 1-Click parameter presets: Dimensional, Surface Roughness Ra, Rockwell Hardness, Visual Flaw Check.
+   * Modals:
+     * **Record / Edit Stage Inspection Modal (`ADD` / `EDIT`):** Header configuration and dynamic multi-row parameter matrix.
+     * **Inspection Passport Detail Modal (`VIEW`):** Full characteristic inspection data with gauge details.
+     * **Approval & Gating Modal (`APPROVE`):** Quantities, material disposition, CAPA mandate, and job card synchronization.
+     * **Engineering Concession / Deviation Modal (`DEVIATION`):** Technical justification waiver and Use-As-Is disposition.
+     * **Statutory ISO 9001 / IATF 16949 Stage Inspection Certificate (`PRINT`):** Formatted printable report with company header, part number, heat/batch passport, 5-point observations, tolerance limits, and 3-tier authorized signatory blocks (Operator, Inspector, QA Manager).
+     * **Confirm Cancel Modal (`DELETE`):** Safe cancellation modal with job card status reset.
+
+
+---
+
+### 2.45 Pre-Dispatch Quality Inspection (PDI) & Certificate of Analysis (CoA) Architecture (`/quality/pdi`)
+1. **Database Schema & Relational Model:**
+   * Tables Created:
+     * `tbl_qc_pdi_header` (Section 88):
+       * Primary Key: `pdi_id` BIGINT (`seq_qc_pdi_id`, starts at 1001).
+       * Document Number: `pdi_no` VARCHAR(50) NOT NULL (e.g. `PDI-AHM-2627-0001`).
+       * Date & Context: `pdi_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Relational Links: `sales_order_id` BIGINT REFERENCES `tbl_sales_order_header(so_id)`, `customer_id` BIGINT NOT NULL REFERENCES `tbl_crm_party(party_id)`, `wo_id` BIGINT REFERENCES `tbl_mfg_wo_header(wo_id)`, `challan_id` BIGINT REFERENCES `tbl_sales_delivery_challan_header(challan_id)`, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`, `inspector_id` BIGINT NOT NULL REFERENCES `tbl_sec_user(user_id)`.
+       * Heat & Melt Tracking: `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Inspection Quantities: `lot_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `sample_size` INT NOT NULL DEFAULT 5, `accepted_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `rejected_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `rework_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000.
+       * Verdict & Commercial Gating: `overall_verdict` VARCHAR(30) NOT NULL DEFAULT `'PENDING'` (`PENDING`, `APPROVED_FOR_DISPATCH`, `REJECTED_QUARANTINE`, `CONCESSION_ACCEPTED`), `disposition` VARCHAR(50) DEFAULT `'CLEAR_FOR_INVOICE'` (`CLEAR_FOR_INVOICE`, `QUARANTINE_HOLD`, `RETURN_TO_SHOPFLOOR`, `SCRAP`, `CONCESSION_USE_AS_IS`).
+       * Approval & Certification: `approver_id` BIGINT REFERENCES `tbl_sec_user(user_id)`, `approval_date` TIMESTAMPTZ, `coa_no` VARCHAR(50), `coa_date` DATE, `mtc_no` VARCHAR(100), `standard_specification` VARCHAR(150), `packaging_condition` VARCHAR(30) DEFAULT `'ACCEPTABLE'`, `labeling_verification` VARCHAR(20) DEFAULT `'PASS'`, `preservation_coating` VARCHAR(100).
+       * Customer Witness: `customer_witness_required` BOOLEAN NOT NULL DEFAULT FALSE, `customer_witness_name` VARCHAR(100), `customer_witness_date` DATE.
+       * CoA Authorization: `is_coa_released` BOOLEAN NOT NULL DEFAULT FALSE, `coa_released_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `coa_released_at` TIMESTAMPTZ, `remarks` VARCHAR(500), `deviation_reason` VARCHAR(500), `status` VARCHAR(25) NOT NULL DEFAULT `'DRAFT'` (`DRAFT`, `IN_PROGRESS`, `APPROVED`, `REJECTED`, `CANCELLED`), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, branch_id, pdi_no)`.
+     * `tbl_qc_pdi_param` (Section 89):
+       * Primary Key: `pdi_param_id` BIGINT (`seq_qc_pdi_param_id`, starts at 1001).
+       * Foreign Key: `pdi_id` BIGINT NOT NULL REFERENCES `tbl_qc_pdi_header(pdi_id)` ON DELETE CASCADE.
+       * Characteristic Spec: `param_sequence` INT NOT NULL DEFAULT 1, `param_name` VARCHAR(150) NOT NULL, `param_category` VARCHAR(50) NOT NULL DEFAULT `'FUNCTIONAL'` (`DIMENSIONAL`, `FUNCTIONAL_PRESSURE`, `SURFACE_PAINT_DFT`, `VISUAL_PACKAGING`, `ELECTRICAL_ACTUATOR`, `METALLURGICAL_HARDNESS`), `instrument_name` VARCHAR(150), `nominal_val` NUMERIC(12,4), `min_tolerance` NUMERIC(12,4), `max_tolerance` NUMERIC(12,4), `uom_code` VARCHAR(20) DEFAULT `'mm'`.
+       * 5-Point Observations: `observed_val_1` to `observed_val_5` NUMERIC(12,4), `mean_val` NUMERIC(12,4), `visual_result` VARCHAR(20) DEFAULT `'PASS'`, `param_result` VARCHAR(20) NOT NULL DEFAULT `'PASS'` (`PASS`, `FAIL`, `CONCESSION`), `notes` VARCHAR(250), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+     * `tbl_qc_pdi_coa_spec` (Section 90):
+       * Primary Key: `coa_spec_id` BIGINT (`seq_qc_pdi_coa_spec_id`, starts at 1001).
+       * Foreign Key: `pdi_id` BIGINT NOT NULL UNIQUE REFERENCES `tbl_qc_pdi_header(pdi_id)` ON DELETE CASCADE.
+       * Chemical Composition Matrix (%): `elem_c_pct`, `elem_mn_pct`, `elem_si_pct`, `elem_p_pct`, `elem_s_pct`, `elem_cr_pct`, `elem_ni_pct`, `elem_mo_pct` NUMERIC(6,4).
+       * Mechanical Properties Matrix: `yield_strength_mpa` NUMERIC(8,2), `tensile_strength_mpa` NUMERIC(8,2), `elongation_pct` NUMERIC(6,2), `hardness_val` VARCHAR(30), `impact_energy_joules` NUMERIC(8,2).
+       * Hydrostatic Hold Pressure: `hydro_shell_test_bar` NUMERIC(8,2), `hydro_seat_test_bar` NUMERIC(8,2), `air_seat_test_bar` NUMERIC(8,2).
+       * NDE & Metallurgy: `nde_test_type` VARCHAR(100), `nde_result` VARCHAR(20) DEFAULT `'ACCEPTED'`, `lab_name` VARCHAR(150), `certified_engineer` VARCHAR(100), `certification_standard` VARCHAR(100), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+   * Sequences: `seq_qc_pdi_id`, `seq_qc_pdi_param_id`, `seq_qc_pdi_coa_spec_id` (starting at 1001).
+   * Indexes: `idx_qc_pdi_comp_branch`, `idx_qc_pdi_so`, `idx_qc_pdi_customer`, `idx_qc_pdi_item`, `idx_qc_pdi_status`, `idx_qc_pdi_verdict`, `idx_qc_pdi_coa`, `idx_qc_pdi_dates`, `idx_qc_pdi_param_pdi`, `idx_qc_pdi_param_result`, `idx_qc_pdi_coa_spec_pdi`.
+   * Triggers: `trg_qc_pdi_header_updated_date`, `trg_qc_pdi_param_updated_date`, and `trg_qc_pdi_coa_spec_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1044` (`PDI_QC`, `/quality/pdi`, `ShieldCheck`, sort order 44) with actions `1157` (`EXPORT`), `1158` (`PRINT`), `1159` (`APPROVE`), and `1160` (`RELEASE`). Registered Document Number Series `AHM-PDI-2627` (prefix `PDI-AHM-2627-`) and `AHM-COA-2627` (prefix `COA-AHM-2627-`). Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded `PDI-AHM-2627-0001` (Cleared for Dispatch with released `COA-AHM-2627-0001` on SO-1001 / WO-1001 for Reliance Industries), `PDI-AHM-2627-0002` (Pending PDI inspection on SO-1002 for L&T Heavy Engineering), and `PDI-AHM-2627-0003` (Concession accepted under deviation on SO-1003 for Bharat Petroleum Corporation).
+2. **Backend Architecture & API Contracts (`backend/src/modules/quality/pdi/`):**
+   * Controller: `PdiController` mapped to `/api/v1/quality/pdi`.
+   * Service: `PdiService` injecting `PG_POOL` and `AuditLogService`.
+   * Endpoints:
+     * `GET /quality/pdi/summary` (`@RequirePermission('PDI_QC', 'VIEW')`) — KPI metrics (`totalInspections`, `approvedForDispatch`, `releasedCoas`, `concessionCount`, `quarantineHoldCount`, `activePendingCount`).
+     * `GET /quality/pdi/lookups` (`@RequirePermission('PDI_QC', 'VIEW')`) — customers, sales orders, work orders, delivery challans, items, warehouses, and users.
+     * `GET /quality/pdi/:id` (`@RequirePermission('PDI_QC', 'VIEW')`) — full PDI document including characteristic parameter matrix and CoA chemical/mechanical specification.
+     * `GET /quality/pdi` (`@RequirePermission('PDI_QC', 'VIEW')`) — multi-parameter filtered query with customer/item/warehouse/order joins and pass/fail counts.
+     * `POST /quality/pdi` (`@RequirePermission('PDI_QC', 'ADD')`) — atomic creation of header, parameter rows, and optional CoA specification with auto document numbering.
+     * `PUT /quality/pdi/:id` (`@RequirePermission('PDI_QC', 'EDIT')`) — updates header, parameters, and CoA specification while in draft/in-progress.
+     * `POST /quality/pdi/:id/approve` (`@RequirePermission('PDI_QC', 'APPROVE')`) — records QA verdict, accepted/rejected quantities, material disposition, and optionally publishes CoA document.
+     * `POST /quality/pdi/:id/release-coa` (`@RequirePermission('PDI_QC', 'RELEASE')`) — digitally publishes and stamps Certificate of Analysis document (`is_coa_released = TRUE`).
+     * `DELETE /quality/pdi/:id` (`@RequirePermission('PDI_QC', 'DELETE')`) — soft-cancels unreleased PDI inspection.
+3. **Frontend Architecture (`frontend/src/pages/quality/PdiMasterPage.tsx`):**
+   * Accessible at route `/quality/pdi` under `QUALITY ASSURANCE & QC` with `ShieldCheck` icon and `'Live'` badge.
+   * Built with `<PermissionGate screen="PDI_QC">`.
+   * 4 KPI summary cards (`Total PDI Lots`, `Released CoAs & Cleared`, `Concessions & Deviations`, `Quarantine Holds`).
+   * Tab-based view (`All PDI Lots`, `Released CoAs`, `Concessions & Deviations`, `Quarantine Holds`).
+   * Filter toolbar with search, customer dropdown, verdict dropdown, and warehouse dropdown.
+   * High-density `<MasterDataTable<PdiRecord>>` featuring grouping, sorting, search predicate, and row actions.
+   * Modals:
+     * **Record / Edit PDI Modal (`ADD` / `EDIT`):** Customer & Sales Order linkage, product traceability, packaging & preservation condition, dynamic parameter grid, and 8-element chemical/mechanical matrix entry.
+     * **Quality Passport Modal (`VIEW`):** Comprehensive view of test readings, mean values, and chemical/mechanical properties.
+     * **Pre-Dispatch Gating & Disposition Modal (`APPROVE`):** Overall verdict selection, accepted/rejected quantities, concession justification, and 1-click CoA release.
+     * **Release Certificate of Analysis Modal (`RELEASE`):** Official digital release and authorization of EN 10204 Type 3.1 certificate.
+     * **Statutory Certificate of Analysis Printable Report (`PRINT`):** ISO 9001:2015 & EN 10204:2004 Type 3.1 compliant legal inspection certificate with corporate letterhead, customer order reference, chemical ladle analysis, mechanical properties, hydrostatic hold pressure tests, NDE examination, and 3-tier authorized signatures (QC Inspector, TPI Third Party Witness, Head of QA).
+     * **Confirm Delete Modal (`DELETE`):** Safe cancellation modal for unreleased inspection records.

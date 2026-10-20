@@ -55,7 +55,10 @@ export type PermissionAction =
   | 'REVALUE'
   | 'DRILLDOWN'
   | 'REGISTER_BATCH'
-  | 'REGISTER_SERIAL';
+  | 'REGISTER_SERIAL'
+  | 'PROVISION'
+  | 'REORDER'
+  | 'DEVIATION';
 
 export interface UserProfile {
   userId: number;

@@ -30,6 +30,7 @@ import { StockBalanceMasterPage } from './pages/inventory/StockBalanceMasterPage
 import { StockAdjustmentMasterPage } from './pages/inventory/StockAdjustmentMasterPage';
 import { StockTransferMasterPage } from './pages/inventory/StockTransferMasterPage';
 import { TraceabilityMasterPage } from './pages/inventory/TraceabilityMasterPage';
+import { AgingDashboardPage } from './pages/inventory/AgingDashboardPage';
 import { RequisitionMasterPage } from './pages/procurement/RequisitionMasterPage';
 import { RfqMasterPage } from './pages/procurement/RfqMasterPage';
 import { PurchaseOrderMasterPage } from './pages/procurement/PurchaseOrderMasterPage';
@@ -37,6 +38,8 @@ import { GateInwardMasterPage } from './pages/procurement/GateInwardMasterPage';
 import { GrnMasterPage } from './pages/procurement/GrnMasterPage';
 import { PurchaseInvoiceMasterPage } from './pages/procurement/PurchaseInvoiceMasterPage';
 import { InwardQcMasterPage } from './pages/quality/InwardQcMasterPage';
+import { InProcessQcMasterPage } from './pages/quality/InProcessQcMasterPage';
+import { PdiMasterPage } from './pages/quality/PdiMasterPage';
 import { BomMasterPage } from './pages/manufacturing/BomMasterPage';
 import { WorkCenterMasterPage } from './pages/manufacturing/WorkCenterMasterPage';
 import { RoutingMasterPage } from './pages/manufacturing/RoutingMasterPage';
@@ -243,6 +246,14 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/inventory/aging"
+              element={
+                <ProtectedLayout>
+                  <AgingDashboardPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
               path="/parties/customers"
               element={
                 <ProtectedLayout>
@@ -319,6 +330,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <InwardQcMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/quality/in-process-qc"
+              element={
+                <ProtectedLayout>
+                  <InProcessQcMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/quality/pdi"
+              element={
+                <ProtectedLayout>
+                  <PdiMasterPage />
                 </ProtectedLayout>
               }
             />

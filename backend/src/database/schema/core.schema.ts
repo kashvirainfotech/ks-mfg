@@ -4900,3 +4900,511 @@ export const tblInvSerialMaster = pgTable(
     ),
   }),
 );
+
+
+// ============================================================================
+// 84. Inventory Aging & Valuation Provisioning Header (tbl_inv_stock_provision_header)
+// ============================================================================
+export const tblInvStockProvisionHeader = pgTable(
+  'tbl_inv_stock_provision_header',
+  {
+    provisionId: bigint('provision_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_inv_provision_id')`),
+    provisionNo: varchar('provision_no', { length: 50 }).notNull(),
+    provisionDate: date('provision_date').notNull(),
+    valuationDate: date('valuation_date').notNull(),
+    warehouseId: bigint('warehouse_id', { mode: 'number' }).references(
+      () => tblInvWarehouse.warehouseId,
+    ),
+    categoryId: bigint('category_id', { mode: 'number' }).references(
+      () => tblInvItemCategory.categoryId,
+    ),
+    totalItemsEvaluated: integer('total_items_evaluated').notNull().default(0),
+    totalGrossValuation: numeric('total_gross_valuation', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    freshStockValue: numeric('fresh_stock_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    normalStockValue: numeric('normal_stock_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    slowMovingValue: numeric('slow_moving_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    stagnantStockValue: numeric('stagnant_stock_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    dormantStockValue: numeric('dormant_stock_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    deadStockValue: numeric('dead_stock_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    recommendedProvisionAmount: numeric('recommended_provision_amount', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    approvedProvisionAmount: numeric('approved_provision_amount', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    reviewedBy: bigint('reviewed_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    auditStandardCitation: varchar('audit_standard_citation', {
+      length: 150,
+    })
+      .notNull()
+      .default('Ind AS 2 (Inventories) & CARO 2020 Clause 3(ii)'),
+    provisionPolicyMatrix: jsonb('provision_policy_matrix'),
+    remarks: varchar('remarks', { length: 500 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvProvisionHeaderNo: unique('uq_inv_provision_header_no').on(
+      table.compId,
+      table.branchId,
+      table.provisionNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 85. Inventory Item-Level Aging & NRV Provisioning Line Items (tbl_inv_stock_provision_item)
+// ============================================================================
+export const tblInvStockProvisionItem = pgTable(
+  'tbl_inv_stock_provision_item',
+  {
+    provisionItemId: bigint('provision_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_inv_provision_item_id')`),
+    provisionId: bigint('provision_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvStockProvisionHeader.provisionId, {
+        onDelete: 'cascade',
+      }),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    binId: bigint('bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    itemCode: varchar('item_code', { length: 50 }).notNull(),
+    itemName: varchar('item_name', { length: 200 }).notNull(),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    onHandQty: numeric('on_hand_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    unitCost: numeric('unit_cost', { precision: 14, scale: 4 })
+      .notNull()
+      .default('0.0000'),
+    grossValuation: numeric('gross_valuation', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    firstInwardDate: date('first_inward_date'),
+    lastMovementDate: date('last_movement_date'),
+    ageInDays: integer('age_in_days').notNull().default(0),
+    agingBracket: varchar('aging_bracket', { length: 30 })
+      .notNull()
+      .default('0_30'),
+    fsnClassification: varchar('fsn_classification', { length: 20 })
+      .notNull()
+      .default('FAST'),
+    provisionRatePercent: numeric('provision_rate_percent', {
+      precision: 5,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    provisionAmount: numeric('provision_amount', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    netRealizableValue: numeric('net_realizable_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    justification: varchar('justification', { length: 250 }),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvProvisionItem: unique('uq_inv_provision_item').on(
+      table.provisionId,
+      table.itemId,
+      table.warehouseId,
+      table.batchNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 86. In-Process & Stage-Wise QC Inspection Header
+// ============================================================================
+export const tblQcInProcessHeader = pgTable(
+  'tbl_qc_in_process_header',
+  {
+    ipqcId: bigint('ipqc_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_in_process_id')`),
+    ipqcNo: varchar('ipqc_no', { length: 50 }).notNull(),
+    ipqcDate: date('ipqc_date').notNull().defaultNow(),
+    woId: bigint('wo_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblMfgWoHeader.woId),
+    jobCardId: bigint('job_card_id', { mode: 'number' }).references(
+      () => tblMfgJobCard.jobCardId,
+    ),
+    woRoutingOpId: bigint('wo_routing_op_id', { mode: 'number' }).references(
+      () => tblMfgWoRoutingOp.woRoutingOpId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    workCenterId: bigint('work_center_id', { mode: 'number' }).references(
+      () => tblMfgWorkCenter.workCenterId,
+    ),
+    machineId: bigint('machine_id', { mode: 'number' }).references(
+      () => tblMfgWorkCenterMachine.wcMachineId,
+    ),
+    assignedOperatorId: bigint('assigned_operator_id', {
+      mode: 'number',
+    }).references(() => tblSecUser.userId),
+    inspectorId: bigint('inspector_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblSecUser.userId),
+    inspectionStage: varchar('inspection_stage', { length: 40 })
+      .notNull()
+      .default('STAGE_COMPLETION'),
+    shiftName: varchar('shift_name', { length: 30 })
+      .notNull()
+      .default('Shift A'),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    lotQty: numeric('lot_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    sampleSize: integer('sample_size').notNull().default(5),
+    acceptedQty: numeric('accepted_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    rejectedQty: numeric('rejected_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    reworkQty: numeric('rework_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    overallResult: varchar('overall_result', { length: 30 })
+      .notNull()
+      .default('PENDING'),
+    dispositionType: varchar('disposition_type', { length: 50 }).default(
+      'DIRECT_ACCEPT',
+    ),
+    deviationReason: varchar('deviation_reason', { length: 500 }),
+    approverId: bigint('approver_id', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvalDate: timestamp('approval_date', { withTimezone: true }),
+    isCapaRequired: boolean('is_capa_required').notNull().default(false),
+    ncrNo: varchar('ncr_no', { length: 50 }),
+    remarks: varchar('remarks', { length: 500 }),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqQcInProcessHeaderNo: unique('uq_qc_in_process_header_no').on(
+      table.compId,
+      table.branchId,
+      table.ipqcNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 87. In-Process QC Inspection Characteristic / Parameter Observations
+// ============================================================================
+export const tblQcInProcessParam = pgTable('tbl_qc_in_process_param', {
+  ipqcParamId: bigint('ipqc_param_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_qc_in_process_param_id')`),
+  ipqcId: bigint('ipqc_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblQcInProcessHeader.ipqcId, { onDelete: 'cascade' }),
+  paramSequence: integer('param_sequence').notNull().default(1),
+  paramName: varchar('param_name', { length: 150 }).notNull(),
+  paramCategory: varchar('param_category', { length: 50 })
+    .notNull()
+    .default('DIMENSIONAL'),
+  instrumentName: varchar('instrument_name', { length: 150 }),
+  nominalVal: numeric('nominal_val', { precision: 12, scale: 4 }),
+  minTolerance: numeric('min_tolerance', { precision: 12, scale: 4 }),
+  maxTolerance: numeric('max_tolerance', { precision: 12, scale: 4 }),
+  uomCode: varchar('uom_code', { length: 20 }).default('mm'),
+  obsVal1: numeric('obs_val_1', { precision: 12, scale: 4 }),
+  obsVal2: numeric('obs_val_2', { precision: 12, scale: 4 }),
+  obsVal3: numeric('obs_val_3', { precision: 12, scale: 4 }),
+  obsVal4: numeric('obs_val_4', { precision: 12, scale: 4 }),
+  obsVal5: numeric('obs_val_5', { precision: 12, scale: 4 }),
+  meanVal: numeric('mean_val', { precision: 12, scale: 4 }),
+  visualResult: varchar('visual_result', { length: 20 }).default('PASS'),
+  paramResult: varchar('param_result', { length: 20 }).notNull().default('PASS'),
+  deviationRemarks: varchar('deviation_remarks', { length: 250 }),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+// ============================================================================
+// 88. Final Pre-Dispatch Inspection (PDI) Header
+// ============================================================================
+export const tblQcPdiHeader = pgTable(
+  'tbl_qc_pdi_header',
+  {
+    pdiId: bigint('pdi_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_pdi_id')`),
+    pdiNo: varchar('pdi_no', { length: 50 }).notNull(),
+    pdiDate: date('pdi_date').notNull().defaultNow(),
+    salesOrderId: bigint('sales_order_id', { mode: 'number' }).references(
+      () => tblSalesOrderHeader.soId,
+    ),
+    customerId: bigint('customer_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    woId: bigint('wo_id', { mode: 'number' }).references(
+      () => tblMfgWoHeader.woId,
+    ),
+    challanId: bigint('challan_id', { mode: 'number' }).references(
+      () => tblSalesDeliveryChallanHeader.challanId,
+    ),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    lotQty: numeric('lot_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    sampleSize: integer('sample_size').notNull().default(5),
+    acceptedQty: numeric('accepted_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    rejectedQty: numeric('rejected_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    reworkQty: numeric('rework_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    overallVerdict: varchar('overall_verdict', { length: 30 })
+      .notNull()
+      .default('PENDING'),
+    disposition: varchar('disposition', { length: 50 }).default(
+      'CLEAR_FOR_INVOICE',
+    ),
+    inspectorId: bigint('inspector_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblSecUser.userId),
+    approverId: bigint('approver_id', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvalDate: timestamp('approval_date', { withTimezone: true }),
+    coaNo: varchar('coa_no', { length: 50 }),
+    coaDate: date('coa_date'),
+    mtcNo: varchar('mtc_no', { length: 100 }),
+    standardSpecification: varchar('standard_specification', { length: 150 }),
+    packagingCondition: varchar('packaging_condition', { length: 30 }).default(
+      'ACCEPTABLE',
+    ),
+    labelingVerification: varchar('labeling_verification', {
+      length: 20,
+    }).default('PASS'),
+    preservationCoating: varchar('preservation_coating', { length: 100 }),
+    customerWitnessRequired: boolean('customer_witness_required')
+      .notNull()
+      .default(false),
+    customerWitnessName: varchar('customer_witness_name', { length: 100 }),
+    customerWitnessDate: date('customer_witness_date'),
+    isCoaReleased: boolean('is_coa_released').notNull().default(false),
+    coaReleasedBy: bigint('coa_released_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    coaReleasedAt: timestamp('coa_released_at', { withTimezone: true }),
+    remarks: varchar('remarks', { length: 500 }),
+    deviationReason: varchar('deviation_reason', { length: 500 }),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqQcPdiHeaderNo: unique('uq_qc_pdi_header_no').on(
+      table.compId,
+      table.branchId,
+      table.pdiNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 89. Final PDI Characteristic & Functional Test Observations
+// ============================================================================
+export const tblQcPdiParam = pgTable('tbl_qc_pdi_param', {
+  pdiParamId: bigint('pdi_param_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_qc_pdi_param_id')`),
+  pdiId: bigint('pdi_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblQcPdiHeader.pdiId, { onDelete: 'cascade' }),
+  paramSequence: integer('param_sequence').notNull().default(1),
+  paramName: varchar('param_name', { length: 150 }).notNull(),
+  paramCategory: varchar('param_category', { length: 50 })
+    .notNull()
+    .default('FUNCTIONAL'),
+  instrumentName: varchar('instrument_name', { length: 150 }),
+  nominalVal: numeric('nominal_val', { precision: 12, scale: 4 }),
+  minTolerance: numeric('min_tolerance', { precision: 12, scale: 4 }),
+  maxTolerance: numeric('max_tolerance', { precision: 12, scale: 4 }),
+  uomCode: varchar('uom_code', { length: 20 }).default('mm'),
+  observedVal1: numeric('observed_val_1', { precision: 12, scale: 4 }),
+  observedVal2: numeric('observed_val_2', { precision: 12, scale: 4 }),
+  observedVal3: numeric('observed_val_3', { precision: 12, scale: 4 }),
+  observedVal4: numeric('observed_val_4', { precision: 12, scale: 4 }),
+  observedVal5: numeric('observed_val_5', { precision: 12, scale: 4 }),
+  meanVal: numeric('mean_val', { precision: 12, scale: 4 }),
+  visualResult: varchar('visual_result', { length: 20 }).default('PASS'),
+  paramResult: varchar('param_result', { length: 20 }).notNull().default('PASS'),
+  notes: varchar('notes', { length: 250 }),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+// ============================================================================
+// 90. Certificate of Analysis Chemical & Mechanical Matrix
+// ============================================================================
+export const tblQcPdiCoaSpec = pgTable(
+  'tbl_qc_pdi_coa_spec',
+  {
+    coaSpecId: bigint('coa_spec_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_pdi_coa_spec_id')`),
+    pdiId: bigint('pdi_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblQcPdiHeader.pdiId, { onDelete: 'cascade' }),
+    elemCPct: numeric('elem_c_pct', { precision: 6, scale: 4 }).default(
+      '0.0300',
+    ),
+    elemMnPct: numeric('elem_mn_pct', { precision: 6, scale: 4 }).default(
+      '1.4500',
+    ),
+    elemSiPct: numeric('elem_si_pct', { precision: 6, scale: 4 }).default(
+      '0.4200',
+    ),
+    elemPPct: numeric('elem_p_pct', { precision: 6, scale: 4 }).default(
+      '0.0250',
+    ),
+    elemSPct: numeric('elem_s_pct', { precision: 6, scale: 4 }).default(
+      '0.0120',
+    ),
+    elemCrPct: numeric('elem_cr_pct', { precision: 6, scale: 4 }).default(
+      '17.2000',
+    ),
+    elemNiPct: numeric('elem_ni_pct', { precision: 6, scale: 4 }).default(
+      '11.1000',
+    ),
+    elemMoPct: numeric('elem_mo_pct', { precision: 6, scale: 4 }).default(
+      '2.1500',
+    ),
+    yieldStrengthMpa: numeric('yield_strength_mpa', {
+      precision: 8,
+      scale: 2,
+    }).default('285.00'),
+    tensileStrengthMpa: numeric('tensile_strength_mpa', {
+      precision: 8,
+      scale: 2,
+    }).default('580.00'),
+    elongationPct: numeric('elongation_pct', {
+      precision: 6,
+      scale: 2,
+    }).default('42.00'),
+    hardnessVal: varchar('hardness_val', { length: 30 }).default('185 HBW'),
+    impactEnergyJoules: numeric('impact_energy_joules', {
+      precision: 8,
+      scale: 2,
+    }).default('95.00'),
+    hydroShellTestBar: numeric('hydro_shell_test_bar', {
+      precision: 8,
+      scale: 2,
+    }).default('31.00'),
+    hydroSeatTestBar: numeric('hydro_seat_test_bar', {
+      precision: 8,
+      scale: 2,
+    }).default('22.00'),
+    airSeatTestBar: numeric('air_seat_test_bar', {
+      precision: 8,
+      scale: 2,
+    }).default('6.00'),
+    ndeTestType: varchar('nde_test_type', { length: 100 }).default(
+      '100% Visual + Dye Penetrant (PT) Flange Faces',
+    ),
+    ndeResult: varchar('nde_result', { length: 20 }).default('ACCEPTED'),
+    labName: varchar('lab_name', { length: 150 }).default(
+      'Kashvira Metallurgical Testing Laboratory (NABL Accredited)',
+    ),
+    certifiedEngineer: varchar('certified_engineer', { length: 100 }).default(
+      'Er. R. K. Patel (Level-II NDT / ASNT)',
+    ),
+    certificationStandard: varchar('certification_standard', {
+      length: 100,
+    }).default('EN 10204:2004 Type 3.1 / ISO 10474'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqQcPdiCoaSpec: unique('uq_qc_pdi_coa_spec').on(table.pdiId),
+  }),
+);

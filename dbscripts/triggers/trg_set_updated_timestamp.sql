@@ -459,3 +459,39 @@ DROP TRIGGER IF EXISTS trg_inv_serial_master_updated_date ON tbl_inv_serial_mast
 CREATE TRIGGER trg_inv_serial_master_updated_date
 BEFORE UPDATE ON tbl_inv_serial_master
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+
+DROP TRIGGER IF EXISTS trg_inv_stock_provision_header_updated_date ON tbl_inv_stock_provision_header;
+CREATE TRIGGER trg_inv_stock_provision_header_updated_date
+BEFORE UPDATE ON tbl_inv_stock_provision_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_stock_provision_item_updated_date ON tbl_inv_stock_provision_item;
+CREATE TRIGGER trg_inv_stock_provision_item_updated_date
+BEFORE UPDATE ON tbl_inv_stock_provision_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_in_process_header_updated_date ON tbl_qc_in_process_header;
+CREATE TRIGGER trg_qc_in_process_header_updated_date
+BEFORE UPDATE ON tbl_qc_in_process_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_in_process_param_updated_date ON tbl_qc_in_process_param;
+CREATE TRIGGER trg_qc_in_process_param_updated_date
+BEFORE UPDATE ON tbl_qc_in_process_param
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_pdi_header_updated_date ON tbl_qc_pdi_header;
+CREATE TRIGGER trg_qc_pdi_header_updated_date
+BEFORE UPDATE ON tbl_qc_pdi_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_pdi_param_updated_date ON tbl_qc_pdi_param;
+CREATE TRIGGER trg_qc_pdi_param_updated_date
+BEFORE UPDATE ON tbl_qc_pdi_param
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_qc_pdi_coa_spec_updated_date ON tbl_qc_pdi_coa_spec;
+CREATE TRIGGER trg_qc_pdi_coa_spec_updated_date
+BEFORE UPDATE ON tbl_qc_pdi_coa_spec
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

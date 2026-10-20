@@ -3856,3 +3856,373 @@ CREATE INDEX IF NOT EXISTS idx_inv_serial_customer ON tbl_inv_serial_master (cus
 CREATE INDEX IF NOT EXISTS idx_inv_serial_invoice ON tbl_inv_serial_master (invoice_id);
 CREATE INDEX IF NOT EXISTS idx_inv_serial_challan ON tbl_inv_serial_master (challan_id);
 CREATE INDEX IF NOT EXISTS idx_inv_serial_wh_bin ON tbl_inv_serial_master (current_warehouse_id, current_bin_id);
+
+
+-- ============================================================================
+-- SECTION 84: tbl_inv_stock_provision_header
+-- DATE: 2026-10-20
+-- FEATURE: Step 8.5 - Inventory Aging, Dead Stock & Valuation Provisioning (Ind AS 2 / CARO 2020)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_provision_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_stock_provision_header (
+    provision_id                BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_provision_id'),
+    provision_no                VARCHAR(50)     NOT NULL,
+    provision_date              DATE            NOT NULL DEFAULT CURRENT_DATE,
+    valuation_date              DATE            NOT NULL DEFAULT CURRENT_DATE,
+    warehouse_id                BIGINT          REFERENCES tbl_inv_warehouse(warehouse_id),
+    category_id                 BIGINT          REFERENCES tbl_inv_item_category(category_id),
+    total_items_evaluated       INT             NOT NULL DEFAULT 0,
+    total_gross_valuation       NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    fresh_stock_value           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00, -- 0-30 Days
+    normal_stock_value          NUMERIC(14, 2)  NOT NULL DEFAULT 0.00, -- 31-60 Days
+    slow_moving_value           NUMERIC(14, 2)  NOT NULL DEFAULT 0.00, -- 61-90 Days
+    stagnant_stock_value        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00, -- 91-180 Days
+    dormant_stock_value         NUMERIC(14, 2)  NOT NULL DEFAULT 0.00, -- 181-365 Days
+    dead_stock_value            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00, -- >365 Days
+    recommended_provision_amount NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+    approved_provision_amount   NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED')),
+    reviewed_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    reviewed_at                 TIMESTAMPTZ,
+    approved_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approved_at                 TIMESTAMPTZ,
+    audit_standard_citation     VARCHAR(150)    NOT NULL DEFAULT 'Ind AS 2 (Inventories) & CARO 2020 Clause 3(ii)',
+    provision_policy_matrix     JSONB,          -- Bracket percentage rules applied
+    remarks                     VARCHAR(500),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_provision_header_no UNIQUE (comp_id, branch_id, provision_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_provision_comp_branch ON tbl_inv_stock_provision_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_provision_date ON tbl_inv_stock_provision_header (valuation_date);
+CREATE INDEX IF NOT EXISTS idx_inv_provision_status ON tbl_inv_stock_provision_header (status);
+CREATE INDEX IF NOT EXISTS idx_inv_provision_wh ON tbl_inv_stock_provision_header (warehouse_id);
+
+
+-- ============================================================================
+-- SECTION 85: tbl_inv_stock_provision_item
+-- DATE: 2026-10-20
+-- FEATURE: Step 8.5 - Inventory Item-level Aging & Net Realisable Value (NRV) Provisioning
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_provision_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_stock_provision_item (
+    provision_item_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_provision_item_id'),
+    provision_id                BIGINT          NOT NULL REFERENCES tbl_inv_stock_provision_header(provision_id) ON DELETE CASCADE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    bin_id                      BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(200)    NOT NULL,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    on_hand_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    gross_valuation             NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    first_inward_date           DATE,
+    last_movement_date          DATE,
+    age_in_days                 INT             NOT NULL DEFAULT 0,
+    aging_bracket               VARCHAR(30)     NOT NULL DEFAULT '0_30'
+                                                CHECK (aging_bracket IN ('0_30', '31_60', '61_90', '91_180', '181_365', 'GT_365')),
+    fsn_classification          VARCHAR(20)     NOT NULL DEFAULT 'FAST'
+                                                CHECK (fsn_classification IN ('FAST', 'SLOW', 'NON_MOVING')),
+    provision_rate_percent      NUMERIC(5, 2)   NOT NULL DEFAULT 0.00,
+    provision_amount            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    net_realizable_value        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    justification               VARCHAR(250),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_provision_item UNIQUE (provision_id, item_id, warehouse_id, batch_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_provision_item_prov ON tbl_inv_stock_provision_item (provision_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_provision_item_item ON tbl_inv_stock_provision_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_provision_item_bracket ON tbl_inv_stock_provision_item (aging_bracket);
+CREATE INDEX IF NOT EXISTS idx_inv_provision_item_fsn ON tbl_inv_stock_provision_item (fsn_classification);
+
+
+-- ============================================================================
+-- SECTION 86: tbl_qc_in_process_header
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.1 - In-Process & Stage-Wise Quality Inspection Header
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_in_process_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_in_process_header (
+    ipqc_id                     BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_in_process_id'),
+    ipqc_no                     VARCHAR(50)     NOT NULL, -- e.g. 'IPQC-AHM-2627-0001'
+    ipqc_date                   DATE            NOT NULL DEFAULT CURRENT_DATE,
+    wo_id                       BIGINT          NOT NULL REFERENCES tbl_mfg_wo_header(wo_id),
+    job_card_id                 BIGINT          REFERENCES tbl_mfg_job_card(job_card_id),
+    wo_routing_op_id            BIGINT          REFERENCES tbl_mfg_wo_routing_op(wo_routing_op_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    work_center_id              BIGINT          REFERENCES tbl_mfg_work_center(work_center_id),
+    machine_id                  BIGINT          REFERENCES tbl_mfg_work_center_machine(wc_machine_id),
+    assigned_operator_id        BIGINT          REFERENCES tbl_sec_user(user_id),
+    inspector_id                BIGINT          NOT NULL REFERENCES tbl_sec_user(user_id),
+    inspection_stage            VARCHAR(40)     NOT NULL DEFAULT 'STAGE_COMPLETION'
+                                                CHECK (inspection_stage IN ('FIRST_PIECE', 'PATROL_INSPECTION', 'STAGE_COMPLETION', 'LAST_PIECE')),
+    shift_name                  VARCHAR(30)     NOT NULL DEFAULT 'Shift A',
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    lot_qty                     NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    sample_size                 INT             NOT NULL DEFAULT 5,
+    accepted_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rejected_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    overall_result              VARCHAR(30)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (overall_result IN ('PENDING', 'ACCEPTED', 'REJECTED', 'ACCEPTED_UNDER_DEVIATION')),
+    disposition_type            VARCHAR(50)     DEFAULT 'DIRECT_ACCEPT'
+                                                CHECK (disposition_type IN ('DIRECT_ACCEPT', 'SCRAP', 'REWORK_SAME_OP', 'REWORK_NEW_OP', 'CONCESSION_USE_AS_IS')),
+    deviation_reason            VARCHAR(500),
+    approver_id                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approval_date               TIMESTAMPTZ,
+    is_capa_required            BOOLEAN         NOT NULL DEFAULT FALSE,
+    ncr_no                      VARCHAR(50),
+    remarks                     VARCHAR(500),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_qc_in_process_header_no UNIQUE (comp_id, branch_id, ipqc_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_comp_branch ON tbl_qc_in_process_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_wo ON tbl_qc_in_process_header (wo_id);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_jc ON tbl_qc_in_process_header (job_card_id);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_item ON tbl_qc_in_process_header (item_id);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_status ON tbl_qc_in_process_header (status);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_result ON tbl_qc_in_process_header (overall_result);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_dates ON tbl_qc_in_process_header (ipqc_date, created_date);
+
+
+-- ============================================================================
+-- SECTION 87: tbl_qc_in_process_param
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.1 - In-Process QC Inspection Characteristic / Parameter Observations
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_in_process_param_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_in_process_param (
+    ipqc_param_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_in_process_param_id'),
+    ipqc_id                     BIGINT          NOT NULL REFERENCES tbl_qc_in_process_header(ipqc_id) ON DELETE CASCADE,
+    param_sequence              INT             NOT NULL DEFAULT 1,
+    param_name                  VARCHAR(150)    NOT NULL,
+    param_category              VARCHAR(50)     NOT NULL DEFAULT 'DIMENSIONAL'
+                                                CHECK (param_category IN ('DIMENSIONAL', 'METALLURGICAL', 'SURFACE_FINISH', 'VISUAL', 'FUNCTIONAL', 'TORQUE_TENSION')),
+    instrument_name             VARCHAR(150),
+    nominal_val                 NUMERIC(12, 4),
+    min_tolerance               NUMERIC(12, 4),
+    max_tolerance               NUMERIC(12, 4),
+    uom_code                    VARCHAR(20)     DEFAULT 'mm',
+    obs_val_1                   NUMERIC(12, 4),
+    obs_val_2                   NUMERIC(12, 4),
+    obs_val_3                   NUMERIC(12, 4),
+    obs_val_4                   NUMERIC(12, 4),
+    obs_val_5                   NUMERIC(12, 4),
+    mean_val                    NUMERIC(12, 4),
+    visual_result               VARCHAR(20)     DEFAULT 'PASS' CHECK (visual_result IN ('PASS', 'FAIL', 'NA')),
+    param_result                VARCHAR(20)     NOT NULL DEFAULT 'PASS' CHECK (param_result IN ('PASS', 'FAIL', 'CONCESSION')),
+    deviation_remarks           VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_param_header ON tbl_qc_in_process_param (ipqc_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_in_process_param_result ON tbl_qc_in_process_param (param_result);
+
+
+-- ============================================================================
+-- SECTION 88: tbl_qc_pdi_header
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.2 - Final Pre-Dispatch Inspection (PDI) & Certificate of Analysis (CoA) Header
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_pdi_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_pdi_header (
+    pdi_id                      BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_pdi_id'),
+    pdi_no                      VARCHAR(50)     NOT NULL, -- e.g. 'PDI-AHM-2627-0001'
+    pdi_date                    DATE            NOT NULL DEFAULT CURRENT_DATE,
+    sales_order_id              BIGINT          REFERENCES tbl_sales_order_header(so_id),
+    customer_id                 BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    wo_id                       BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    challan_id                  BIGINT          REFERENCES tbl_sales_delivery_challan_header(challan_id),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    lot_qty                     NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    sample_size                 INT             NOT NULL DEFAULT 5,
+    accepted_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rejected_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    rework_qty                  NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    overall_verdict             VARCHAR(30)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (overall_verdict IN ('PENDING', 'APPROVED_FOR_DISPATCH', 'REJECTED_QUARANTINE', 'CONCESSION_ACCEPTED')),
+    disposition                 VARCHAR(50)     DEFAULT 'CLEAR_FOR_INVOICE'
+                                                CHECK (disposition IN ('CLEAR_FOR_INVOICE', 'QUARANTINE_HOLD', 'RETURN_TO_SHOPFLOOR', 'SCRAP', 'CONCESSION_USE_AS_IS')),
+    inspector_id                BIGINT          NOT NULL REFERENCES tbl_sec_user(user_id),
+    approver_id                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approval_date               TIMESTAMPTZ,
+    coa_no                      VARCHAR(50),    -- e.g. 'COA-AHM-2627-0001'
+    coa_date                    DATE,
+    mtc_no                      VARCHAR(100),   -- Linked MTC / EN 10204 3.1
+    standard_specification      VARCHAR(150),   -- e.g. 'API 6D / ASME B16.34'
+    packaging_condition         VARCHAR(30)     DEFAULT 'ACCEPTABLE'
+                                                CHECK (packaging_condition IN ('ACCEPTABLE', 'DAMAGED_REPACK', 'POOR_LABELING', 'CRATE_HOLD')),
+    labeling_verification       VARCHAR(20)     DEFAULT 'PASS' CHECK (labeling_verification IN ('PASS', 'FAIL', 'NA')),
+    preservation_coating        VARCHAR(100),   -- e.g. 'Rust Preventive Oil VCI wrap'
+    customer_witness_required   BOOLEAN         NOT NULL DEFAULT FALSE,
+    customer_witness_name       VARCHAR(100),   -- e.g. TPI / Inspector Name
+    customer_witness_date       DATE,
+    is_coa_released             BOOLEAN         NOT NULL DEFAULT FALSE,
+    coa_released_by             BIGINT          REFERENCES tbl_sec_user(user_id),
+    coa_released_at             TIMESTAMPTZ,
+    remarks                     VARCHAR(500),
+    deviation_reason            VARCHAR(500),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'IN_PROGRESS', 'APPROVED', 'REJECTED', 'CANCELLED')),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_qc_pdi_header_no UNIQUE (comp_id, branch_id, pdi_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_comp_branch ON tbl_qc_pdi_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_so ON tbl_qc_pdi_header (sales_order_id);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_customer ON tbl_qc_pdi_header (customer_id);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_item ON tbl_qc_pdi_header (item_id);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_status ON tbl_qc_pdi_header (status);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_verdict ON tbl_qc_pdi_header (overall_verdict);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_coa ON tbl_qc_pdi_header (coa_no);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_dates ON tbl_qc_pdi_header (pdi_date, created_date);
+
+-- ============================================================================
+-- SECTION 89: tbl_qc_pdi_param
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.2 - Final PDI Characteristic & Functional Test Observations
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_pdi_param_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_pdi_param (
+    pdi_param_id                BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_pdi_param_id'),
+    pdi_id                      BIGINT          NOT NULL REFERENCES tbl_qc_pdi_header(pdi_id) ON DELETE CASCADE,
+    param_sequence              INT             NOT NULL DEFAULT 1,
+    param_name                  VARCHAR(150)    NOT NULL,
+    param_category              VARCHAR(50)     NOT NULL DEFAULT 'FUNCTIONAL'
+                                                CHECK (param_category IN ('DIMENSIONAL', 'FUNCTIONAL_PRESSURE', 'SURFACE_PAINT_DFT', 'VISUAL_PACKAGING', 'ELECTRICAL_ACTUATOR', 'METALLURGICAL_HARDNESS')),
+    instrument_name             VARCHAR(150),
+    nominal_val                 NUMERIC(12, 4),
+    min_tolerance               NUMERIC(12, 4),
+    max_tolerance               NUMERIC(12, 4),
+    uom_code                    VARCHAR(20)     DEFAULT 'mm',
+    observed_val_1              NUMERIC(12, 4),
+    observed_val_2              NUMERIC(12, 4),
+    observed_val_3              NUMERIC(12, 4),
+    observed_val_4              NUMERIC(12, 4),
+    observed_val_5              NUMERIC(12, 4),
+    mean_val                    NUMERIC(12, 4),
+    visual_result               VARCHAR(20)     DEFAULT 'PASS' CHECK (visual_result IN ('PASS', 'FAIL', 'NA')),
+    param_result                VARCHAR(20)     NOT NULL DEFAULT 'PASS' CHECK (param_result IN ('PASS', 'FAIL', 'CONCESSION')),
+    notes                       VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_param_pdi ON tbl_qc_pdi_param (pdi_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_param_result ON tbl_qc_pdi_param (param_result);
+
+-- ============================================================================
+-- SECTION 90: tbl_qc_pdi_coa_spec
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.2 - Certificate of Analysis Chemical & Mechanical Matrix
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_pdi_coa_spec_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_pdi_coa_spec (
+    coa_spec_id                 BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_pdi_coa_spec_id'),
+    pdi_id                      BIGINT          NOT NULL REFERENCES tbl_qc_pdi_header(pdi_id) ON DELETE CASCADE,
+    -- Chemical Composition % Matrix
+    elem_c_pct                  NUMERIC(6, 4)   DEFAULT 0.0300,
+    elem_mn_pct                 NUMERIC(6, 4)   DEFAULT 1.4500,
+    elem_si_pct                 NUMERIC(6, 4)   DEFAULT 0.4200,
+    elem_p_pct                  NUMERIC(6, 4)   DEFAULT 0.0250,
+    elem_s_pct                  NUMERIC(6, 4)   DEFAULT 0.0120,
+    elem_cr_pct                 NUMERIC(6, 4)   DEFAULT 17.2000,
+    elem_ni_pct                 NUMERIC(6, 4)   DEFAULT 11.1000,
+    elem_mo_pct                 NUMERIC(6, 4)   DEFAULT 2.1500,
+    -- Mechanical Properties Matrix
+    yield_strength_mpa          NUMERIC(8, 2)   DEFAULT 285.00,
+    tensile_strength_mpa        NUMERIC(8, 2)   DEFAULT 580.00,
+    elongation_pct              NUMERIC(6, 2)   DEFAULT 42.00,
+    hardness_val                VARCHAR(30)     DEFAULT '185 HBW',
+    impact_energy_joules        NUMERIC(8, 2)   DEFAULT 95.00,
+    -- Metallurgical NDE & Testing Agency
+    hydro_shell_test_bar        NUMERIC(8, 2)   DEFAULT 31.00, -- 450 PSI approx
+    hydro_seat_test_bar         NUMERIC(8, 2)   DEFAULT 22.00,
+    air_seat_test_bar           NUMERIC(8, 2)   DEFAULT 6.00,
+    nde_test_type               VARCHAR(100)    DEFAULT '100% Visual + Dye Penetrant (PT) Flange Faces',
+    nde_result                  VARCHAR(20)     DEFAULT 'ACCEPTED' CHECK (nde_result IN ('ACCEPTED', 'REJECTED', 'NA')),
+    lab_name                    VARCHAR(150)    DEFAULT 'Kashvira Metallurgical Testing Laboratory (NABL Accredited)',
+    certified_engineer          VARCHAR(100)    DEFAULT 'Er. R. K. Patel (Level-II NDT / ASNT)',
+    certification_standard      VARCHAR(100)    DEFAULT 'EN 10204:2004 Type 3.1 / ISO 10474',
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_qc_pdi_coa_spec UNIQUE (pdi_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_pdi_coa_spec_pdi ON tbl_qc_pdi_coa_spec (pdi_id);
+
+

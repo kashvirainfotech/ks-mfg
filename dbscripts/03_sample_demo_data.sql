@@ -3982,3 +3982,394 @@ INSERT INTO tbl_inv_serial_master (
 ON CONFLICT (comp_id, item_id, serial_no) DO NOTHING;
 
 SELECT setval('seq_inv_serial_id', GREATEST((SELECT COALESCE(MAX(serial_id), 1003) FROM tbl_inv_serial_master), 1003));
+
+
+-- ============================================================================
+-- FEATURE: Step 8.5 - Sample Inventory Aging & Stock Provisioning Review
+-- ============================================================================
+INSERT INTO tbl_inv_stock_provision_header (
+    provision_id, provision_no, provision_date, valuation_date,
+    warehouse_id, category_id,
+    total_items_evaluated, total_gross_valuation,
+    fresh_stock_value, normal_stock_value, slow_moving_value,
+    stagnant_stock_value, dormant_stock_value, dead_stock_value,
+    recommended_provision_amount, approved_provision_amount,
+    status, reviewed_by, reviewed_at, approved_by, approved_at,
+    audit_standard_citation, provision_policy_matrix, remarks,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 'PROV-AHM-2627-0001', '2026-06-30', '2026-06-30',
+    1001, NULL,
+    6, 445450.00,
+    178500.00, 70000.00, 100000.00,
+    15750.00, 61200.00, 20000.00,
+    39935.00, 39935.00,
+    'SUBMITTED', 1003, '2026-06-30 17:30:00+05:30', NULL, NULL,
+    'Ind AS 2 (Inventories) & CARO 2020 Clause 3(ii)',
+    '{"bracket_0_30": 0, "bracket_31_60": 0, "bracket_61_90": 0, "bracket_91_180": 10, "bracket_181_365": 30, "bracket_gt_365": 100}',
+    'Q1 statutory inventory aging review and slow/dead stock provisioning evaluation for Ahmedabad Main Plant.',
+    1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, provision_no) DO NOTHING;
+
+SELECT setval('seq_inv_provision_id', GREATEST((SELECT COALESCE(MAX(provision_id), 1001) FROM tbl_inv_stock_provision_header), 1001));
+
+INSERT INTO tbl_inv_stock_provision_item (
+    provision_item_id, provision_id,
+    item_id, warehouse_id, bin_id, batch_no, heat_no,
+    item_code, item_name, uom_id,
+    on_hand_qty, unit_cost, gross_valuation,
+    first_inward_date, last_movement_date, age_in_days,
+    aging_bracket, fsn_classification,
+    provision_rate_percent, provision_amount, net_realizable_value,
+    justification, remarks,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. Fresh Fast-Moving Raw Material SS-316L (0-30 Days)
+    (1001, 1001,
+     1001, 1001, 1001, 'HEAT-JSW-SS316-9812', 'MELT-8821',
+     'RM-SS-316L-ROD', 'Stainless Steel Round Bar 50mm Grade 316L', 1002,
+     425.000, 420.0000, 178500.00,
+     '2026-06-06', '2026-06-25', 24,
+     '0_30', 'FAST',
+     0.00, 0.00, 178500.00,
+     'Active raw material used in daily CNC valve production. No provisioning needed.',
+     'High turnover inventory.',
+     1001, 1001, 1001, 1001),
+
+    -- 2. Normal Moving Aluminium Alloy (31-60 Days)
+    (1002, 1001,
+     1002, 1001, 1002, 'HEAT-AL-2026-09', 'HT-AL-902',
+     'RM-AL-6061-INGOT', 'Aluminium Alloy Ingot 6061-T6 Heavy Forge', 1002,
+     250.000, 280.0000, 70000.00,
+     '2026-05-16', '2026-06-10', 45,
+     '31_60', 'FAST',
+     0.00, 0.00, 70000.00,
+     'Satisfactory consumption cycle against scheduled work orders.',
+     'Standard turn items.',
+     1001, 1001, 1001, 1001),
+
+    -- 3. Slow Moving Polymer Granules (61-90 Days)
+    (1003, 1001,
+     1003, 1001, 1003, 'LOT-PP-2026-02', 'LOT-PP-2026-02',
+     'RM-POLY-PP-GRANULES', 'Polypropylene Granules Injection Grade Polymer', 1002,
+     800.000, 125.0000, 100000.00,
+     '2026-04-06', '2026-05-20', 85,
+     '61_90', 'SLOW',
+     0.00, 0.00, 100000.00,
+     'Batch purchased for molded handle contract. Consumption pace slow but active.',
+     'Hold under observation.',
+     1001, 1001, 1001, 1001),
+
+    -- 4. Stagnant Fasteners M16 (91-180 Days)
+    (1004, 1001,
+     1004, 1001, 1004, 'LOT-FAST-2026-01', NULL,
+     'CONS-FASTENER-M16', 'High Tensile Hex Head Bolt M16 x 65mm Grade 8.8', 1001,
+     350.000, 45.0000, 15750.00,
+     '2026-02-10', '2026-03-15', 140,
+     '91_180', 'SLOW',
+     10.00, 1575.00, 14175.00,
+     'Stagnant surplus from completed heat exchanger project. 10% Ind AS 2 provision applied.',
+     'Recommended for lineside substitution.',
+     1001, 1001, 1001, 1001),
+
+    -- 5. Dormant Brass Hex Rod (181-365 Days)
+    (1005, 1001,
+     1005, 1001, 1005, 'LOT-BRS-2025-11', 'BRS-8819',
+     'RM-BRASS-HEX-ROD', 'Free Cutting Brass Hexagonal Rod 25mm CW614N', 1002,
+     120.000, 510.0000, 61200.00,
+     '2025-10-13', '2025-11-20', 260,
+     '181_365', 'NON_MOVING',
+     30.00, 18360.00, 42840.00,
+     'No consumption in last 7 months due to design change in brass nozzles. 30% write-down provision.',
+     'Proposal submitted to salvage as scrap or rework.',
+     1001, 1001, 1001, 1001),
+
+    -- 6. Dead Stock Obsolete Gasket Seal Kit (>365 Days)
+    (1006, 1001,
+     1006, 1001, 1006, 'LOT-GSK-2025-04', NULL,
+     'CONS-OBSOLETE-GASKET-KIT', 'Asbestos-Free High Pressure Gasket Seal Kit 4-inch', 1001,
+     80.000, 250.0000, 20000.00,
+     '2025-05-06', '2025-06-12', 420,
+     'GT_365', 'NON_MOVING',
+     100.00, 20000.00, 0.00,
+     'Completely obsolete line. Superseded by PTFE spiral wound gaskets. 100% CARO write-off proposed.',
+     'Zero Net Realizable Value (NRV).',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (provision_id, item_id, warehouse_id, batch_no) DO NOTHING;
+
+SELECT setval('seq_inv_provision_item_id', GREATEST((SELECT COALESCE(MAX(provision_item_id), 1006) FROM tbl_inv_stock_provision_item), 1006));
+
+-- ============================================================================
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.1 - Sample In-Process & Stage-Wise QC Inspection Records
+--          (tbl_qc_in_process_header, tbl_qc_in_process_param)
+-- ============================================================================
+
+INSERT INTO tbl_qc_in_process_header (
+    ipqc_id, ipqc_no, ipqc_date, wo_id, job_card_id, wo_routing_op_id,
+    item_id, work_center_id, machine_id, assigned_operator_id, inspector_id,
+    inspection_stage, shift_name, batch_no, heat_no,
+    lot_qty, sample_size, accepted_qty, rejected_qty, rework_qty,
+    overall_result, disposition_type, deviation_reason, approver_id, approval_date,
+    is_capa_required, ncr_no, remarks, status, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. Completed & Accepted Stage Inspection for OP-10 (Flange Facing) on WO-1001
+    (1001, 'IPQC-AHM-2627-0001', '2026-05-10', 1001, 1001, 1001,
+     1001, 1001, 1001, 1001, 1003,
+     'STAGE_COMPLETION', 'Shift A', 'BATCH-VALVE-26-01', 'HEAT-SS316-441',
+     50.000, 5, 48.000, 2.000, 0.000,
+     'ACCEPTED', 'DIRECT_ACCEPT', NULL, 1002, '2026-05-10 21:15:00+05:30',
+     FALSE, NULL, 'Stage clearance completed. 48 units accepted, 2 units rejected due to casting porosity at flange face.', 'COMPLETED', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. First-Piece Setup Approval with Concession / Deviation for OP-20 (Port Milling) on WO-1001
+    (1002, 'IPQC-AHM-2627-0002', '2026-05-11', 1001, 1002, 1002,
+     1001, 1001, 1002, 1001, 1003,
+     'FIRST_PIECE', 'Shift A', 'BATCH-VALVE-26-01', 'HEAT-SS316-441',
+     48.000, 3, 48.000, 0.000, 0.000,
+     'ACCEPTED_UNDER_DEVIATION', 'CONCESSION_USE_AS_IS', 'Port entrance chamfer 1.2mm observed vs drawing 1.0±0.1mm. Concession approved as does not affect O-ring sealing.', 1002, '2026-05-11 10:30:00+05:30',
+     FALSE, NULL, 'First piece setup approved under engineering concession for chamfer dimension.', 'COMPLETED', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 3. In-Progress Stage Inspection for OP-30 (Hydro Testing) on WO-1001
+    (1003, 'IPQC-AHM-2627-0003', '2026-05-12', 1001, 1003, 1003,
+     1001, 1004, 1007, NULL, 1003,
+     'STAGE_COMPLETION', 'Shift B', 'BATCH-VALVE-26-01', 'HEAT-SS316-441',
+     48.000, 5, 0.000, 0.000, 0.000,
+     'PENDING', 'DIRECT_ACCEPT', NULL, NULL, NULL,
+     FALSE, NULL, 'Hydrostatic pressure holding test staged. 300 PSI test in progress.', 'IN_PROGRESS', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, ipqc_no) DO NOTHING;
+
+SELECT setval('seq_qc_in_process_id', GREATEST((SELECT COALESCE(MAX(ipqc_id), 1003) FROM tbl_qc_in_process_header), 1003));
+
+-- Inspection Parameters & Characteristic Observations
+INSERT INTO tbl_qc_in_process_param (
+    ipqc_param_id, ipqc_id, param_sequence, param_name, param_category, instrument_name,
+    nominal_val, min_tolerance, max_tolerance, uom_code,
+    obs_val_1, obs_val_2, obs_val_3, obs_val_4, obs_val_5, mean_val,
+    visual_result, param_result, deviation_remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Parameters for IPQC-0001 (5 Characteristics)
+    (1001, 1001, 1, 'Flange Outer Diameter (OD)', 'DIMENSIONAL', 'Digital Vernier Caliper (V-04)',
+     150.0000, 149.8000, 150.2000, 'mm',
+     150.0200, 150.0500, 149.9800, 150.0100, 150.0400, 150.0200,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 2, 'Bore Internal Diameter', 'DIMENSIONAL', 'Three-Point Internal Micrometer',
+     50.0000, 49.9500, 50.0500, 'mm',
+     50.0100, 50.0200, 49.9900, 50.0000, 50.0100, 50.0060,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1001, 3, 'Flange Face Surface Roughness (Ra)', 'SURFACE_FINISH', 'Mitutoyo Surftest SJ-210',
+     0.8000, 0.4000, 0.8000, 'µm',
+     0.6200, 0.6800, 0.7100, 0.6500, 0.7400, 0.6800,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1004, 1001, 4, 'Body Core Hardness', 'METALLURGICAL', 'Rockwell Hardness Tester (HR-01)',
+     28.0000, 25.0000, 32.0000, 'HRC',
+     28.5000, 29.0000, 28.0000, 29.5000, 28.5000, 28.7000,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 1001, 5, 'Visual Surface Flaws & Blowholes', 'VISUAL', 'Visual Inspection 10x Magnifier',
+     NULL, NULL, NULL, 'Visual',
+     NULL, NULL, NULL, NULL, NULL, NULL,
+     'FAIL', 'FAIL', '2 units showed sub-surface blowholes at bolt pitch circle.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Parameters for IPQC-0002 (3 Characteristics)
+    (1006, 1002, 1, 'Port Center Distance', 'DIMENSIONAL', 'Height Gauge 0-300mm',
+     75.0000, 74.9000, 75.1000, 'mm',
+     75.0200, 75.0100, 75.0400, NULL, NULL, 75.0233,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1007, 1002, 2, 'Port Entrance Chamfer', 'DIMENSIONAL', 'Optical Profile Projector',
+     1.0000, 0.9000, 1.1000, 'mm',
+     1.2200, 1.2000, 1.2100, NULL, NULL, 1.2100,
+     'PASS', 'CONCESSION', 'Chamfer slightly oversize; engineering concession approved as seal sits in groove.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1008, 1002, 3, 'Thread Pitch & Go/No-Go M24', 'FUNCTIONAL', 'Thread Plug Gauge M24x1.5 6H',
+     NULL, NULL, NULL, 'Fit',
+     NULL, NULL, NULL, NULL, NULL, NULL,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Parameters for IPQC-0003 (2 Characteristics)
+    (1009, 1003, 1, 'Hydrostatic Pressure Hold 300 PSI', 'FUNCTIONAL', 'Calibrated Digital Pressure Gauge (DPG-01)',
+     300.0000, 295.0000, 310.0000, 'PSI',
+     300.0000, 301.0000, 300.5000, NULL, NULL, 300.5000,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1010, 1003, 2, 'Seat Leakage Bubble Count', 'FUNCTIONAL', 'Air Under Water Immersion Tank',
+     0.0000, 0.0000, 0.0000, 'Bubbles/min',
+     0.0000, 0.0000, 0.0000, NULL, NULL, 0.0000,
+     'PASS', 'PASS', NULL, TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (ipqc_param_id) DO NOTHING;
+
+SELECT setval('seq_qc_in_process_param_id', GREATEST((SELECT COALESCE(MAX(ipqc_param_id), 1010) FROM tbl_qc_in_process_param), 1010));
+
+-- ============================================================================
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.2 - Sample Final Pre-Dispatch Inspection (PDI) & CoA Records
+--          (tbl_qc_pdi_header, tbl_qc_pdi_param, tbl_qc_pdi_coa_spec)
+-- ============================================================================
+
+INSERT INTO tbl_qc_pdi_header (
+    pdi_id, pdi_no, pdi_date, sales_order_id, customer_id, wo_id, challan_id,
+    item_id, warehouse_id, batch_no, heat_no,
+    lot_qty, sample_size, accepted_qty, rejected_qty, rework_qty,
+    overall_verdict, disposition, inspector_id, approver_id, approval_date,
+    coa_no, coa_date, mtc_no, standard_specification,
+    packaging_condition, labeling_verification, preservation_coating,
+    customer_witness_required, customer_witness_name, customer_witness_date,
+    is_coa_released, coa_released_by, coa_released_at,
+    remarks, deviation_reason, status, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. PDI-0001: Cleared for Dispatch with Released Certificate of Analysis (CoA)
+    (1001, 'PDI-AHM-2627-0001', '2026-05-15', 1001, 1001, 1001, 1001,
+     1001, 1001, 'BATCH-VALVE-26-01', 'HEAT-SS316-441',
+     48.000, 5, 48.000, 0.000, 0.000,
+     'APPROVED_FOR_DISPATCH', 'CLEAR_FOR_INVOICE', 1003, 1002, '2026-05-15 16:30:00+05:30',
+     'COA-AHM-2627-0001', '2026-05-15', 'MTC-SA351-CF8M-8821', 'API 6D / ASME B16.34 Class 150 Fire-Safe',
+     'ACCEPTABLE', 'PASS', 'Rust Preventive Oil VCI shrink wrap + Wooden Pallet crate',
+     TRUE, 'Bureau Veritas TPI Inspector - Mr. S. Mehta', '2026-05-15',
+     TRUE, 1002, '2026-05-15 16:35:00+05:30',
+     '100% Final pre-dispatch quality verification completed. Customer TPI witnessed hydrostatic & pneumatic tests. Cleared for dispatch tax invoice.',
+     NULL, 'APPROVED', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. PDI-0002: In-Progress PDI for Industrial Gate Valve Lot
+    (1002, 'PDI-AHM-2627-0002', '2026-05-16', 1002, 1002, 1002, NULL,
+     1002, 1001, 'BATCH-BODY-26-01', 'HEAT-SS316-110',
+     30.000, 5, 0.000, 0.000, 0.000,
+     'PENDING', 'CLEAR_FOR_INVOICE', 1003, NULL, NULL,
+     'COA-AHM-2627-0002', NULL, 'MTC-SA216-WCB-4491', 'ASME B16.34 Class 300 Heavy Duty',
+     'ACCEPTABLE', 'PASS', 'VCI Plastic Film Wrap',
+     FALSE, NULL, NULL,
+     FALSE, NULL, NULL,
+     'Staged at Dispatch Bay Bay-01. Dimensional and visual checks underway. Hydro pressure test scheduled for afternoon shift.',
+     NULL, 'IN_PROGRESS', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 3. PDI-0003: Approved Under Concession for Paint Blemish
+    (1003, 'PDI-AHM-2627-0003', '2026-05-17', NULL, 1003, NULL, NULL,
+     1001, 1001, 'BATCH-VALVE-26-02', 'HEAT-SS316-441',
+     20.000, 3, 20.000, 0.000, 0.000,
+     'CONCESSION_ACCEPTED', 'CONCESSION_USE_AS_IS', 1003, 1002, '2026-05-17 14:00:00+05:30',
+     'COA-AHM-2627-0003', '2026-05-17', 'MTC-SA351-CF8M-8821', 'BS 5351 / ISO 17292 Standard',
+     'ACCEPTABLE', 'PASS', 'Polyethylene dust caps on end flanges',
+     FALSE, NULL, NULL,
+     TRUE, 1002, '2026-05-17 14:10:00+05:30',
+     'Minor cosmetic paint scratch on outer body casting. Touch-up epoxy coating applied and cleared under engineering concession.',
+     'Cosmetic paint touch-up accepted without impacting pressure containment.', 'APPROVED', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, branch_id, pdi_no) DO NOTHING;
+
+SELECT setval('seq_qc_pdi_id', GREATEST((SELECT COALESCE(MAX(pdi_id), 1003) FROM tbl_qc_pdi_header), 1003));
+
+-- PDI Functional & Characteristic Test Parameters
+INSERT INTO tbl_qc_pdi_param (
+    pdi_param_id, pdi_id, param_sequence, param_name, param_category, instrument_name,
+    nominal_val, min_tolerance, max_tolerance, uom_code,
+    observed_val_1, observed_val_2, observed_val_3, observed_val_4, observed_val_5, mean_val,
+    visual_result, param_result, notes, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Parameters for PDI-0001 (5 Characteristics)
+    (1001, 1001, 1, 'Hydrostatic Shell Pressure Test (450 PSI)', 'FUNCTIONAL_PRESSURE', 'Calibrated Digital Hydro Bench (HB-01)',
+     450.0000, 440.0000, 460.0000, 'PSI',
+     450.0000, 452.0000, 451.0000, 449.0000, 450.5000, 450.5000,
+     'PASS', 'PASS', 'Zero leakage or structural deformation observed during 180-second hold.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1002, 1001, 2, 'High-Pressure Seat Air Leakage Test (80 PSI)', 'FUNCTIONAL_PRESSURE', 'Pneumatic Seat Leakage Rig (PR-02)',
+     0.0000, 0.0000, 0.0000, 'Bubbles/min',
+     0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+     'PASS', 'PASS', 'API 598 zero bubble leakage rate attained across both seats.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1003, 1001, 3, 'Flange Raised Face Surface Finish (Ra)', 'DIMENSIONAL', 'Mitutoyo Surftest SJ-210',
+     3.2000, 3.2000, 6.3000, 'µm',
+     4.1000, 4.3000, 4.0000, 4.2000, 4.1500, 4.1500,
+     'PASS', 'PASS', 'Serrated concentric finish compliant with ASME B16.5.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1004, 1001, 4, 'Protective Epoxy Paint Dry Film Thickness (DFT)', 'SURFACE_PAINT_DFT', 'Elcometer 456 Digital DFT Gauge',
+     120.0000, 100.0000, 150.0000, 'µm',
+     125.0000, 130.0000, 122.0000, 128.0000, 124.0000, 125.8000,
+     'PASS', 'PASS', 'Two-pack polyurethane marine finish.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1005, 1001, 5, 'Stainless Steel Nameplate & Tag Verification', 'VISUAL_PACKAGING', 'Visual & Barcode Scanner',
+     NULL, NULL, NULL, 'Visual',
+     NULL, NULL, NULL, NULL, NULL, NULL,
+     'PASS', 'PASS', 'Heat number, serial number, rating Class 150, and CE/PED mark laser etched.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Parameters for PDI-0002 (3 Characteristics)
+    (1006, 1002, 1, 'Hydrostatic Shell Pressure Test (1125 PSI)', 'FUNCTIONAL_PRESSURE', 'High-Pressure Hydro Rig (HB-03)',
+     1125.0000, 1100.0000, 1150.0000, 'PSI',
+     1125.0000, 1120.0000, 1128.0000, NULL, NULL, 1124.3333,
+     'PASS', 'PASS', 'Initial 3 test pieces held without loss.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1007, 1002, 2, 'Face-to-Face Overall Length Dimension', 'DIMENSIONAL', 'Digital Height Vernier 0-600mm',
+     216.0000, 214.5000, 217.5000, 'mm',
+     216.2000, 216.1000, 216.0500, NULL, NULL, 216.1167,
+     'PASS', 'PASS', 'Conforms to ASME B16.10 Face-to-Face dimensions.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1008, 1002, 3, 'External Packaging & End-Cap Integrity', 'VISUAL_PACKAGING', 'Visual Inspection',
+     NULL, NULL, NULL, 'Visual',
+     NULL, NULL, NULL, NULL, NULL, NULL,
+     'PASS', 'PASS', 'Heavy-duty polyethylene flanged protector discs installed.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Parameters for PDI-0003 (2 Characteristics)
+    (1009, 1003, 1, 'Body Exterior Visual & Coating Touch-Up', 'SURFACE_PAINT_DFT', 'Visual 10x Magnifier + DFT Gauge',
+     100.0000, 80.0000, 120.0000, 'µm',
+     88.0000, 92.0000, 90.0000, NULL, NULL, 90.0000,
+     'PASS', 'CONCESSION', 'Minor scuff re-coated under QA concession waiver.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    (1010, 1003, 2, 'Stem Torque & Smooth Cycling Test', 'ELECTRICAL_ACTUATOR', 'Torque Wrench Calibrated (TW-05)',
+     45.0000, 35.0000, 55.0000, 'Nm',
+     42.0000, 44.0000, 43.5000, NULL, NULL, 43.1667,
+     'PASS', 'PASS', 'Full open-close cycle operates smoothly within torque limits.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (pdi_param_id) DO NOTHING;
+
+SELECT setval('seq_qc_pdi_param_id', GREATEST((SELECT COALESCE(MAX(pdi_param_id), 1010) FROM tbl_qc_pdi_param), 1010));
+
+-- Certificate of Analysis (CoA) Chemical & Mechanical Matrix
+INSERT INTO tbl_qc_pdi_coa_spec (
+    coa_spec_id, pdi_id,
+    elem_c_pct, elem_mn_pct, elem_si_pct, elem_p_pct, elem_s_pct, elem_cr_pct, elem_ni_pct, elem_mo_pct,
+    yield_strength_mpa, tensile_strength_mpa, elongation_pct, hardness_val, impact_energy_joules,
+    hydro_shell_test_bar, hydro_seat_test_bar, air_seat_test_bar,
+    nde_test_type, nde_result, lab_name, certified_engineer, certification_standard,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001,
+     0.0240, 1.3800, 0.4500, 0.0220, 0.0110, 17.4500, 11.2000, 2.2100,
+     295.00, 595.00, 44.50, '182 HBW', 98.00,
+     31.00, 22.00, 6.00,
+     '100% Visual Examination + Dye Penetrant (PT) of Sealing Faces + Ultrasonic Flaw Detection (UT)', 'ACCEPTED',
+     'Kashvira Infotech NABL-Accredited Materials Testing Laboratory', 'Er. R. K. Patel (Lead Metallurgist / ASNT Level-II)',
+     'EN 10204:2004 Type 3.1 / API 6D Appendix B',
+     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (pdi_id) DO NOTHING;
+
+SELECT setval('seq_qc_pdi_coa_spec_id', GREATEST((SELECT COALESCE(MAX(coa_spec_id), 1001) FROM tbl_qc_pdi_coa_spec), 1001));
+

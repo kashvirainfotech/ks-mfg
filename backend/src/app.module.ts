@@ -46,6 +46,9 @@ import { StockBalanceModule } from './modules/inventory/balance/stock-balance.mo
 import { StockAdjustmentModule } from './modules/inventory/adjustment/adjustment.module';
 import { StockTransferModule } from './modules/inventory/transfer/transfer.module';
 import { StockTraceabilityModule } from './modules/inventory/traceability/traceability.module';
+import { StockAgingModule } from './modules/inventory/aging/aging.module';
+import { InProcessQcModule } from './modules/quality/in-process-qc/in-process-qc.module';
+import { PdiModule } from './modules/quality/pdi/pdi.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -102,6 +105,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     StockAdjustmentModule,
     StockTransferModule,
     StockTraceabilityModule,
+    StockAgingModule,
+    InProcessQcModule,
+    PdiModule,
   ],
   controllers: [AppController],
   providers: [

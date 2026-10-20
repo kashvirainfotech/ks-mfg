@@ -1603,3 +1603,125 @@ When a new screen is released, this manual provides:
 
 
 
+
+
+### 2.43 Inventory Aging, Dead Stock Analysis & Reorder Level Alert Dashboard (`/inventory/aging`)
+* **Module Code & Title:** `STOCK_AGING` — Inventory Aging & Reorder Dashboard
+* **Target Audience:** Inventory Controllers, Store Managers, Cost & Management Accountants, Chief Financial Officers (CFO), Procurement Heads, and Statutory / CARO Auditors.
+* **Core Business Purpose:** Provides real-time visibility into inventory velocity, FIFO aging brackets, slow-moving and obsolete dead stock provisioning, and replenishment risk management. Automatically aligns factory stock valuation with **Ind AS 2 / AS-2 (Valuation of Inventories at Lower of Cost and Net Realisable Value)** and fulfills reporting requirements under **CARO 2020 Clause 3(ii) & Section 143 of the Companies Act, 2013**. Bridges inventory deficit analysis directly with Procurement through 1-Click Purchase Requisition (PR) generation.
+* **Key Functional Capabilities:**
+  1. **Executive Inventory Valuation & Velocity KPI Dashboard:**
+     * **Gross Inventory Valuation:** Real-time consolidated ₹ valuation across all factory warehouses and storage bins.
+     * **Fresh & Normal Stock (≤ 60 Days):** Real-time valuation and percentage of total stock running on healthy turnover cycles.
+     * **Slow, Stagnant & Dead Stock (> 60 Days):** Total capital locked up in aging inventory across 61-90 days, 91-180 days, 181-365 days, and >365 days, with automated write-down provisioning recommendations.
+     * **Critical Replenishment Alerts:** Live count of items experiencing Stockout (0 stock), buffer breach below Safety Stock, or Reorder Point (ROP) breach.
+  2. **Visual Interactive FIFO Aging Bracket Widget:**
+     * Multi-segment colored progress distribution bar visualizing capital allocation across 6 standard aging brackets:
+       * **0 - 30 Days (Fresh Stock):** High turnover, recently received raw materials and finished goods (0% write-down).
+       * **31 - 60 Days (Normal Moving):** Healthy manufacturing consumption pace (0% write-down).
+       * **61 - 90 Days (Slow Moving):** Moderate turnover requiring monitoring (0% write-down).
+       * **91 - 180 Days (Stagnant Stock):** Reduced demand or project delays (10% standard write-down provision).
+       * **181 - 365 Days (Dormant Stock):** Substantially inactive lines (30% standard write-down provision).
+       * **> 365 Days (Dead Stock / Obsolete):** Damaged, discontinued, or superseded materials (100% write-off provision).
+     * 1-Click interactive legend filtering the entire analysis table by selected bracket.
+  3. **Fast, Slow & Non-Moving (FSN) Velocity Matrix (`AGING` Tab):**
+     * Itemized SKU-level and lot-level grid displaying Item Code, Description, Warehouse, Bin, Batch/Heat Number, On-Hand Quantity, Unit Cost, Gross Valuation, First Inward Date, Last Movement Date, Age in Days, Aging Bracket, and FSN velocity badge (`FAST`, `SLOW`, `NON_MOVING`).
+     * Dynamically calculates Net Realisable Value (NRV) per line after deducting applicable provisioning percentages.
+  4. **Reorder Point (ROP) & Safety Stock Alerts Console (`REORDER` Tab):**
+     * Real-time monitoring comparing current on-hand stock against `reorder_point`, `min_stock_level`, and `safety_stock`.
+     * Urgency classification: `STOCKOUT` (Critical), `CRITICAL_BELOW_MIN` (High), `REORDER_BREACH` (Medium), `ADEQUATE` (Normal), `OVERSTOCKED` (Low).
+     * Computes exact deficit replenishment quantity and estimated order valuation based on standard purchase costs and lead time days.
+  5. **1-Click Purchase Requisition (PR) Generation Bridge:**
+     * Seamless operational workflow: Clicking "Trigger PR" on any breached SKU opens a pre-populated requisition modal with item code, required deficit quantity, lead time target date, and suggested vendor.
+     * Generates official Purchase Requisition vouchers (`PR-AHM-2627-XXXX`) in `tbl_pr_header` and `tbl_pr_item`, immediately initiating procurement workflows without manual data re-entry.
+  6. **Statutory Dead Stock & Provisioning Register (`PROVISIONS` Tab):**
+     * Historical log of formal periodic inventory valuation write-down reviews (`PROV-AHM-2627-XXXX`).
+     * Interactive "Run New Valuation Review" modal allowing finance controllers to customize write-down percentages across the 6 brackets and calculate company-wide NRV adjustments.
+     * 2-stage approval workflow (`SUBMITTED` $\rightarrow$ `APPROVED`) recording review timestamps and authorized management sign-offs.
+  7. **Statutory CARO 2020 & Ind AS 2 Inventory Valuation Certificate (`PRINT`):**
+     * Formal, audit-ready certificate conforming to CARO 2020 Clause 3(ii):
+       * Official corporate letterhead with CIN, PAN, GSTIN, and manufacturing plant details.
+       * Header citation: "STATUTORY INVENTORY AGING, SLOW/DEAD STOCK & NET REALISABLE VALUE (NRV) PROVISIONING CERTIFICATE".
+       * Complete schedule of gross book value, turnover velocity, provision percentages, write-down amount, and net realizable balance across all 6 aging brackets.
+       * Approved Provision / Write-Down Amount in Indian Rupee Words (e.g., "Rupees Thirty-Nine Thousand Nine Hundred and Thirty-Five Only").
+       * Statutory Management Attestation & CARO 2020 compliance disclosure statement.
+       * 3-tier authorized signatory blocks: Store Officer / Stock Verifier, Cost Accountant / HOD Finance, and Director / Statutory Auditor.
+* **Action Buttons:** `New Valuation Review` (`STOCK_AGING -> PROVISION`), `Trigger Purchase Requisition` (`STOCK_AGING -> REORDER`), `Approve Write-Down` (`STOCK_AGING -> PROVISION`), `Print Valuation Certificate` (`STOCK_AGING -> PRINT`), `Export Schedule` (`STOCK_AGING -> EXPORT`), and `View Details` (`STOCK_AGING -> VIEW`).
+
+---
+
+### 2.44 In-Process & Stage-Wise Quality Inspection (`/quality/in-process-qc`)
+* **Target Audience:** Quality Assurance (QA) Inspectors, QA Managers, Machine Shop Supervisors, Plant Operations Managers, and Process Engineers.
+* **Core Business Purpose:** Governs operational quality gates across shopfloor work orders and job cards in compliance with **ISO 9001:2015 Clause 8.6 (Release of Products and Services)** and **IATF 16949 Section 8.5.1 (Control of Production and Service Provision)**. Guarantees that defective, out-of-tolerance, or flawed semi-finished components are caught and segregated immediately at each machine stage—preventing wasteful downstream value addition, tooling crashes, and customer field failures.
+* **Key Functional Capabilities:**
+  1. **Executive In-Process Quality KPI Dashboard:**
+     * **Total Stage Inspections:** Cumulative count of stage inspection protocols across all plant work centers and active shifts.
+     * **1st-Piece Setup Passes:** Real-time count of first-off parts approved by QA before releasing machines for continuous batch runs.
+     * **Concessions & Deviations:** Active count of non-critical dimensional or cosmetic variations authorized under technical concession (`ACCEPTED_UNDER_DEVIATION`).
+     * **Stage Rejections & Scraps:** Total rejected lots gated from proceeding to subsequent operations, with automated trigger for Non-Conformance Reports (NCR) and 8D CAPA investigations.
+  2. **Multi-Stage Inspection Protocol Support:**
+     * **First Piece Inspection (`FIRST_PIECE`):** Mandatory tool-setup verification after tool insert replacement or program changes. Machine operator runs the first piece and halts the line until QA verifies nominal dimensions on digital instruments/CMM.
+     * **Patrol Inspection (`PATROL_INSPECTION`):** Periodic in-process sampling conducted hourly or every 50 pieces by QA patrol inspectors to detect thermal drift and gradual tool wear.
+     * **Stage Clearance (`STAGE_COMPLETION`):** Formal operational batch clearance required when an operation (e.g. CNC Turning, Multi-Axis Milling, Hydro Testing) completes before the lot can be moved to lineside WIP or the next work center.
+     * **Last Piece Inspection (`LAST_PIECE`):** Verification of the final piece in a production run to assess tool wear conditions before tooling storage or tear-down.
+  3. **Characteristic Parameters & 5-Point Observations Matrix:**
+     * Multi-row parameter grid supporting diverse inspection categories:
+       * `DIMENSIONAL`: Outside Diameter (OD), Bore Internal Diameter (ID), Face Flatness, Concentricity, Thread Pitch.
+       * `SURFACE_FINISH`: Surface Roughness Ra / Rz measured in micrometers (µm).
+       * `METALLURGICAL`: Rockwell Hardness (HRC), Brinell Hardness (HBW), Core Depth.
+       * `VISUAL`: Surface blowholes, machining burrs, tool chatter, handling scratches.
+       * `FUNCTIONAL`: Pressure holding (PSI/Bar), seat leakage bubble counts, torque resistance (Nm).
+     * 5 sample observation inputs (`Obs 1` to `Obs 5`) with live calculated average (`Mean`).
+     * Real-time tolerance evaluation: Compares mean value against `min_tolerance` and `max_tolerance`, highlighting within-spec values in green and out-of-spec values in red with automatic `PASS` / `FAIL` determination.
+  4. **Closed-Loop Job Card Synchronization & Operational Gating:**
+     * Bi-directionally links with `tbl_mfg_job_card`: When an inspection is approved or rejected, the system automatically updates the job card's `in_process_qc_status` (`ACCEPTED`, `REJECTED`, or `DEVIATION_ACCEPTED`), `qc_inspector_id`, `qc_inspected_at`, `qc_sample_size`, `qc_accepted_qty`, and `qc_rejected_qty`.
+     * If an operation stage fails inspection, the job card is gated, preventing the work center from marking the operation completed or issuing material to the next routing sequence without authorized concession.
+  5. **Technical Concession & Engineering Deviation Clearance (`DEVIATION`):**
+     * Controlled deviation workflow allowing authorized Plant Managers / QA Heads to approve minor out-of-spec dimensions with documented technical justification (e.g., cosmetic chamfer oversize, non-critical sealing face).
+     * Assigns disposition actions (`CONCESSION_USE_AS_IS`, `REWORK_SAME_OP`, `REWORK_NEW_OP`) with full tamper-evident audit logging.
+  6. **Printable Statutory ISO 9001 / IATF 16949 Stage Inspection Certificate (`PRINT`):**
+     * Formal, clean printable sheet featuring corporate header, work order number, job card reference, part number, drawing description, heat number, and batch lot passport.
+     * Complete characteristic observation table with nominal values, tolerance ranges, 5-point observations, mean values, and pass/fail indicators.
+     * 3-tier authorized signatory blocks: Machine Operator, Quality Inspector, and Plant QA Head / Operations Manager.
+* **Action Buttons:** `Record Stage Inspection` (`IN_PROCESS_QC -> ADD`), `Edit Inspection` (`IN_PROCESS_QC -> EDIT`), `Authorize Verdict` (`IN_PROCESS_QC -> APPROVE`), `Grant Concession` (`IN_PROCESS_QC -> DEVIATION`), `Print Inspection Certificate` (`IN_PROCESS_QC -> PRINT`), `Export Register` (`IN_PROCESS_QC -> EXPORT`), and `Cancel Inspection` (`IN_PROCESS_QC -> DELETE`).
+
+
+---
+
+### 2.45 Final Pre-Dispatch Inspection (PDI) & Certificate of Analysis (CoA) (`/quality/pdi`)
+* **Target Audience:** Quality Assurance (QA) Inspectors, Quality Heads, Dispatch Logistics Managers, Sales Operations, and Customer Witness Inspection Agencies (TPIs/Inspection Authorities).
+* **Core Business Purpose:** Serves as the ultimate statutory quality gate before finished manufactured goods (valves, actuators, machined assemblies) leave the plant. Enforces compliance with **ISO 9001:2015 Clause 8.6 (Release of Products and Services)**, **API Spec Q1 / API 6D**, and **EN 10204:2004 Type 3.1 (Inspection Certificate)**. Guarantees that only 100% compliant, pressure-tested, preservative-coated, and customer-witness-cleared finished goods are released for outward Delivery Challans and GST Tax Invoices.
+* **Key Functional Capabilities:**
+  1. **Executive Pre-Dispatch Quality KPI Dashboard:**
+     * **Total PDI Lots:** Cumulative count of finished goods pre-dispatch inspection protocols across all customer contracts and sales orders.
+     * **Released CoAs & Cleared:** Total lots with digitally authenticated Certificate of Analysis released and cleared for commercial dispatch.
+     * **Concessions & Deviations:** Active count of lots approved under documented customer engineering concessions (`CONCESSION_ACCEPTED` / `CONCESSION_USE_AS_IS`).
+     * **Quarantine Holds:** Total rejected finished lots segregated in quarantine bins (`REJECTED_QUARANTINE` / `QUARANTINE_HOLD`), strictly blocking delivery challan and invoice creation.
+  2. **4-Tier View Tab Organization:**
+     * **All PDI Lots:** Comprehensive register of all active, in-progress, approved, and cancelled pre-dispatch inspections.
+     * **Released CoAs:** Gated view filtering specifically for finished products with officially published and digitally stamped EN 10204 Type 3.1 quality certificates.
+     * **Concessions & Deviations:** Dedicated audit list of products accepted under technical deviation, customer waiver, or minor specification tolerance variances.
+     * **Quarantine Holds:** High-priority segregation list tracking failed hydrostatic tests, defective packaging, or damaged coatings requiring scrap or shopfloor rework.
+  3. **Multi-Discipline Characteristic Testing & Observations Matrix:**
+     * Comprehensive parameter grid covering all manufacturing disciplines:
+       * `DIMENSIONAL`: Overall height, Face-to-Face length (ASME B16.10), flange drilling PCD, bolt hole diameters.
+       * `FUNCTIONAL_PRESSURE`: Hydrostatic shell pressure hold tests (31.0 bar hold 3 mins per API 598), high pressure hydrostatic seat closure tests (22.0 bar), low pressure pneumatic air seat tests (6.0 bar underwater immersion).
+       * `SURFACE_PAINT_DFT`: High-build epoxy coating dry film thickness (µm) with digital Elcometer verification.
+       * `VISUAL_PACKAGING`: Stainless steel nameplate laser etching, Heat No / Melt No stamping, direction arrow verification.
+       * `ELECTRICAL_ACTUATOR`: Quarter-turn actuator torque, stroke time, limit switch feedback.
+       * `METALLURGICAL_HARDNESS`: Brinell Hardness (HBW) and Rockwell Hardness (HRC).
+  4. **Certificate of Analysis (CoA) Chemical & Mechanical Matrix (EN 10204 Type 3.1):**
+     * **Chemical Composition (%) Ladle Analysis:** 8-element quantitative matrix recording Carbon (C), Manganese (Mn), Silicon (Si), Phosphorus (P), Sulfur (S), Chromium (Cr), Nickel (Ni), and Molybdenum (Mo) verified against heat/melt melt certificates.
+     * **Mechanical Tensile & Toughness:** Yield Strength ($R_{p0.2}$ MPa), Ultimate Tensile Strength ($R_m$ MPa), Percentage Elongation ($A\%$), Hardness value (HBW), and Charpy V-Notch Impact Energy (Joules at room/sub-zero temperature).
+     * **Non-Destructive Examination (NDE):** 100% Visual and Liquid Dye Penetrant (PT) examination of sealing faces and flange weldments per ASME Section V.
+     * **Accredited Laboratory Trace:** Direct recording of certified testing agency, NABL accreditation status, and certified Level-II ASNT/NDT inspection engineer.
+  5. **Packaging, Preservation & Third-Party Witness (TPI) Clearance:**
+     * Packaging condition verification (`ACCEPTABLE`, `DAMAGED_REPACK`, `POOR_LABELING`, `CRATE_HOLD`).
+     * Anti-rust preservation coating verification (VCI wrap, rust preventive oil, protective flange blind end-caps).
+     * Third-Party Inspection (TPI) sign-off tracking: Mandates recording of third-party inspection agencies (e.g. Bureau Veritas, TUV, DNV, Lloyd's Register) and customer inspection dates.
+  6. **Printable Statutory EN 10204:2004 Type 3.1 Quality Passport (`PRINT`):**
+     * Formal, ISO 9001 / API 6D compliant legal inspection certificate ready for customer submittal.
+     * Includes corporate letterhead, customer PO number, sales order reference, product specifications, material grade, and melt heat traceability.
+     * Detailed chemical, mechanical, hydrostatic hold test, and NDE test data tables.
+     * 3-tier authorized signatory blocks: Quality Control Inspector, Third-Party Witness / Customer TPI, and Plant Head of Quality Assurance.
+* **Action Buttons:** `Record Pre-Dispatch Inspection` (`PDI_QC -> ADD`), `Edit Inspection` (`PDI_QC -> EDIT`), `Gating & Dispatch Approval` (`PDI_QC -> APPROVE`), `Release Official CoA` (`PDI_QC -> RELEASE`), `Print Certificate of Analysis` (`PDI_QC -> PRINT`), `Export Register` (`PDI_QC -> EXPORT`), and `Cancel Inspection` (`PDI_QC -> DELETE`).
