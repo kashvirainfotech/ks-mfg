@@ -4451,5 +4451,424 @@ CREATE TABLE IF NOT EXISTS tbl_qc_gauge_calibration_history (
 CREATE INDEX IF NOT EXISTS idx_qc_gauge_cal_hist_gauge ON tbl_qc_gauge_calibration_history (gauge_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_qc_gauge_cal_hist_date ON tbl_qc_gauge_calibration_history (calibration_date DESC);
 
+-- ============================================================================
+-- SECTION 96: tbl_acc_chart_of_accounts
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.1 - 5-Level Chart of Accounts (COA) Hierarchy
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_chart_of_accounts_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_chart_of_accounts (
+    account_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_chart_of_accounts_id'),
+    account_code                VARCHAR(50)     NOT NULL,
+    account_name                VARCHAR(150)    NOT NULL,
+    account_type                VARCHAR(30)     NOT NULL CHECK (account_type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE')),
+    parent_account_id           BIGINT          REFERENCES tbl_acc_chart_of_accounts(account_id),
+    level                       INT             NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 5),
+    normal_balance              VARCHAR(10)     NOT NULL DEFAULT 'DEBIT' CHECK (normal_balance IN ('DEBIT', 'CREDIT')),
+    is_group                    BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_reconciliation           BOOLEAN         NOT NULL DEFAULT FALSE,
+    currency_code               VARCHAR(10)     NOT NULL DEFAULT 'INR',
+    description                 VARCHAR(250),
+    is_system                   BOOLEAN         NOT NULL DEFAULT FALSE,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_coa_code UNIQUE (comp_id, account_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_coa_comp ON tbl_acc_chart_of_accounts (comp_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_coa_type ON tbl_acc_chart_of_accounts (account_type);
+CREATE INDEX IF NOT EXISTS idx_acc_coa_parent ON tbl_acc_chart_of_accounts (parent_account_id);
+
+-- ============================================================================
+-- SECTION 97: tbl_acc_cost_center
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.1 - Cost Center Hierarchy & Department Mapping
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_cost_center_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_cost_center (
+    cost_center_id              BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_cost_center_id'),
+    cost_center_code            VARCHAR(50)     NOT NULL,
+    cost_center_name            VARCHAR(150)    NOT NULL,
+    dept_id                     BIGINT          REFERENCES tbl_hr_department(dept_id),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_cost_center_code UNIQUE (comp_id, cost_center_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_cost_center_comp ON tbl_acc_cost_center (comp_id, is_active);
+
+-- ============================================================================
+-- SECTION 98: tbl_acc_journal_header
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.1 - General Ledger Journal Vouchers Header
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_journal_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_journal_header (
+    journal_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_journal_id'),
+    voucher_no                  VARCHAR(50)     NOT NULL,
+    voucher_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    voucher_type                VARCHAR(30)     NOT NULL DEFAULT 'GENERAL'
+                                CHECK (voucher_type IN ('GENERAL', 'PURCHASE_INVOICE', 'SALES_INVOICE', 'PAYMENT', 'RECEIPT', 'STOCK_ADJUSTMENT', 'ABSORPTION_COST', 'OPENING_BALANCE')),
+    source_module               VARCHAR(30)     DEFAULT 'MANUAL'
+                                CHECK (source_module IN ('MANUAL', 'PROCUREMENT', 'SALES', 'INVENTORY', 'MANUFACTURING')),
+    source_ref_no               VARCHAR(100),
+    source_ref_id               BIGINT,
+    narration                   TEXT            NOT NULL,
+    total_debit                 NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_credit                NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    is_posted                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    posted_by                   BIGINT          REFERENCES tbl_sec_user(user_id),
+    posted_date                 TIMESTAMPTZ     DEFAULT CURRENT_TIMESTAMP,
+    is_reversed                 BOOLEAN         NOT NULL DEFAULT FALSE,
+    reversal_ref_id             BIGINT          REFERENCES tbl_acc_journal_header(journal_id),
+    reversal_date               TIMESTAMPTZ,
+    reversal_reason             VARCHAR(500),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'POSTED'
+                                CHECK (status IN ('DRAFT', 'POSTED', 'REVERSED')),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_journal_voucher UNIQUE (comp_id, branch_id, voucher_no),
+    CONSTRAINT chk_acc_journal_balance CHECK (total_debit = total_credit)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_journal_comp_branch ON tbl_acc_journal_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_date ON tbl_acc_journal_header (voucher_date DESC);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_status ON tbl_acc_journal_header (status);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_type ON tbl_acc_journal_header (voucher_type);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_source ON tbl_acc_journal_header (source_module, source_ref_no);
+
+-- ============================================================================
+-- SECTION 99: tbl_acc_journal_item
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.1 - General Ledger Double-Entry Journal Line Items
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_journal_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_journal_item (
+    journal_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_journal_item_id'),
+    journal_id                  BIGINT          NOT NULL REFERENCES tbl_acc_journal_header(journal_id) ON DELETE CASCADE,
+    account_id                  BIGINT          NOT NULL REFERENCES tbl_acc_chart_of_accounts(account_id),
+    debit_amount                NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    credit_amount               NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    party_id                    BIGINT          REFERENCES tbl_crm_party(party_id),
+    cost_center_id              BIGINT          REFERENCES tbl_acc_cost_center(cost_center_id),
+    line_narration              VARCHAR(500),
+    line_no                     INT             NOT NULL DEFAULT 1,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT chk_acc_journal_item_amounts CHECK (
+        (debit_amount > 0 AND credit_amount = 0) OR
+        (credit_amount > 0 AND debit_amount = 0)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_journal_item_journal ON tbl_acc_journal_item (journal_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_item_account ON tbl_acc_journal_item (account_id);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_item_party ON tbl_acc_journal_item (party_id);
+CREATE INDEX IF NOT EXISTS idx_acc_journal_item_cost_center ON tbl_acc_journal_item (cost_center_id);
 
 
+
+
+
+-- ============================================================================
+-- SECTION 100: tbl_acc_bank_account
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Corporate Bank & Cash Accounts Master
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_bank_account_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_bank_account (
+    bank_account_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_bank_account_id'),
+    account_code                VARCHAR(30)     NOT NULL,
+    account_name                VARCHAR(100)    NOT NULL,
+    bank_name                   VARCHAR(100)    NOT NULL,
+    branch_name                 VARCHAR(100)    NOT NULL,
+    account_number              VARCHAR(50)     NOT NULL,
+    account_type                VARCHAR(30)     NOT NULL DEFAULT 'CURRENT'
+                                CHECK (account_type IN ('CURRENT', 'SAVINGS', 'CASH_CREDIT', 'OVERDRAFT', 'PETTY_CASH')),
+    ifsc_code                   VARCHAR(20),
+    swift_code                  VARCHAR(20),
+    currency_code               VARCHAR(10)     NOT NULL DEFAULT 'INR',
+    gl_account_id               BIGINT          NOT NULL REFERENCES tbl_acc_chart_of_accounts(account_id),
+    opening_balance             NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    current_balance             NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    od_limit                    NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_bank_account_code UNIQUE (comp_id, account_code),
+    CONSTRAINT uq_acc_bank_account_no UNIQUE (comp_id, account_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_bank_comp ON tbl_acc_bank_account (comp_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_bank_gl ON tbl_acc_bank_account (gl_account_id);
+
+-- ============================================================================
+-- SECTION 101: tbl_acc_payment_disbursement
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Accounts Payable (AP) Vendor Payment Disbursement Header
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_payment_disbursement_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_payment_disbursement (
+    disbursement_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_payment_disbursement_id'),
+    voucher_no                  VARCHAR(50)     NOT NULL,
+    voucher_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    bank_account_id             BIGINT          NOT NULL REFERENCES tbl_acc_bank_account(bank_account_id),
+    party_id                    BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    payment_mode                VARCHAR(30)     NOT NULL DEFAULT 'NEFT'
+                                CHECK (payment_mode IN ('NEFT', 'RTGS', 'CHEQUE', 'IMPS', 'UPI', 'CASH', 'BANK_TRANSFER')),
+    payment_ref_no              VARCHAR(100)    NOT NULL,
+    instrument_date             DATE,
+    cheque_clearance_status     VARCHAR(25)     NOT NULL DEFAULT 'CLEARED'
+                                CHECK (cheque_clearance_status IN ('ISSUED', 'CLEARED', 'STOPPED', 'BOUNCED')),
+    clearance_date              DATE,
+    total_gross_settled         NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_tds_deducted          NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_discount_received     NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_net_paid              NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    narration                   TEXT            NOT NULL,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'POSTED'
+                                CHECK (status IN ('DRAFT', 'POSTED', 'CANCELLED')),
+    posted_journal_id           BIGINT          REFERENCES tbl_acc_journal_header(journal_id),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_payment_voucher UNIQUE (comp_id, branch_id, voucher_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_disb_comp_branch ON tbl_acc_payment_disbursement (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_disb_party ON tbl_acc_payment_disbursement (party_id);
+CREATE INDEX IF NOT EXISTS idx_acc_disb_date ON tbl_acc_payment_disbursement (voucher_date DESC);
+CREATE INDEX IF NOT EXISTS idx_acc_disb_bank ON tbl_acc_payment_disbursement (bank_account_id);
+
+-- ============================================================================
+-- SECTION 102: tbl_acc_payment_disbursement_item
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Accounts Payable Line Items Allocation & TDS
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_payment_disbursement_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_payment_disbursement_item (
+    disbursement_item_id        BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_payment_disbursement_item_id'),
+    disbursement_id             BIGINT          NOT NULL REFERENCES tbl_acc_payment_disbursement(disbursement_id) ON DELETE CASCADE,
+    invoice_id                  BIGINT          REFERENCES tbl_pur_invoice_header(invoice_id),
+    invoice_no                  VARCHAR(50),
+    invoice_date                DATE,
+    gross_settled_amount        NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    tds_section                 VARCHAR(20)     DEFAULT '194Q',
+    tds_rate                    NUMERIC(6, 3)   NOT NULL DEFAULT 0.000,
+    tds_deducted_amount         NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    discount_received_amount    NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    net_paid_amount             NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    line_narration              VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_disb_item_header ON tbl_acc_payment_disbursement_item (disbursement_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_disb_item_invoice ON tbl_acc_payment_disbursement_item (invoice_id);
+
+-- ============================================================================
+-- SECTION 103: tbl_acc_customer_receipt
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Accounts Receivable (AR) Customer Collection Receipts Header
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_customer_receipt_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_customer_receipt (
+    receipt_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_customer_receipt_id'),
+    receipt_no                  VARCHAR(50)     NOT NULL,
+    receipt_date                DATE            NOT NULL DEFAULT CURRENT_DATE,
+    bank_account_id             BIGINT          NOT NULL REFERENCES tbl_acc_bank_account(bank_account_id),
+    party_id                    BIGINT          NOT NULL REFERENCES tbl_crm_party(party_id),
+    receipt_mode                VARCHAR(30)     NOT NULL DEFAULT 'NEFT'
+                                CHECK (receipt_mode IN ('NEFT', 'RTGS', 'CHEQUE', 'IMPS', 'UPI', 'CASH', 'DIRECT_DEPOSIT')),
+    instrument_ref_no           VARCHAR(100)    NOT NULL,
+    instrument_date             DATE,
+    clearance_status            VARCHAR(25)     NOT NULL DEFAULT 'CLEARED'
+                                CHECK (clearance_status IN ('UNCLEARED', 'CLEARED', 'BOUNCED')),
+    clearance_date              DATE,
+    total_gross_settled         NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_tds_deducted_by_cust  NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_discount_given        NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    total_net_received          NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    narration                   TEXT            NOT NULL,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'POSTED'
+                                CHECK (status IN ('DRAFT', 'POSTED', 'CANCELLED')),
+    posted_journal_id           BIGINT          REFERENCES tbl_acc_journal_header(journal_id),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_receipt_no UNIQUE (comp_id, branch_id, receipt_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_rec_comp_branch ON tbl_acc_customer_receipt (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_rec_party ON tbl_acc_customer_receipt (party_id);
+CREATE INDEX IF NOT EXISTS idx_acc_rec_date ON tbl_acc_customer_receipt (receipt_date DESC);
+CREATE INDEX IF NOT EXISTS idx_acc_rec_bank ON tbl_acc_customer_receipt (bank_account_id);
+
+-- ============================================================================
+-- SECTION 104: tbl_acc_customer_receipt_item
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Accounts Receivable Line Items Allocation & Customer TDS
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_customer_receipt_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_customer_receipt_item (
+    receipt_item_id             BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_customer_receipt_item_id'),
+    receipt_id                  BIGINT          NOT NULL REFERENCES tbl_acc_customer_receipt(receipt_id) ON DELETE CASCADE,
+    invoice_id                  BIGINT          REFERENCES tbl_sales_invoice_header(invoice_id),
+    invoice_no                  VARCHAR(50),
+    invoice_date                DATE,
+    gross_settled_amount        NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    tds_deducted_by_cust        NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    discount_given_amount       NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    net_received_amount         NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    line_narration              VARCHAR(350),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_rec_item_header ON tbl_acc_customer_receipt_item (receipt_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_acc_rec_item_invoice ON tbl_acc_customer_receipt_item (invoice_id);
+
+-- ============================================================================
+-- SECTION 105: tbl_acc_bank_statement_line
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Bank Reconciliation (BRS) Statement Feed Lines
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_bank_statement_line_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_bank_statement_line (
+    statement_line_id           BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_bank_statement_line_id'),
+    bank_account_id             BIGINT          NOT NULL REFERENCES tbl_acc_bank_account(bank_account_id),
+    txn_date                    DATE            NOT NULL,
+    value_date                  DATE            NOT NULL,
+    description                 VARCHAR(500)    NOT NULL,
+    ref_cheque_no               VARCHAR(100),
+    debit_withdrawal            NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    credit_deposit              NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    running_balance             NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    reconciliation_status       VARCHAR(25)     NOT NULL DEFAULT 'UNRECONCILED'
+                                CHECK (reconciliation_status IN ('UNRECONCILED', 'MATCHED', 'MANUALLY_ADJUSTED')),
+    matched_entity_type         VARCHAR(30)     CHECK (matched_entity_type IN ('DISBURSEMENT', 'RECEIPT', 'JOURNAL')),
+    matched_entity_id           BIGINT,
+    reconciled_date             TIMESTAMPTZ,
+    reconciled_by               BIGINT          REFERENCES tbl_sec_user(user_id),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_stmt_bank_date ON tbl_acc_bank_statement_line (bank_account_id, txn_date DESC);
+CREATE INDEX IF NOT EXISTS idx_acc_stmt_status ON tbl_acc_bank_statement_line (reconciliation_status);
+CREATE INDEX IF NOT EXISTS idx_acc_stmt_ref ON tbl_acc_bank_statement_line (ref_cheque_no);
+
+-- ============================================================================
+-- SECTION 106: tbl_acc_bank_reconciliation
+-- DATE: 2026-10-20
+-- FEATURE: Step 10.2 - Bank Reconciliation (BRS) Master Statements Header
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_acc_bank_reconciliation_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_acc_bank_reconciliation (
+    brs_id                      BIGINT          PRIMARY KEY DEFAULT nextval('seq_acc_bank_reconciliation_id'),
+    brs_statement_no            VARCHAR(50)     NOT NULL,
+    bank_account_id             BIGINT          NOT NULL REFERENCES tbl_acc_bank_account(bank_account_id),
+    cutoff_date                 DATE            NOT NULL,
+    gl_book_balance             NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    unpresented_cheques_total   NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    uncredited_deposits_total   NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    bank_adjustments_net        NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    computed_bank_balance       NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    actual_statement_balance    NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    variance_amount             NUMERIC(15, 2)  NOT NULL DEFAULT 0.00,
+    reconciliation_status       VARCHAR(25)     NOT NULL DEFAULT 'RECONCILED'
+                                CHECK (reconciliation_status IN ('DRAFT', 'RECONCILED', 'VARIANCE_FLAGGED')),
+    verified_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    verified_date               TIMESTAMPTZ,
+    remarks                     VARCHAR(500),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_acc_brs_cutoff UNIQUE (comp_id, branch_id, bank_account_id, cutoff_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_acc_brs_bank_date ON tbl_acc_bank_reconciliation (bank_account_id, cutoff_date DESC);

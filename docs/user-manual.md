@@ -1809,3 +1809,101 @@ When a new screen is released, this manual provides:
      * Tabular historical verification records displaying nominal vs observed values, calculated errors, and pass/fail verdicts.
      * 2-tier authorized signatory blocks: Certified Metrologist / Calibrating Engineer and Head of Metrology & Quality Assurance.
 * **Action Buttons:** `Register Measuring Instrument` (`CALIBRATION_QC -> ADD`), `Edit Instrument` (`CALIBRATION_QC -> EDIT`), `Log Calibration Event` (`CALIBRATION_QC -> CALIBRATE`), `Lockout / Quarantine` (`CALIBRATION_QC -> LOCKOUT`), `Print Calibration Certificate` (`CALIBRATION_QC -> PRINT`), `Export Register` (`CALIBRATION_QC -> EXPORT`), and `Delete Instrument` (`CALIBRATION_QC -> DELETE`).
+
+---
+
+### 2.48 Step 10.1 — Chart of Accounts (COA) & General Ledger (GL) Subsystem (`/accounts/gl`)
+
+* **Menu Navigation:** `FINANCIAL ACCOUNTING & GL` $\rightarrow$ `Chart of Accounts & GL` (`/accounts/gl`)
+* **Screen Code:** `GL_ACCOUNTS` (Screen ID: 1047)
+* **Target Audience:** Chief Financial Officer (CFO), Finance Controllers, Plant Cost Accountants, Statutory Audit Teams
+* **Business Objective:** Provide an Indian Companies Act (Schedule III) and Ind AS / AS compliant double-entry General Ledger and 5-Level Chart of Accounts architecture for multi-plant manufacturing enterprises. Bridges physical operations (Purchase Invoices, Sales Invoices, Finished Goods Production Receipts, and Physical Inventory Adjustments) into real-time balanced General Ledger vouchers with automatic running balances, statutory Trial Balance reconciliation, and financial statements (P&L and Balance Sheet).
+* **Key Operating Workflows & Functional Highlights:**
+  1. **Executive Financial Summary Cards:**
+     * **Total COA Accounts:** Real-time count of active 5-level statutory accounts.
+     * **Posted Vouchers:** Total double-entry balanced Journal Vouchers in the current branch.
+     * **Total Assets:** Real-time sum of net debit balances across all ASSET ledger accounts.
+     * **Total Liabilities:** Real-time sum of net credit balances across all LIABILITY accounts.
+     * **Net Profit / (Loss):** Live calculated Operating Margin ($\text{Total Revenue} - \text{Total Expenses}$) with dynamic profit/loss indicators.
+  2. **Interactive General Ledger Statement (Drilldown View):**
+     * Searchable ledger account picker (e.g., SBI Current Account, Trade Debtors, Raw Material Inventory, Trade Creditors).
+     * Custom date range filtering (`fromDate` to `toDate`) and optional Cost Center filtering.
+     * Automatic **Opening Balance Callout Box**: Reconciles all transactions prior to the selected `fromDate` according to the account's normal balance (`DEBIT` vs `CREDIT`).
+     * Chronological double-entry transaction matrix detailing Date, Voucher Number, Voucher Type, Source Reference, Line Narration, Debit (₹), Credit (₹), and real-time **Running Balance**.
+     * Summary footer showing Period Total Debits, Period Total Credits, and Final Closing Balance.
+     * 1-Click Voucher inspector opening full multi-line debit/credit distribution.
+  3. **5-Level Chart of Accounts (COA) Hierarchy:**
+     * Structured statutory 5-level accounts taxonomy: Major Class (L1), Sub-Class (L2), Group (L3), Control (L4), and Detailed Posting Ledger (L5).
+     * Pre-seeded with standard manufacturing accounts: Cash & Bank, Debtors Control, Raw Material Inventory, WIP Inventory, Finished Goods Inventory, GST Input Tax Credits (CGST, SGST, IGST), Fixed Assets & Plant Machinery, Trade Creditors Control, GST Output Liabilities, TDS Payable, Paid-up Equity Capital, Retained Reserves, Sales Turnover, Material Consumption, Direct Wages, Job-Work Processing Charges, and Administrative Overheads.
+     * Group classification tags preventing accidental direct journal postings to summary group headers (`is_group = TRUE`).
+     * Bank/Cash reconciliation account tagging (`is_reconciliation = TRUE`).
+     * Modal for registering new ledger accounts (`ADD`) or updating metadata (`EDIT`).
+  4. **Double-Entry Journal Vouchers Register & Manual Posting Engine (`POST`):**
+     * Multi-row double-entry grid supporting dynamic line additions.
+     * Real-time balance invariant validator: Calculates live $\sum \text{Debit}$ vs $\sum \text{Credit}$, enforcing strict equality ($\sum \text{Debit} = \sum \text{Credit} > 0$) before permitting submission.
+     * Automated document numbering from series `AHM-JV-2627` (e.g. `JV-AHM-2627-0005`).
+     * Cost Center tagging (`tbl_acc_cost_center`) and Party Sub-Ledger linking (`tbl_crm_party`).
+  5. **1-Click Operational Integration Bridge:**
+     * Scans unposted Sales Tax Invoices, Purchase Invoices, and Finished Goods Production Receipts that lack a linked Journal Voucher.
+     * Single-click **"Post to GL"** button automatically builds and posts the balanced double-entry voucher:
+       * *Sales Invoices:* Debits Customer Debtors Control; credits Finished Goods Sales Revenue and GST Output Liabilities (CGST/SGST/IGST).
+       * *Purchase Invoices:* Debits Raw Material Inventory and GST Input Credits; credits Vendor Creditors Control and TDS Payable.
+       * *FG Receipts:* Debits Finished Goods Inventory; credits Raw Material Consumption and Direct Shopfloor Wages.
+  6. **Reversible Voucher Cancellation Engine (`REVERSE`):**
+     * Enforces non-destructive accounting: Instead of hard-deleting historical financial records, creates a dedicated reversing journal voucher with debits and credits swapped.
+     * Updates the original voucher to `REVERSED` with cross-referenced voucher tracking (`reversal_ref_id`), timestamp, and mandatory audit justification.
+  7. **Statutory Trial Balance & Financial Statements:**
+     * **Trial Balance:** Live multi-column table displaying Gross Debits/Credits, Net Debits/Credits, and an automatic balance check badge ($\text{Grand Total Debit} = \text{Grand Total Credit}$).
+     * **Profit & Loss Statement:** Operating revenues, manufacturing cost of goods sold, operating expenses, and net profit.
+     * **Balance Sheet:** Total Assets vs Total Liabilities & Shareholders' Equity, confirming equation balance ($\text{Assets} = \text{Liabilities} + \text{Equity} + \text{Period Profit}$).
+  8. **Printable Statutory Document & Official Voucher Sheets (`PRINT`):**
+     * Formal printable legal layout with corporate header, GSTIN, CIN, voucher details, debit/credit table, and 3-tier authorized signatory blocks (Prepared By, Verified By, Chief Financial Officer).
+* **Action Buttons:** `Post Journal Voucher` (`GL_ACCOUNTS -> POST`), `Add Ledger Account` (`GL_ACCOUNTS -> ADD`), `Edit Account` (`GL_ACCOUNTS -> EDIT`), `Reverse Voucher` (`GL_ACCOUNTS -> REVERSE`), `Print Document` (`GL_ACCOUNTS -> PRINT`), and `Export Statement / COA` (`GL_ACCOUNTS -> EXPORT`).
+
+---
+
+### 2.49 Step 10.2 — Accounts Payable (AP) & Accounts Receivable (AR) Cash/Bank Reconciliation (`/accounts/banking`)
+
+* **Menu Navigation:** `FINANCIAL ACCOUNTING & GL` $\rightarrow$ `Banking, AP & AR (BRS)` (`/accounts/banking`)
+* **Screen Code:** `BANKING_ACCOUNTS` (Screen ID: 1048)
+* **Target Audience:** Chief Financial Officer (CFO), Treasury Managers, Accounts Payable Accountants, Accounts Receivable Officers, Internal & Statutory Auditors
+* **Business Objective:** Provide a unified treasury and liquidity management hub for manufacturing operations, managing corporate bank accounts, cash floats, vendor payment disbursements with statutory TDS withholding under Indian Income Tax Act (Sections 194Q, 194C, 194J), customer collection receipts with automated invoice balance reduction, and an interactive Bank Reconciliation Statement (BRS) engine reconciling the General Ledger against live bank statement feeds.
+* **Key Operating Workflows & Functional Highlights:**
+  1. **Executive Treasury Summary Cards:**
+     * **Total Liquid Bank Balance:** Live sum of real-time book balances across all operational current accounts, cash credit facilities, and plant cash safes.
+     * **Accounts Payable (AP) Due:** Aggregate unpaid liability across all open supplier purchase invoices with open invoice counts.
+     * **Accounts Receivable (AR) Due:** Total outstanding collections receivable from clients across all active sales tax invoices.
+     * **BRS Status:** Live tracking of cheques in transit awaiting clearing and unmatched statement feed transactions.
+  2. **Corporate Bank & Cash Accounts Master:**
+     * Centralized master of company bank accounts, Cash Credit (CC) limits, IFSC, SWIFT, currency, and direct GL account linkage.
+     * Card view and comprehensive data table with live book balance tracking.
+     * Modal to configure new bank accounts with GL control account mapping (`ADD`).
+  3. **Accounts Payable (AP) — Vendor Payment Disbursements (`DISBURSE`):**
+     * Multi-invoice settlement engine: Automatically pulls all open/unpaid purchase invoices for a selected vendor with net payable and balance amounts.
+     * Automated Indian Income Tax TDS Deduction Engine: Selects statutory sections (Sec 194Q at 0.1% for purchase of goods, Sec 194C at 1.0%/2.0% for works contracts, Sec 194J at 10.0% for technical services, or exempt) and auto-computes TDS withheld and net payout.
+     * Real-time automated purchase invoice update: Deducts settled amount from `balance_amount`, increments `paid_amount`, and sets `payment_status` to `PAID` or `PARTIALLY_PAID`.
+     * Generates and posts double-entry balanced Journal Voucher into GL: Debits Trade Creditors Control (1201), Credits Bank Account, and Credits TDS Payable (1214).
+     * Automatically adjusts bank account book balance.
+     * Generates printable formal **Payment Advice Voucher** (`PRINT`) with invoice settlement breakdown, TDS deduction certificate details, and dual signatory blocks.
+  4. **Accounts Receivable (AR) — Customer Payment Collections (`RECEIVE`):**
+     * Multi-invoice collection allocation: Fetches all unpaid commercial sales invoices for a selected customer.
+     * Handles inward remittances via NEFT, RTGS, IMPS, UPI, and Cheques.
+     * Tracks customer-withheld TDS (Form 16A) and cash discounts, auto-calculating net liquid funds received.
+     * Real-time automated sales invoice update: Updates `paid_amount` and `balance_amount`, setting status to `PAID` or `PARTIALLY_PAID`.
+     * Clearance status tracking:
+       * `CLEARED`: Posts balanced Journal Voucher immediately (Dr: Bank, Dr: TDS Receivable 1131, Cr: Trade Debtors 1111) and updates bank balance.
+       * `UNCLEARED`: Cheques in clearing pipeline flagged for statutory BRS reconciliation.
+     * Generates printable official **Payment Collection Receipt** (`PRINT`) for customer acknowledgement.
+  5. **Statutory Bank Reconciliation Statement (BRS) Subsystem (`RECONCILE`):**
+     * Bank account selector and statement cutoff date picker.
+     * **Classical 4-Part Statutory BRS Formula:**
+       1. *Balance as per ERP General Ledger Bank Book*
+       2. *Add: Cheques Issued to Vendors but Not Yet Presented at Bank* (with drilldown invoice table)
+       3. *Less: Cheques Deposited from Customers but Not Yet Credited by Bank* (with drilldown receipt table)
+       4. *Computed Balance as per Bank Statement* vs *Actual Balance as per Bank Statement Feed*
+     * Dynamic Variance Badge: Instant visual check confirming exact mathematical reconciliation ($\Delta = ₹0.00$).
+     * Bank Statement Feed Register: View imported transaction lines with `MATCHED` vs `UNRECONCILED` status badges.
+     * Quick manual statement line entry (`ADD`).
+     * **1-Click Auto-BRS Reconciliation Engine:** Automatically correlates and matches bank feed transactions against ERP disbursements and receipts based on cheque/UTR reference numbers and exact transaction amounts.
+     * **Authorize & Finalize BRS Statement:** Locks period reconciliation and generates official statutory BRS statement snapshot in `tbl_acc_bank_reconciliation`.
+* **Action Buttons:** `Pay Vendor (AP)` (`BANKING_ACCOUNTS -> DISBURSE`), `Receive Payment (AR)` (`BANKING_ACCOUNTS -> RECEIVE`), `Add Bank Account` (`BANKING_ACCOUNTS -> ADD`), `Auto-Match (BRS)` (`BANKING_ACCOUNTS -> RECONCILE`), `Authorize BRS` (`BANKING_ACCOUNTS -> RECONCILE`), `Print Advice / Receipt` (`BANKING_ACCOUNTS -> PRINT`), and `Export Register` (`BANKING_ACCOUNTS -> EXPORT`).

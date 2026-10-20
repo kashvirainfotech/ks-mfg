@@ -56,6 +56,8 @@ import { SalesOrderMasterPage } from './pages/sales/SalesOrderMasterPage';
 import { DeliveryChallanMasterPage } from './pages/sales/DeliveryChallanMasterPage';
 import { SalesInvoiceMasterPage } from './pages/sales/SalesInvoiceMasterPage';
 import { SalesReturnMasterPage } from './pages/sales/SalesReturnMasterPage';
+import { GlMasterPage } from './pages/accounts/GlMasterPage';
+import { BankingMasterPage } from './pages/accounts/BankingMasterPage';
 import { useAuthStore } from './store/useAuthStore';
 
 const queryClient = new QueryClient({
@@ -476,6 +478,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <SalesReturnMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/accounts/gl"
+              element={
+                <ProtectedLayout>
+                  <GlMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/accounts/banking"
+              element={
+                <ProtectedLayout>
+                  <BankingMasterPage />
                 </ProtectedLayout>
               }
             />

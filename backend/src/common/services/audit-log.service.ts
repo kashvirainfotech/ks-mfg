@@ -56,7 +56,9 @@ export type AuditActionType =
   | 'DISPOSITION'
   | 'CLOSE_CAPA'
   | 'CALIBRATE'
-  | 'LOCKOUT';
+  | 'LOCKOUT'
+  | 'REVERSE'
+  | 'DISBURSE';
 
 export interface RecordAuditLogParams {
   userId: number;

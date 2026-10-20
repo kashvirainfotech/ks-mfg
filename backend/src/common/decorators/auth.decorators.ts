@@ -63,7 +63,9 @@ export type PermissionAction =
   | 'DISPOSITION'
   | 'CLOSE_CAPA'
   | 'CALIBRATE'
-  | 'LOCKOUT';
+  | 'LOCKOUT'
+  | 'REVERSE'
+  | 'DISBURSE';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

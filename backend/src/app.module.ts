@@ -51,6 +51,8 @@ import { InProcessQcModule } from './modules/quality/in-process-qc/in-process-qc
 import { PdiModule } from './modules/quality/pdi/pdi.module';
 import { NcrModule } from './modules/quality/ncr/ncr.module';
 import { CalibrationModule } from './modules/quality/calibration/calibration.module';
+import { GlModule } from './modules/accounts/gl/gl.module';
+import { BankingModule } from './modules/accounts/banking/banking.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -112,6 +114,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     PdiModule,
     NcrModule,
     CalibrationModule,
+    GlModule,
+    BankingModule,
   ],
   controllers: [AppController],
   providers: [

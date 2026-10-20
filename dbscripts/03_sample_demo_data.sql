@@ -4525,3 +4525,251 @@ INSERT INTO tbl_qc_gauge_calibration_history (
 ON CONFLICT (history_id) DO NOTHING;
 
 SELECT setval('seq_qc_gauge_cal_hist_id', GREATEST((SELECT COALESCE(MAX(history_id), 1002) FROM tbl_qc_gauge_calibration_history), 1002));
+
+-- ============================================================================
+-- FEATURE: Step 10.1 - Sample General Ledger Journal Vouchers (FY 2026-27)
+-- DATE: 2026-10-20
+-- ============================================================================
+
+-- 1. Opening Balance JV
+INSERT INTO tbl_acc_journal_header (
+    journal_id, voucher_no, voucher_date, voucher_type, source_module, source_ref_no,
+    narration, total_debit, total_credit, is_posted, posted_by, posted_date, status,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 'JV-AHM-2627-0001', '2026-04-01', 'OPENING_BALANCE', 'MANUAL', 'OP-BAL-2026',
+    'Being opening asset and liability balances brought forward for Financial Year 2026-27',
+    25000000.00, 25000000.00, TRUE, 1001, '2026-04-01 10:00:00+05:30', 'POSTED',
+    TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_journal_item (
+    journal_item_id, journal_id, account_id, debit_amount, credit_amount, party_id, cost_center_id,
+    line_narration, line_no, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Debits (Assets = 2,50,00,000)
+    (1001, 1001, 1101, 4500000.00, 0.00, NULL, NULL, 'Opening SBI Current Account balance', 1, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1001, 1121, 6500000.00, 0.00, NULL, NULL, 'Opening Raw Materials Store stock valuation', 2, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1001, 1123, 4000000.00, 0.00, NULL, NULL, 'Opening Finished Goods warehouse valuation', 3, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1001, 1141, 10000000.00, 0.00, NULL, NULL, 'Opening Plant & CNC Machinery historical cost', 4, TRUE, 1001, 1001, 1001, 1001),
+    -- Credits (Liabilities + Equity = 2,50,00,000)
+    (1005, 1001, 1201, 0.00, 3500000.00, NULL, NULL, 'Opening Trade Creditors outstanding liability', 5, TRUE, 1001, 1001, 1001, 1001),
+    (1006, 1001, 1301, 0.00, 15000000.00, NULL, NULL, 'Issued and paid-up equity share capital', 6, TRUE, 1001, 1001, 1001, 1001),
+    (1007, 1001, 1302, 0.00, 6500000.00, NULL, NULL, 'Retained earnings reserve fund balance', 7, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (journal_item_id) DO NOTHING;
+
+-- 2. Sales Invoice Automatic JV Posting
+INSERT INTO tbl_acc_journal_header (
+    journal_id, voucher_no, voucher_date, voucher_type, source_module, source_ref_no, source_ref_id,
+    narration, total_debit, total_credit, is_posted, posted_by, posted_date, status,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1002, 'JV-AHM-2627-0002', '2026-10-15', 'SALES_INVOICE', 'SALES', 'INV-AHM-2627-0001', 1001,
+    'Automated GL posting for Tax Invoice INV-AHM-2627-0001 to Reliance Industries Ltd',
+    451350.00, 451350.00, TRUE, 1001, '2026-10-15 14:30:00+05:30', 'POSTED',
+    TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_journal_item (
+    journal_item_id, journal_id, account_id, debit_amount, credit_amount, party_id, cost_center_id,
+    line_narration, line_no, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1008, 1002, 1111, 451350.00, 0.00, 1001, NULL, 'Receivable from Reliance Industries Ltd', 1, TRUE, 1001, 1001, 1001, 1001),
+    (1009, 1002, 1401, 0.00, 382500.00, NULL, 1001, 'Finished Goods domestic sales revenue', 2, TRUE, 1001, 1001, 1001, 1001),
+    (1010, 1002, 1211, 0.00, 34425.00, NULL, NULL, 'CGST Output liability @ 9%', 3, TRUE, 1001, 1001, 1001, 1001),
+    (1011, 1002, 1212, 0.00, 34425.00, NULL, NULL, 'SGST Output liability @ 9%', 4, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (journal_item_id) DO NOTHING;
+
+-- 3. Purchase Invoice Automatic JV Posting
+INSERT INTO tbl_acc_journal_header (
+    journal_id, voucher_no, voucher_date, voucher_type, source_module, source_ref_no, source_ref_id,
+    narration, total_debit, total_credit, is_posted, posted_by, posted_date, status,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1003, 'JV-AHM-2627-0003', '2026-10-16', 'PURCHASE_INVOICE', 'PROCUREMENT', 'PINV-AHM-2627-0001', 1001,
+    'Automated GL posting for Purchase Invoice PINV-AHM-2627-0001 from Tata Steel Ltd',
+    289100.00, 289100.00, TRUE, 1001, '2026-10-16 11:20:00+05:30', 'POSTED',
+    TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_journal_item (
+    journal_item_id, journal_id, account_id, debit_amount, credit_amount, party_id, cost_center_id,
+    line_narration, line_no, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1012, 1003, 1121, 245000.00, 0.00, NULL, 1001, 'Raw Material SS-316 Round Bar inward inventory', 1, TRUE, 1001, 1001, 1001, 1001),
+    (1013, 1003, 1131, 22050.00, 0.00, NULL, NULL, 'CGST Input Tax Credit @ 9%', 2, TRUE, 1001, 1001, 1001, 1001),
+    (1014, 1003, 1132, 22050.00, 0.00, NULL, NULL, 'SGST Input Tax Credit @ 9%', 3, TRUE, 1001, 1001, 1001, 1001),
+    (1015, 1003, 1201, 0.00, 284200.00, 1002, NULL, 'Payable to Tata Steel Ltd (Net of TDS)', 4, TRUE, 1001, 1001, 1001, 1001),
+    (1016, 1003, 1214, 0.00, 4900.00, NULL, NULL, 'TDS Payable under Sec 194Q @ 0.1%', 5, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (journal_item_id) DO NOTHING;
+
+-- 4. Shopfloor Absorption Costing JV from FG Production Receipt
+INSERT INTO tbl_acc_journal_header (
+    journal_id, voucher_no, voucher_date, voucher_type, source_module, source_ref_no, source_ref_id,
+    narration, total_debit, total_credit, is_posted, posted_by, posted_date, status,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1004, 'JV-AHM-2627-0004', '2026-10-18', 'ABSORPTION_COST', 'MANUFACTURING', 'FGR-AHM-2627-0001', 1001,
+    'Finished Goods production absorption cost capitalization for FGR-AHM-2627-0001 (Ball Valve Assembly)',
+    185000.00, 185000.00, TRUE, 1001, '2026-10-18 16:45:00+05:30', 'POSTED',
+    TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_journal_item (
+    journal_item_id, journal_id, account_id, debit_amount, credit_amount, party_id, cost_center_id,
+    line_narration, line_no, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1017, 1004, 1123, 185000.00, 0.00, NULL, 1001, 'Finished Goods valuation credited to inventory stock', 1, TRUE, 1001, 1001, 1001, 1001),
+    (1018, 1004, 1501, 0.00, 135000.00, NULL, 1001, 'Raw Material component cost absorbed into production', 2, TRUE, 1001, 1001, 1001, 1001),
+    (1019, 1004, 1502, 0.00, 50000.00, NULL, 1001, 'CNC machining and direct labor wages absorbed', 3, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (journal_item_id) DO NOTHING;
+
+SELECT setval('seq_acc_journal_id', GREATEST((SELECT COALESCE(MAX(journal_id), 1004) FROM tbl_acc_journal_header), 1004));
+SELECT setval('seq_acc_journal_item_id', GREATEST((SELECT COALESCE(MAX(journal_item_id), 1019) FROM tbl_acc_journal_item), 1019));
+
+
+-- ============================================================================
+-- STEP 10.2: BANKING, AP & AR DISBURSEMENTS, RECEIPTS & BRS DEMO DATA
+-- ============================================================================
+
+-- 1. Vendor Payment Disbursement JV 1005 (JSW Steel)
+INSERT INTO tbl_acc_journal_header (
+    journal_id, voucher_no, voucher_date, voucher_type, source_module, source_ref_no, source_ref_id,
+    narration, total_debit, total_credit, is_posted, posted_by, posted_date, status, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1005, 'JV-AHM-2627-0005', '2026-10-20', 'PAYMENT', 'PROCUREMENT', 'PAY-AHM-2627-0001', 1001,
+    'Payment to JSW Steel Coated Products Ltd against PINV-AHM-2627-0001 via SBI NEFT UTR/SBIN26102001928 less TDS Sec 194Q',
+    190140.00, 190140.00, TRUE, 1001, CURRENT_TIMESTAMP, 'POSTED', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_journal_item (
+    journal_item_id, journal_id, account_id, debit_amount, credit_amount, party_id, cost_center_id, line_narration, line_no,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1020, 1005, 1201, 190140.00, 0.00, 1003, NULL, 'Trade Creditors - JSW Steel settled in full', 1, TRUE, 1001, 1001, 1001, 1001),
+    (1021, 1005, 1101, 0.00, 189950.00, NULL, NULL, 'SBI Current A/c - Outward NEFT remittance', 2, TRUE, 1001, 1001, 1001, 1001),
+    (1022, 1005, 1214, 0.00, 190.00, 1003, NULL, 'TDS Payable u/s 194Q deducted at 0.1%', 3, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (journal_item_id) DO NOTHING;
+
+-- Payment Disbursement 1001
+INSERT INTO tbl_acc_payment_disbursement (
+    disbursement_id, voucher_no, voucher_date, bank_account_id, party_id, payment_mode, payment_ref_no,
+    instrument_date, cheque_clearance_status, clearance_date, total_gross_settled, total_tds_deducted,
+    total_discount_received, total_net_paid, narration, status, posted_journal_id, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 'PAY-AHM-2627-0001', '2026-10-20', 1001, 1003, 'NEFT', 'UTR/SBIN26102001928',
+    '2026-10-20', 'CLEARED', '2026-10-20', 190140.00, 190.00, 0.00, 189950.00,
+    'Payment to JSW Steel Coated Products Ltd against Bill PINV-AHM-2627-0001 via SBI NEFT',
+    'POSTED', 1005, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_payment_disbursement_item (
+    disbursement_item_id, disbursement_id, invoice_id, invoice_no, invoice_date, gross_settled_amount,
+    tds_section, tds_rate, tds_deducted_amount, discount_received_amount, net_paid_amount, line_narration,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 1001, 1001, 'PINV-AHM-2627-0001', '2026-10-05', 190140.00, '194Q', 0.100, 190.00, 0.00, 189950.00,
+    'Settlement of raw steel coils invoice', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (disbursement_item_id) DO NOTHING;
+
+-- 2. Customer Receipt JV 1006 (L&T NEFT Collection)
+INSERT INTO tbl_acc_journal_header (
+    journal_id, voucher_no, voucher_date, voucher_type, source_module, source_ref_no, source_ref_id,
+    narration, total_debit, total_credit, is_posted, posted_by, posted_date, status, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1006, 'JV-AHM-2627-0006', '2026-10-19', 'RECEIPT', 'SALES', 'REC-AHM-2627-0001', 1001,
+    'Collection receipt from L&T Heavy Engineering against INV-AHM-2627-0001 via SBI NEFT Ref AXISN261019011',
+    79016.00, 79016.00, TRUE, 1001, CURRENT_TIMESTAMP, 'POSTED', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, voucher_no) DO NOTHING;
+
+INSERT INTO tbl_acc_journal_item (
+    journal_item_id, journal_id, account_id, debit_amount, credit_amount, party_id, cost_center_id, line_narration, line_no,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1023, 1006, 1101, 78937.00, 0.00, NULL, NULL, 'SBI Current A/c - Inward NEFT from L&T', 1, TRUE, 1001, 1001, 1001, 1001),
+    (1024, 1006, 1131, 79.00, 0.00, 1002, NULL, 'TDS Receivable / Withheld by customer u/s 194Q', 2, TRUE, 1001, 1001, 1001, 1001),
+    (1025, 1006, 1111, 0.00, 79016.00, 1002, NULL, 'Trade Debtors - L&T Control Account credited in full', 3, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (journal_item_id) DO NOTHING;
+
+INSERT INTO tbl_acc_customer_receipt (
+    receipt_id, receipt_no, receipt_date, bank_account_id, party_id, receipt_mode, instrument_ref_no,
+    instrument_date, clearance_status, clearance_date, total_gross_settled, total_tds_deducted_by_cust,
+    total_discount_given, total_net_received, narration, status, posted_journal_id, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 'REC-AHM-2627-0001', '2026-10-19', 1001, 1002, 'NEFT', 'NEFT/AXISN261019011',
+    '2026-10-19', 'CLEARED', '2026-10-19', 79016.00, 79.00, 0.00, 78937.00,
+    'Collection receipt from Larsen & Toubro Limited against INV-AHM-2627-0001',
+    'POSTED', 1006, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, receipt_no) DO NOTHING;
+
+INSERT INTO tbl_acc_customer_receipt_item (
+    receipt_item_id, receipt_id, invoice_id, invoice_no, invoice_date, gross_settled_amount,
+    tds_deducted_by_cust, discount_given_amount, net_received_amount, line_narration,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 1001, 1001, 'INV-AHM-2627-0001', '2026-10-10', 79016.00, 79.00, 0.00, 78937.00,
+    'Final settlement of valve order dispatch', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (receipt_item_id) DO NOTHING;
+
+-- 3. Customer Receipt 1002 (Maruti Cheque - UNCLEARED in transit)
+INSERT INTO tbl_acc_customer_receipt (
+    receipt_id, receipt_no, receipt_date, bank_account_id, party_id, receipt_mode, instrument_ref_no,
+    instrument_date, clearance_status, clearance_date, total_gross_settled, total_tds_deducted_by_cust,
+    total_discount_given, total_net_received, narration, status, posted_journal_id, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1002, 'REC-AHM-2627-0002', '2026-10-20', 1001, 1001, 'CHEQUE', 'CHQ-778201',
+    '2026-10-19', 'UNCLEARED', NULL, 103693.00, 0.00, 0.00, 103693.00,
+    'Cheque received from Maruti Suzuki India Ltd for INV-AHM-2627-0002 deposited in SBI clearing',
+    'POSTED', NULL, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, receipt_no) DO NOTHING;
+
+INSERT INTO tbl_acc_customer_receipt_item (
+    receipt_item_id, receipt_id, invoice_id, invoice_no, invoice_date, gross_settled_amount,
+    tds_deducted_by_cust, discount_given_amount, net_received_amount, line_narration,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1002, 1002, 1002, 'INV-AHM-2627-0002', '2026-10-18', 103693.00, 0.00, 0.00, 103693.00,
+    'Payment for ball valve assemblies batch #1', TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (receipt_item_id) DO NOTHING;
+
+-- 4. Bank Statement Feed for SBI Current A/c (bank_account_id = 1001)
+INSERT INTO tbl_acc_bank_statement_line (
+    statement_line_id, bank_account_id, txn_date, value_date, description, ref_cheque_no,
+    debit_withdrawal, credit_deposit, running_balance, reconciliation_status,
+    matched_entity_type, matched_entity_id, reconciled_date, reconciled_by, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1001, '2026-10-15', '2026-10-15', 'OPENING BALANCE B/F', 'INITIAL', 0.00, 4500000.00, 4500000.00, 'MATCHED', 'JOURNAL', 1001, CURRENT_TIMESTAMP, 1001, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1001, '2026-10-19', '2026-10-19', 'NEFT CR-AXISN261019011-L AND T LIMITED', 'NEFT/AXISN261019011', 0.00, 78937.00, 4578937.00, 'MATCHED', 'RECEIPT', 1001, CURRENT_TIMESTAMP, 1001, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1001, '2026-10-20', '2026-10-20', 'NEFT DR-SBIN26102001928-JSW STEEL COATED', 'UTR/SBIN26102001928', 189950.00, 0.00, 4388987.00, 'MATCHED', 'DISBURSEMENT', 1001, CURRENT_TIMESTAMP, 1001, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (statement_line_id) DO NOTHING;
+
+-- 5. BRS Reconciliation Header for SBI Current A/c
+INSERT INTO tbl_acc_bank_reconciliation (
+    brs_id, brs_statement_no, bank_account_id, cutoff_date, gl_book_balance,
+    unpresented_cheques_total, uncredited_deposits_total, bank_adjustments_net,
+    computed_bank_balance, actual_statement_balance, variance_amount,
+    reconciliation_status, verified_by, verified_date, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1001, 'BRS-AHM-2627-0001', 1001, '2026-10-20', 4492680.00,
+    0.00, 103693.00, 0.00,
+    4388987.00, 4388987.00, 0.00,
+    'RECONCILED', 1001, CURRENT_TIMESTAMP,
+    'SBI October Mid-Month BRS reconciliation verified. Maruti cheque CHQ-778201 in SBI clearing pipeline.',
+    TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (comp_id, branch_id, bank_account_id, cutoff_date) DO NOTHING;
+
+SELECT setval('seq_acc_journal_id', GREATEST((SELECT COALESCE(MAX(journal_id), 1006) FROM tbl_acc_journal_header), 1006));
+SELECT setval('seq_acc_journal_item_id', GREATEST((SELECT COALESCE(MAX(journal_item_id), 1025) FROM tbl_acc_journal_item), 1025));
+SELECT setval('seq_acc_payment_disbursement_id', GREATEST((SELECT COALESCE(MAX(disbursement_id), 1001) FROM tbl_acc_payment_disbursement), 1001));
+SELECT setval('seq_acc_payment_disbursement_item_id', GREATEST((SELECT COALESCE(MAX(disbursement_item_id), 1001) FROM tbl_acc_payment_disbursement_item), 1001));
+SELECT setval('seq_acc_customer_receipt_id', GREATEST((SELECT COALESCE(MAX(receipt_id), 1002) FROM tbl_acc_customer_receipt), 1002));
+SELECT setval('seq_acc_customer_receipt_item_id', GREATEST((SELECT COALESCE(MAX(receipt_item_id), 1002) FROM tbl_acc_customer_receipt_item), 1002));
+SELECT setval('seq_acc_bank_statement_line_id', GREATEST((SELECT COALESCE(MAX(statement_line_id), 1003) FROM tbl_acc_bank_statement_line), 1003));
+SELECT setval('seq_acc_bank_reconciliation_id', GREATEST((SELECT COALESCE(MAX(brs_id), 1001) FROM tbl_acc_bank_reconciliation), 1001));

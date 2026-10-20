@@ -5594,3 +5594,334 @@ export const tblQcGaugeCalibrationHistory = pgTable(
     ...standardAuditColumns,
   }
 );
+
+
+// ============================================================================
+// 96. 5-Level Chart of Accounts (COA) Hierarchy
+// ============================================================================
+export const tblAccChartOfAccounts = pgTable(
+  'tbl_acc_chart_of_accounts',
+  {
+    accountId: bigint('account_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_chart_of_accounts_id')`),
+    accountCode: varchar('account_code', { length: 50 }).notNull(),
+    accountName: varchar('account_name', { length: 150 }).notNull(),
+    accountType: varchar('account_type', { length: 30 }).notNull(), // 'ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'
+    parentAccountId: bigint('parent_account_id', { mode: 'number' }).references((): any => tblAccChartOfAccounts.accountId),
+    level: integer('level').notNull().default(1),
+    normalBalance: varchar('normal_balance', { length: 10 }).notNull().default('DEBIT'), // 'DEBIT', 'CREDIT'
+    isGroup: boolean('is_group').notNull().default(false),
+    isReconciliation: boolean('is_reconciliation').notNull().default(false),
+    currencyCode: varchar('currency_code', { length: 10 }).notNull().default('INR'),
+    description: varchar('description', { length: 250 }),
+    isSystem: boolean('is_system').notNull().default(false),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccCoaCode: unique('uq_acc_coa_code').on(table.compId, table.accountCode),
+  })
+);
+
+// ============================================================================
+// 97. Cost Center Hierarchy & Department Mapping
+// ============================================================================
+export const tblAccCostCenter = pgTable(
+  'tbl_acc_cost_center',
+  {
+    costCenterId: bigint('cost_center_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_cost_center_id')`),
+    costCenterCode: varchar('cost_center_code', { length: 50 }).notNull(),
+    costCenterName: varchar('cost_center_name', { length: 150 }).notNull(),
+    deptId: bigint('dept_id', { mode: 'number' }).references(() => tblHrDepartment.deptId),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccCostCenterCode: unique('uq_acc_cost_center_code').on(table.compId, table.costCenterCode),
+  })
+);
+
+// ============================================================================
+// 98. General Ledger Journal Vouchers Header
+// ============================================================================
+export const tblAccJournalHeader = pgTable(
+  'tbl_acc_journal_header',
+  {
+    journalId: bigint('journal_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_journal_id')`),
+    voucherNo: varchar('voucher_no', { length: 50 }).notNull(),
+    voucherDate: date('voucher_date').notNull(),
+    voucherType: varchar('voucher_type', { length: 30 }).notNull().default('GENERAL'),
+    sourceModule: varchar('source_module', { length: 30 }).default('MANUAL'),
+    sourceRefNo: varchar('source_ref_no', { length: 100 }),
+    sourceRefId: bigint('source_ref_id', { mode: 'number' }),
+    narration: text('narration').notNull(),
+    totalDebit: numeric('total_debit', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalCredit: numeric('total_credit', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    isPosted: boolean('is_posted').notNull().default(true),
+    postedBy: bigint('posted_by', { mode: 'number' }).references(() => tblSecUser.userId),
+    postedDate: timestamp('posted_date', { withTimezone: true }),
+    isReversed: boolean('is_reversed').notNull().default(false),
+    reversalRefId: bigint('reversal_ref_id', { mode: 'number' }).references((): any => tblAccJournalHeader.journalId),
+    reversalDate: timestamp('reversal_date', { withTimezone: true }),
+    reversalReason: varchar('reversal_reason', { length: 500 }),
+    status: varchar('status', { length: 25 }).notNull().default('POSTED'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccJournalVoucher: unique('uq_acc_journal_voucher').on(table.compId, table.branchId, table.voucherNo),
+  })
+);
+
+// ============================================================================
+// 99. General Ledger Double-Entry Journal Line Items
+// ============================================================================
+export const tblAccJournalItem = pgTable(
+  'tbl_acc_journal_item',
+  {
+    journalItemId: bigint('journal_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_journal_item_id')`),
+    journalId: bigint('journal_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccJournalHeader.journalId, { onDelete: 'cascade' }),
+    accountId: bigint('account_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccChartOfAccounts.accountId),
+    debitAmount: numeric('debit_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    creditAmount: numeric('credit_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    partyId: bigint('party_id', { mode: 'number' }).references(() => tblCrmParty.partyId),
+    costCenterId: bigint('cost_center_id', { mode: 'number' }).references(() => tblAccCostCenter.costCenterId),
+    lineNarration: varchar('line_narration', { length: 500 }),
+    lineNo: integer('line_no').notNull().default(1),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+
+// ============================================================================
+// 100. Corporate Bank & Cash Accounts Master
+// ============================================================================
+export const tblAccBankAccount = pgTable(
+  'tbl_acc_bank_account',
+  {
+    bankAccountId: bigint('bank_account_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_bank_account_id')`),
+    accountCode: varchar('account_code', { length: 30 }).notNull(),
+    accountName: varchar('account_name', { length: 100 }).notNull(),
+    bankName: varchar('bank_name', { length: 100 }).notNull(),
+    branchName: varchar('branch_name', { length: 100 }).notNull(),
+    accountNumber: varchar('account_number', { length: 50 }).notNull(),
+    accountType: varchar('account_type', { length: 30 }).notNull().default('CURRENT'),
+    ifscCode: varchar('ifsc_code', { length: 20 }),
+    swiftCode: varchar('swift_code', { length: 20 }),
+    currencyCode: varchar('currency_code', { length: 10 }).notNull().default('INR'),
+    glAccountId: bigint('gl_account_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccChartOfAccounts.accountId),
+    openingBalance: numeric('opening_balance', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    currentBalance: numeric('current_balance', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    odLimit: numeric('od_limit', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccBankAccountCode: unique('uq_acc_bank_account_code').on(table.compId, table.accountCode),
+    uqAccBankAccountNo: unique('uq_acc_bank_account_no').on(table.compId, table.accountNumber),
+  })
+);
+
+// ============================================================================
+// 101. Accounts Payable (AP) Vendor Payment Disbursement Header
+// ============================================================================
+export const tblAccPaymentDisbursement = pgTable(
+  'tbl_acc_payment_disbursement',
+  {
+    disbursementId: bigint('disbursement_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_payment_disbursement_id')`),
+    voucherNo: varchar('voucher_no', { length: 50 }).notNull(),
+    voucherDate: date('voucher_date').notNull().default(sql`CURRENT_DATE`),
+    bankAccountId: bigint('bank_account_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccBankAccount.bankAccountId),
+    partyId: bigint('party_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    paymentMode: varchar('payment_mode', { length: 30 }).notNull().default('NEFT'),
+    paymentRefNo: varchar('payment_ref_no', { length: 100 }).notNull(),
+    instrumentDate: date('instrument_date'),
+    chequeClearanceStatus: varchar('cheque_clearance_status', { length: 25 }).notNull().default('CLEARED'),
+    clearanceDate: date('clearance_date'),
+    totalGrossSettled: numeric('total_gross_settled', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalTdsDeducted: numeric('total_tds_deducted', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalDiscountReceived: numeric('total_discount_received', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalNetPaid: numeric('total_net_paid', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    narration: text('narration').notNull(),
+    status: varchar('status', { length: 25 }).notNull().default('POSTED'),
+    postedJournalId: bigint('posted_journal_id', { mode: 'number' }).references(() => tblAccJournalHeader.journalId),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccPaymentVoucher: unique('uq_acc_payment_voucher').on(table.compId, table.branchId, table.voucherNo),
+  })
+);
+
+// ============================================================================
+// 102. Accounts Payable Line Items Allocation & TDS
+// ============================================================================
+export const tblAccPaymentDisbursementItem = pgTable(
+  'tbl_acc_payment_disbursement_item',
+  {
+    disbursementItemId: bigint('disbursement_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_payment_disbursement_item_id')`),
+    disbursementId: bigint('disbursement_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccPaymentDisbursement.disbursementId, { onDelete: 'cascade' }),
+    invoiceId: bigint('invoice_id', { mode: 'number' }).references(() => tblPurInvoiceHeader.invoiceId),
+    invoiceNo: varchar('invoice_no', { length: 50 }),
+    invoiceDate: date('invoice_date'),
+    grossSettledAmount: numeric('gross_settled_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    tdsSection: varchar('tds_section', { length: 20 }).default('194Q'),
+    tdsRate: numeric('tds_rate', { precision: 6, scale: 3 }).notNull().default('0.000'),
+    tdsDeductedAmount: numeric('tds_deducted_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    discountReceivedAmount: numeric('discount_received_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    netPaidAmount: numeric('net_paid_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    lineNarration: varchar('line_narration', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 103. Accounts Receivable (AR) Customer Collection Receipts Header
+// ============================================================================
+export const tblAccCustomerReceipt = pgTable(
+  'tbl_acc_customer_receipt',
+  {
+    receiptId: bigint('receipt_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_customer_receipt_id')`),
+    receiptNo: varchar('receipt_no', { length: 50 }).notNull(),
+    receiptDate: date('receipt_date').notNull().default(sql`CURRENT_DATE`),
+    bankAccountId: bigint('bank_account_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccBankAccount.bankAccountId),
+    partyId: bigint('party_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblCrmParty.partyId),
+    receiptMode: varchar('receipt_mode', { length: 30 }).notNull().default('NEFT'),
+    instrumentRefNo: varchar('instrument_ref_no', { length: 100 }).notNull(),
+    instrumentDate: date('instrument_date'),
+    clearanceStatus: varchar('clearance_status', { length: 25 }).notNull().default('CLEARED'),
+    clearanceDate: date('clearance_date'),
+    totalGrossSettled: numeric('total_gross_settled', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalTdsDeductedByCust: numeric('total_tds_deducted_by_cust', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalDiscountGiven: numeric('total_discount_given', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    totalNetReceived: numeric('total_net_received', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    narration: text('narration').notNull(),
+    status: varchar('status', { length: 25 }).notNull().default('POSTED'),
+    postedJournalId: bigint('posted_journal_id', { mode: 'number' }).references(() => tblAccJournalHeader.journalId),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccReceiptNo: unique('uq_acc_receipt_no').on(table.compId, table.branchId, table.receiptNo),
+  })
+);
+
+// ============================================================================
+// 104. Accounts Receivable Line Items Allocation & Customer TDS
+// ============================================================================
+export const tblAccCustomerReceiptItem = pgTable(
+  'tbl_acc_customer_receipt_item',
+  {
+    receiptItemId: bigint('receipt_item_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_customer_receipt_item_id')`),
+    receiptId: bigint('receipt_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccCustomerReceipt.receiptId, { onDelete: 'cascade' }),
+    invoiceId: bigint('invoice_id', { mode: 'number' }).references(() => tblSalesInvoiceHeader.invoiceId),
+    invoiceNo: varchar('invoice_no', { length: 50 }),
+    invoiceDate: date('invoice_date'),
+    grossSettledAmount: numeric('gross_settled_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    tdsDeductedByCust: numeric('tds_deducted_by_cust', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    discountGivenAmount: numeric('discount_given_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    netReceivedAmount: numeric('net_received_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    lineNarration: varchar('line_narration', { length: 350 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 105. Bank Reconciliation (BRS) Statement Feed Lines
+// ============================================================================
+export const tblAccBankStatementLine = pgTable(
+  'tbl_acc_bank_statement_line',
+  {
+    statementLineId: bigint('statement_line_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_bank_statement_line_id')`),
+    bankAccountId: bigint('bank_account_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccBankAccount.bankAccountId),
+    txnDate: date('txn_date').notNull(),
+    valueDate: date('value_date').notNull(),
+    description: varchar('description', { length: 500 }).notNull(),
+    refChequeNo: varchar('ref_cheque_no', { length: 100 }),
+    debitWithdrawal: numeric('debit_withdrawal', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    creditDeposit: numeric('credit_deposit', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    runningBalance: numeric('running_balance', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    reconciliationStatus: varchar('reconciliation_status', { length: 25 }).notNull().default('UNRECONCILED'),
+    matchedEntityType: varchar('matched_entity_type', { length: 30 }),
+    matchedEntityId: bigint('matched_entity_id', { mode: 'number' }),
+    reconciledDate: timestamp('reconciled_date', { withTimezone: true }),
+    reconciledBy: bigint('reconciled_by', { mode: 'number' }).references(() => tblSecUser.userId),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 106. Bank Reconciliation (BRS) Master Statements Header
+// ============================================================================
+export const tblAccBankReconciliation = pgTable(
+  'tbl_acc_bank_reconciliation',
+  {
+    brsId: bigint('brs_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_acc_bank_reconciliation_id')`),
+    brsStatementNo: varchar('brs_statement_no', { length: 50 }).notNull(),
+    bankAccountId: bigint('bank_account_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblAccBankAccount.bankAccountId),
+    cutoffDate: date('cutoff_date').notNull(),
+    glBookBalance: numeric('gl_book_balance', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    unpresentedChequesTotal: numeric('unpresented_cheques_total', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    uncreditedDepositsTotal: numeric('uncredited_deposits_total', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    bankAdjustmentsNet: numeric('bank_adjustments_net', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    computedBankBalance: numeric('computed_bank_balance', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    actualStatementBalance: numeric('actual_statement_balance', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    varianceAmount: numeric('variance_amount', { precision: 15, scale: 2 }).notNull().default('0.00'),
+    reconciliationStatus: varchar('reconciliation_status', { length: 25 }).notNull().default('RECONCILED'),
+    verifiedBy: bigint('verified_by', { mode: 'number' }).references(() => tblSecUser.userId),
+    verifiedDate: timestamp('verified_date', { withTimezone: true }),
+    remarks: varchar('remarks', { length: 500 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqAccBrsCutoff: unique('uq_acc_brs_cutoff').on(table.compId, table.branchId, table.bankAccountId, table.cutoffDate),
+  })
+);

@@ -1768,3 +1768,167 @@ Each screen or feature documentation entry must contain:
      * **Log Calibration Event Modal (`CALIBRATE`):** Calibration date, NABL cert number, testing agency, observed error vs permissible tolerance, ambient temperature/humidity, and auto-computed next due date.
      * **Safety Quarantine & Lockout Modal (`LOCKOUT`):** Tool quarantine tagging and non-conformance containment locking out instrument from production.
      * **Printable ISO/IEC 17025 & NABL Metrology Certificate & Tool Tag (`PRINT`):** Formatted legal calibration certificate and shopfloor instrument sticker tag with master equipment traceability and authorized metrologist sign-off blocks.
+
+---
+
+### 2.48 Chart of Accounts (COA) & General Ledger (GL) Subsystem (`/accounts/gl`)
+1. **Database Schema & Relational Model:**
+   * Tables Created:
+     * `tbl_acc_chart_of_accounts` (Section 96):
+       * Primary Key: `account_id` BIGINT (`seq_acc_chart_of_accounts_id`, starts at 1001).
+       * Account Identification: `account_code` VARCHAR(50) NOT NULL (e.g. `111001`, `112001`, `113001`), `account_name` VARCHAR(150) NOT NULL.
+       * Classification: `account_type` VARCHAR(30) NOT NULL (`ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`), `parent_account_id` BIGINT REFERENCES `tbl_acc_chart_of_accounts(account_id)`, `level` INT NOT NULL DEFAULT 1 (1 to 5), `normal_balance` VARCHAR(10) NOT NULL DEFAULT `'DEBIT'` (`DEBIT`, `CREDIT`).
+       * Attributes: `is_group` BOOLEAN NOT NULL DEFAULT FALSE (blocks direct journal postings to summary group accounts), `is_reconciliation` BOOLEAN NOT NULL DEFAULT FALSE (for Bank/Cash reconciliation), `currency_code` VARCHAR(10) NOT NULL DEFAULT `'INR'`, `description` VARCHAR(250), `is_system` BOOLEAN NOT NULL DEFAULT FALSE, `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, account_code)`.
+     * `tbl_acc_cost_center` (Section 97):
+       * Primary Key: `cost_center_id` BIGINT (`seq_acc_cost_center_id`, starts at 1001).
+       * Identification: `cost_center_code` VARCHAR(50) NOT NULL (e.g. `CC-PLANT-01`), `cost_center_name` VARCHAR(150) NOT NULL.
+       * Relational Link: `dept_id` BIGINT REFERENCES `tbl_hr_department(dept_id)`.
+       * Status & Audit: `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, cost_center_code)`.
+     * `tbl_acc_journal_header` (Section 98):
+       * Primary Key: `journal_id` BIGINT (`seq_acc_journal_id`, starts at 1001).
+       * Voucher Identification: `voucher_no` VARCHAR(50) NOT NULL (e.g. `JV-AHM-2627-0001`), `voucher_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Type & Operational Sourcing: `voucher_type` VARCHAR(30) NOT NULL DEFAULT `'GENERAL'` (`GENERAL`, `PURCHASE_INVOICE`, `SALES_INVOICE`, `PAYMENT`, `RECEIPT`, `STOCK_ADJUSTMENT`, `ABSORPTION_COST`, `OPENING_BALANCE`), `source_module` VARCHAR(30) DEFAULT `'MANUAL'` (`MANUAL`, `PROCUREMENT`, `SALES`, `INVENTORY`, `MANUFACTURING`), `source_ref_no` VARCHAR(100), `source_ref_id` BIGINT.
+       * Double-Entry Balances: `narration` TEXT NOT NULL, `total_debit` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_credit` NUMERIC(15,2) NOT NULL DEFAULT 0.00.
+       * Posting & Reversal Workflow: `is_posted` BOOLEAN NOT NULL DEFAULT TRUE, `posted_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `posted_date` TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, `is_reversed` BOOLEAN NOT NULL DEFAULT FALSE, `reversal_ref_id` BIGINT REFERENCES `tbl_acc_journal_header(journal_id)`, `reversal_date` TIMESTAMPTZ, `reversal_reason` VARCHAR(500), `status` VARCHAR(25) NOT NULL DEFAULT `'POSTED'` (`DRAFT`, `POSTED`, `REVERSED`), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraints: Unique constraint on `(comp_id, branch_id, voucher_no)`; Check constraint `total_debit = total_credit` (enforces fundamental double-entry balance invariant).
+     * `tbl_acc_journal_item` (Section 99):
+       * Primary Key: `journal_item_id` BIGINT (`seq_acc_journal_item_id`, starts at 1001).
+       * Foreign Key: `journal_id` BIGINT NOT NULL REFERENCES `tbl_acc_journal_header(journal_id)` ON DELETE CASCADE.
+       * Ledger Routing: `account_id` BIGINT NOT NULL REFERENCES `tbl_acc_chart_of_accounts(account_id)`, `debit_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `credit_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00.
+       * Sub-Ledger & Analytics: `party_id` BIGINT REFERENCES `tbl_crm_party(party_id)` (for AP/AR reconciliation), `cost_center_id` BIGINT REFERENCES `tbl_acc_cost_center(cost_center_id)`, `line_narration` VARCHAR(500), `line_no` INT NOT NULL DEFAULT 1, `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Check constraint `(debit_amount > 0 AND credit_amount = 0) OR (credit_amount > 0 AND debit_amount = 0)`.
+   * Sequences: `seq_acc_chart_of_accounts_id`, `seq_acc_cost_center_id`, `seq_acc_journal_id`, `seq_acc_journal_item_id` (starting at 1001).
+   * Indexes: `idx_acc_coa_comp`, `idx_acc_coa_type`, `idx_acc_coa_parent`, `idx_acc_cost_center_comp`, `idx_acc_journal_comp_branch`, `idx_acc_journal_date`, `idx_acc_journal_status`, `idx_acc_journal_type`, `idx_acc_journal_source`, `idx_acc_journal_item_journal`, `idx_acc_journal_item_account`, `idx_acc_journal_item_party`, `idx_acc_journal_item_cost_center`.
+   * Triggers: `trg_acc_coa_updated_date`, `trg_acc_cost_center_updated_date`, `trg_acc_journal_header_updated_date`, and `trg_acc_journal_item_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1047` (`GL_ACCOUNTS`, `/accounts/gl`, `BookOpen`, sort order 48) with actions `1169` (`EXPORT`), `1170` (`PRINT`), `1171` (`POST`), and `1172` (`REVERSE`). Registered Document Series `AHM-JV-2627` (prefix `JV-AHM-2627-`). Seeded 4 Cost Centers (`CC-PLANT-01`, `CC-ASSY-01`, `CC-QC-01`, `CC-ADMIN-01`) and standard 5-level Indian Schedule III Chart of Accounts. Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded Opening Balance JV (`JV-AHM-2627-0001` for ₹2.50 Cr), Automated Sales Invoice JV (`JV-AHM-2627-0002` for Reliance Industries), Automated Purchase Invoice JV (`JV-AHM-2627-0003` for Tata Steel), and Finished Goods Production Absorption Cost JV (`JV-AHM-2627-0004`).
+2. **Backend Architecture & API Contracts (`backend/src/modules/accounts/gl/`):**
+   * Controller: `GlController` mapped to `/api/v1/accounts/gl`.
+   * Service: `GlService` injecting `PG_POOL` and `AuditLogService`.
+   * Endpoints:
+     * `GET /accounts/gl/summary` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Real-time metrics (`totalAccounts`, `postedVouchers`, `activeCostCenters`, `totalAssets`, `totalLiabilities`, `totalEquity`, `totalRevenue`, `totalExpense`, `netProfitLoss`).
+     * `GET /accounts/gl/lookups` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Non-group posting accounts, cost centers, and trading parties.
+     * `GET /accounts/gl/coa` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Full 5-level hierarchical Chart of Accounts catalogue with current net balances.
+     * `POST /accounts/gl/coa` (`@RequirePermission('GL_ACCOUNTS', 'ADD')`) — Creates new account with parent linkage and level calculation.
+     * `PUT /accounts/gl/coa/:id` (`@RequirePermission('GL_ACCOUNTS', 'EDIT')`) — Updates account name, description, and reconciliation flags.
+     * `GET /accounts/gl/statement` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Detailed General Ledger drilldown statement for a selected account, computing opening balance before `fromDate`, listing chronological transactions with debits, credits, and progressive running balance.
+     * `GET /accounts/gl/trial-balance` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Multi-column statutory Trial Balance as of chosen date with gross debits/credits, net debits/credits, and mathematical double-entry equality check ($\sum \text{Debit} = \sum \text{Credit}$).
+     * `GET /accounts/gl/financial-statements` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Structured Profit & Loss Statement (Operating Revenue, COGS, Overhead Expenses, Net Margin) and Balance Sheet (Assets vs Liabilities & Shareholders' Equity).
+     * `GET /accounts/gl/vouchers` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Filtered register of journal vouchers with line counts, status, and debit/credit totals.
+     * `GET /accounts/gl/vouchers/:id` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Comprehensive voucher breakdown with all debit/credit lines joined with account and party names.
+     * `POST /accounts/gl/vouchers` (`@RequirePermission('GL_ACCOUNTS', 'POST')`) — Transactional double-entry voucher posting validating $\sum \text{Debit} = \sum \text{Credit} > 0$ and auto-generating series document number.
+     * `POST /accounts/gl/vouchers/:id/reverse` (`@RequirePermission('GL_ACCOUNTS', 'REVERSE')`) — Generates reversing journal voucher with swapped debits/credits and updates original voucher status to `REVERSED`.
+     * `GET /accounts/gl/unposted-operations` (`@RequirePermission('GL_ACCOUNTS', 'VIEW')`) — Scans sales invoices, purchase invoices, and FG receipts lacking a posted GL voucher.
+     * `POST /accounts/gl/generate-operational-jv` (`@RequirePermission('GL_ACCOUNTS', 'POST')`) — Automated single-click operational posting bridge generating balanced double-entry vouchers for commercial invoices and production output.
+3. **Frontend Architecture (`frontend/src/pages/accounts/GlMasterPage.tsx`):**
+   * Accessible at route `/accounts/gl` under `FINANCIAL ACCOUNTING & GL` with `BookOpen` icon.
+   * Built with `<PermissionGate screen="GL_ACCOUNTS">`.
+   * 5 Executive KPI financial summary cards (`Total COA Accounts`, `Posted Vouchers`, `Total Assets`, `Total Liabilities`, `Net Profit / (Loss)`).
+   * 5 Tabbed views:
+     * **Journal Vouchers Register:** Search, type filter, status filter, and master table with row actions for detail inspection, reversal, and printing.
+     * **General Ledger Statement:** Searchable account selector, date pickers, cost center filter, opening balance callout box, running balance ledger table, and closing balance totals.
+     * **Chart of Accounts Hierarchy:** Category filter pills (ALL, ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE), level badges, normal balance indicators, and direct drilldown into statements.
+     * **Statutory Trial Balance:** Live equality check badge (Debit = Credit), gross and net balance columns.
+     * **P&L and Balance Sheet:** Structured dual-statement financial reports with real-time net margin rollups into balance sheet equity.
+   * Modals:
+     * **Post Manual Journal Voucher Modal (`POST`):** Dynamic multi-line double-entry grid with real-time debit vs credit balance tally indicator and submission gating.
+     * **Add / Edit Chart of Account Modal (`ADD` / `EDIT`):** Account code, class, parent group, normal balance, group header flag, and reconciliation account flag.
+     * **Voucher Detail Modal (`VIEW`):** Header audit metadata, narration, and full multi-line debit/credit distribution.
+     * **Reverse Journal Voucher Modal (`REVERSE`):** Reversal reason capture with automated compensating voucher preview.
+     * **1-Click Operational Postings Bridge Modal (`POST`):** Unposted sales invoices, purchase invoices, and production output cards with 1-click posting buttons.
+     * **Printable Statutory Document & Voucher Sheet (`PRINT`):** Formatted legal layout with corporate header, GSTIN, CIN, voucher details, debit/credit table, and 3-tier authorized signatory blocks (Prepared By, Verified By, Chief Financial Officer).
+
+---
+
+### 2.49 Step 10.2 — Accounts Payable (AP) & Accounts Receivable (AR) Cash/Bank Reconciliation (`/accounts/banking`)
+
+1. **Database Schema Architecture (`ks_mfg_erp`):**
+   * Tables:
+     * `tbl_acc_bank_account` (Section 100):
+       * Primary Key: `bank_account_id` BIGINT (`seq_acc_bank_account_id`, starts at 1001).
+       * Account Identification: `account_code` VARCHAR(30) NOT NULL (e.g. `BANK-SBI-01`), `account_name` VARCHAR(100) NOT NULL, `bank_name` VARCHAR(100) NOT NULL, `branch_name` VARCHAR(100) NOT NULL, `account_number` VARCHAR(50) NOT NULL.
+       * Account Classification: `account_type` VARCHAR(30) NOT NULL DEFAULT `'CURRENT'` (`CURRENT`, `SAVINGS`, `CASH_CREDIT`, `OVERDRAFT`, `PETTY_CASH`), `currency_code` VARCHAR(10) NOT NULL DEFAULT `'INR'`.
+       * Routing Codes: `ifsc_code` VARCHAR(20), `swift_code` VARCHAR(20).
+       * GL Linkage: `gl_account_id` BIGINT NOT NULL REFERENCES `tbl_acc_chart_of_accounts(account_id)`.
+       * Balance & Facilities: `opening_balance` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `current_balance` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `od_limit` NUMERIC(15,2) NOT NULL DEFAULT 0.00.
+       * Constraints: Unique constraints on `(comp_id, account_code)` and `(comp_id, account_number)`.
+     * `tbl_acc_payment_disbursement` (Section 101):
+       * Primary Key: `disbursement_id` BIGINT (`seq_acc_payment_disbursement_id`, starts at 1001).
+       * Voucher Identification: `voucher_no` VARCHAR(50) NOT NULL (e.g. `PAY-AHM-2627-0001`), `voucher_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Treasury & Party Linkage: `bank_account_id` BIGINT NOT NULL REFERENCES `tbl_acc_bank_account(bank_account_id)`, `party_id` BIGINT NOT NULL REFERENCES `tbl_crm_party(party_id)`.
+       * Instrument Tracking: `payment_mode` VARCHAR(30) NOT NULL DEFAULT `'NEFT'` (`NEFT`, `RTGS`, `CHEQUE`, `IMPS`, `UPI`, `CASH`, `BANK_TRANSFER`), `payment_ref_no` VARCHAR(100) NOT NULL (UTR / Cheque No), `instrument_date` DATE, `cheque_clearance_status` VARCHAR(25) NOT NULL DEFAULT `'CLEARED'` (`ISSUED`, `CLEARED`, `STOPPED`, `BOUNCED`), `clearance_date` DATE.
+       * Financial Settlement Totals: `total_gross_settled` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_tds_deducted` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_discount_received` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_net_paid` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `narration` TEXT NOT NULL.
+       * GL Journal Bridge: `status` VARCHAR(25) NOT NULL DEFAULT `'POSTED'` (`DRAFT`, `POSTED`, `CANCELLED`), `posted_journal_id` BIGINT REFERENCES `tbl_acc_journal_header(journal_id)`.
+       * Constraint: Unique constraint on `(comp_id, branch_id, voucher_no)`.
+     * `tbl_acc_payment_disbursement_item` (Section 102):
+       * Primary Key: `disbursement_item_id` BIGINT (`seq_acc_payment_disbursement_item_id`, starts at 1001).
+       * Header Linkage: `disbursement_id` BIGINT NOT NULL REFERENCES `tbl_acc_payment_disbursement(disbursement_id)` ON DELETE CASCADE.
+       * Bill Allocation: `invoice_id` BIGINT REFERENCES `tbl_pur_invoice_header(invoice_id)`, `invoice_no` VARCHAR(50), `invoice_date` DATE, `gross_settled_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00.
+       * Statutory TDS: `tds_section` VARCHAR(20) DEFAULT `'194Q'`, `tds_rate` NUMERIC(6,3) NOT NULL DEFAULT 0.000, `tds_deducted_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `discount_received_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `net_paid_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `line_narration` VARCHAR(350).
+     * `tbl_acc_customer_receipt` (Section 103):
+       * Primary Key: `receipt_id` BIGINT (`seq_acc_customer_receipt_id`, starts at 1001).
+       * Voucher Identification: `receipt_no` VARCHAR(50) NOT NULL (e.g. `REC-AHM-2627-0001`), `receipt_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Treasury & Party Linkage: `bank_account_id` BIGINT NOT NULL REFERENCES `tbl_acc_bank_account(bank_account_id)`, `party_id` BIGINT NOT NULL REFERENCES `tbl_crm_party(party_id)`.
+       * Instrument Tracking: `receipt_mode` VARCHAR(30) NOT NULL DEFAULT `'NEFT'` (`NEFT`, `RTGS`, `CHEQUE`, `IMPS`, `UPI`, `CASH`, `DIRECT_DEPOSIT`), `instrument_ref_no` VARCHAR(100) NOT NULL, `instrument_date` DATE, `clearance_status` VARCHAR(25) NOT NULL DEFAULT `'CLEARED'` (`UNCLEARED`, `CLEARED`, `BOUNCED`), `clearance_date` DATE.
+       * Financial Settlement Totals: `total_gross_settled` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_tds_deducted_by_cust` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_discount_given` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `total_net_received` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `narration` TEXT NOT NULL.
+       * GL Journal Bridge: `status` VARCHAR(25) NOT NULL DEFAULT `'POSTED'` (`DRAFT`, `POSTED`, `CANCELLED`), `posted_journal_id` BIGINT REFERENCES `tbl_acc_journal_header(journal_id)`.
+       * Constraint: Unique constraint on `(comp_id, branch_id, receipt_no)`.
+     * `tbl_acc_customer_receipt_item` (Section 104):
+       * Primary Key: `receipt_item_id` BIGINT (`seq_acc_customer_receipt_item_id`, starts at 1001).
+       * Header Linkage: `receipt_id` BIGINT NOT NULL REFERENCES `tbl_acc_customer_receipt(receipt_id)` ON DELETE CASCADE.
+       * Sales Invoice Allocation: `invoice_id` BIGINT REFERENCES `tbl_sales_invoice_header(invoice_id)`, `invoice_no` VARCHAR(50), `invoice_date` DATE, `gross_settled_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `tds_deducted_by_cust` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `discount_given_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `net_received_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `line_narration` VARCHAR(350).
+     * `tbl_acc_bank_statement_line` (Section 105):
+       * Primary Key: `statement_line_id` BIGINT (`seq_acc_bank_statement_line_id`, starts at 1001).
+       * Bank Facility: `bank_account_id` BIGINT NOT NULL REFERENCES `tbl_acc_bank_account(bank_account_id)`.
+       * Statement Records: `txn_date` DATE NOT NULL, `value_date` DATE NOT NULL, `description` VARCHAR(500) NOT NULL, `ref_cheque_no` VARCHAR(100), `debit_withdrawal` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `credit_deposit` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `running_balance` NUMERIC(15,2) NOT NULL DEFAULT 0.00.
+       * Reconciliation State: `reconciliation_status` VARCHAR(25) NOT NULL DEFAULT `'UNRECONCILED'` (`UNRECONCILED`, `MATCHED`, `MANUALLY_ADJUSTED`), `matched_entity_type` VARCHAR(30) (`DISBURSEMENT`, `RECEIPT`, `JOURNAL`), `matched_entity_id` BIGINT, `reconciled_date` TIMESTAMPTZ, `reconciled_by` BIGINT REFERENCES `tbl_sec_user(user_id)`.
+     * `tbl_acc_bank_reconciliation` (Section 106):
+       * Primary Key: `brs_id` BIGINT (`seq_acc_bank_reconciliation_id`, starts at 1001).
+       * Identification & Facility: `brs_statement_no` VARCHAR(50) NOT NULL (e.g. `BRS-AHM-2627-0001`), `bank_account_id` BIGINT NOT NULL REFERENCES `tbl_acc_bank_account(bank_account_id)`, `cutoff_date` DATE NOT NULL.
+       * Mathematical Formula Components: `gl_book_balance` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `unpresented_cheques_total` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `uncredited_deposits_total` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `bank_adjustments_net` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `computed_bank_balance` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `actual_statement_balance` NUMERIC(15,2) NOT NULL DEFAULT 0.00, `variance_amount` NUMERIC(15,2) NOT NULL DEFAULT 0.00.
+       * Verification Audit: `reconciliation_status` VARCHAR(25) NOT NULL DEFAULT `'RECONCILED'` (`DRAFT`, `RECONCILED`, `VARIANCE_FLAGGED`), `verified_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `verified_date` TIMESTAMPTZ, `remarks` VARCHAR(500).
+       * Constraint: Unique constraint on `(comp_id, branch_id, bank_account_id, cutoff_date)`.
+   * Sequences: `seq_acc_bank_account_id`, `seq_acc_payment_disbursement_id`, `seq_acc_payment_disbursement_item_id`, `seq_acc_customer_receipt_id`, `seq_acc_customer_receipt_item_id`, `seq_acc_bank_statement_line_id`, `seq_acc_bank_reconciliation_id` (starting at 1001).
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1048` (`BANKING_ACCOUNTS`, `/accounts/banking`, `Landmark`, sort order 49) with custom actions `1173` (`EXPORT`), `1174` (`PRINT`), `1175` (`DISBURSE`), `1176` (`RECEIVE`), and `1177` (`RECONCILE`). Registered Document Series `AHM-PAY-2627` (prefix `PAY-AHM-2627-`), `AHM-REC-2627` (prefix `REC-AHM-2627-`), and `AHM-BRS-2627` (prefix `BRS-AHM-2627-`). Seeded 3 active corporate bank and cash accounts (SBI Current A/c, HDFC CC Facility, and Petty Cash Safe). Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded Vendor Disbursement (`PAY-AHM-2627-0001` with Sec 194Q TDS and balanced JV `JV-AHM-2627-0005`), Cleared Customer Collection (`REC-AHM-2627-0001` with balanced JV `JV-AHM-2627-0006`), In-Transit Uncleared Cheque Collection (`REC-AHM-2627-0002` for Maruti Suzuki), Bank Statement Feed Lines, and Statutory BRS Reconciliation Statement (`BRS-AHM-2627-0001`).
+2. **Backend Architecture & API Contracts (`backend/src/modules/accounts/banking/`):**
+   * Controller: `BankingController` mapped to `/api/v1/accounts/banking`.
+   * Service: `BankingService` injecting `PG_POOL` and `AuditLogService`.
+   * Endpoints:
+     * `GET /accounts/banking/summary` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Returns `totalLiquidity`, `totalAccounts`, `totalApDue`, `openPurchaseInvoices`, `totalArDue`, `openSalesInvoices`, `unreconciledFeedCount`, `unclearedChequesCount`, and recent transactions.
+     * `GET /accounts/banking/lookups` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Returns active vendors, customers, bank accounts, and GL cash/bank posting accounts.
+     * `GET /accounts/banking/bank-accounts` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Lists all corporate bank accounts with GL mappings and live book balances.
+     * `POST /accounts/banking/bank-accounts` (`@RequirePermission('BANKING_ACCOUNTS', 'ADD')`) — Configures a new bank or cash account with uniqueness checks.
+     * `GET /accounts/banking/disbursements` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Filterable register of AP vendor payment disbursement vouchers.
+     * `GET /accounts/banking/disbursements/:id` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Full disbursement voucher breakdown with invoice lines and TDS deductions.
+     * `GET /accounts/banking/pending-purchase-invoices` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Returns unpaid and partially-paid purchase invoices for a selected vendor with `balance_amount`.
+     * `POST /accounts/banking/disbursements` (`@RequirePermission('BANKING_ACCOUNTS', 'DISBURSE')`) — Atomic transaction: allocates payment across purchase invoices, updates invoice `paid_amount` and `payment_status`, deducts bank balance, creates balanced double-entry JV (`Dr: Trade Creditors 1201`, `Cr: Bank Account`, `Cr: TDS Payable 1214`), and logs audit trail.
+     * `GET /accounts/banking/receipts` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Filterable register of AR customer payment collection receipts.
+     * `GET /accounts/banking/receipts/:id` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Full receipt voucher breakdown with settled sales invoices and customer TDS.
+     * `GET /accounts/banking/pending-sales-invoices` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Returns unpaid and partially-paid sales invoices for a selected customer.
+     * `POST /accounts/banking/receipts` (`@RequirePermission('BANKING_ACCOUNTS', 'RECEIVE')`) — Atomic transaction: allocates receipt across sales invoices, updates invoice `paid_amount` and `payment_status`, updates bank balance and posts JV if cleared (`Dr: Bank Account`, `Dr: TDS Receivable 1131`, `Cr: Trade Debtors 1111`), or flags for BRS if uncleared.
+     * `GET /accounts/banking/brs/statement-lines` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Returns bank statement lines for a bank account.
+     * `POST /accounts/banking/brs/import-feed` (`@RequirePermission('BANKING_ACCOUNTS', 'ADD')`) — Records/imports netbanking statement feed lines.
+     * `GET /accounts/banking/brs/reconciliation-summary` (`@RequirePermission('BANKING_ACCOUNTS', 'VIEW')`) — Real-time statutory BRS calculator computing GL Book Balance, Unpresented Cheques, Uncredited Deposits, Computed Statement Balance, Actual Statement Balance, and Variance.
+     * `POST /accounts/banking/brs/auto-match` (`@RequirePermission('BANKING_ACCOUNTS', 'RECONCILE')`) — 1-Click BRS engine correlating statement lines against disbursements and receipts using reference numbers and amounts.
+     * `POST /accounts/banking/brs/finalize` (`@RequirePermission('BANKING_ACCOUNTS', 'RECONCILE')`) — Generates permanent BRS period reconciliation snapshot in `tbl_acc_bank_reconciliation`.
+3. **Frontend Architecture (`frontend/src/pages/accounts/BankingMasterPage.tsx`):**
+   * Accessible at route `/accounts/banking` under `FINANCIAL ACCOUNTING & GL` with `Landmark` icon.
+   * Built with `<PermissionGate screen="BANKING_ACCOUNTS">`.
+   * 4 Executive KPI treasury cards (`Total Liquid Bank Balance`, `Accounts Payable (AP) Due`, `Accounts Receivable (AR) Due`, `BRS In-Transit Items`).
+   * 4 Functional Tabs:
+     * **Bank & Cash Accounts:** Visual cards for primary operating accounts with live balances, and master table with CC/OD limits and GL mappings.
+     * **Vendor Payments (AP):** Master table with gross bills, TDS deductions, net payouts, status badges, and advice print action.
+     * **Customer Collections (AR):** Master table with customer details, instruments, clearance badges, net collections, and receipt print action.
+     * **Bank Reconciliation (BRS):** Bank and cutoff date selector, Classical 4-Part BRS Sheet with dynamic balance badge, drilldown tables for unpresented cheques and uncleared deposits, statement feed grid with matching statuses, and 1-click auto-matching and finalization actions.
+   * Interactive Modals:
+     * **Record Vendor Payment Modal (`DISBURSE`):** Dynamic multi-invoice selector with auto-loaded pending purchase invoices, statutory TDS section calculator (194Q 0.1%, 194C 1.0%/2.0%, 194J 10.0%), and live double-entry balanced posting preview.
+     * **Record Customer Collection Modal (`RECEIVE`):** Multi-invoice selector with auto-loaded pending sales invoices, customer TDS deduction, and clearance status selector (`CLEARED` vs `UNCLEARED`).
+     * **Add Bank Account Modal (`ADD`):** Account code, bank name, account number, account type, and GL account mapping.
+     * **Add Feed Txn Modal (`ADD`):** Quick manual netbanking feed entry with withdrawal/deposit tracking.
+     * **Printable Payment Advice (`PRINT`):** Formal payment advice with vendor PAN, remittance UTR, invoice allocations, TDS certificate details, and dual signature blocks.
+     * **Printable Official Receipt (`PRINT`):** Official payment collection receipt for customer acknowledgement.

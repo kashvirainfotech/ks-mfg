@@ -123,13 +123,13 @@
 ---
 
 ## 💼 Phase 10: Financial Accounting & Statutory Compliance (`ACCOUNTS`)
-- [ ] **Step 10.1 — Chart of Accounts (COA) & General Ledger (GL) Subsystem (`/accounts/gl`)**:
-  - [ ] 5-Level Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expense) with multi-company & branch cost centers
-  - [ ] Automated sub-ledger journal voucher posting from operational events (Purchase Invoices, Sales Invoices, Inventory Adjustments, Absorption Costing)
-  - [ ] Financial statements: Trial Balance, Profit & Loss (P&L), Balance Sheet
-- [ ] **Step 10.2 — Accounts Payable (AP) & Accounts Receivable (AR) Cash/Bank Reconciliation (`/accounts/banking`)**:
-  - [ ] Vendor payment disbursement vouchers (Cheque, NEFT, RTGS) with TDS deduction tracking
-  - [ ] Customer payment collection receipts with bank reconciliation statements (BRS)
+- [x] **Step 10.1 — Chart of Accounts (COA) & General Ledger (GL) Subsystem (`/accounts/gl`)**:
+  - [x] 5-Level Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expense) with multi-company & branch cost centers
+  - [x] Automated sub-ledger journal voucher posting from operational events (Purchase Invoices, Sales Invoices, Inventory Adjustments, Absorption Costing)
+  - [x] Financial statements: Trial Balance, Profit & Loss (P&L), Balance Sheet
+- [x] **Step 10.2 — Accounts Payable (AP) & Accounts Receivable (AR) Cash/Bank Reconciliation (`/accounts/banking`)**:
+  - [x] Vendor payment disbursement vouchers (Cheque, NEFT, RTGS) with TDS deduction tracking
+  - [x] Customer payment collection receipts with bank reconciliation statements (BRS)
 - [ ] **Step 10.3 — Direct GST Portal & E-Way Bill API Gateway (`/admin/integrations/gst`)**:
   - [ ] Machine-to-machine direct API integration with NIC E-Way Bill and E-Invoice portal via GSP for 1-click live IRN and E-Way Bill generation without manual JSON uploads
 

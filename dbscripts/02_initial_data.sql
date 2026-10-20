@@ -2917,3 +2917,284 @@ INSERT INTO tbl_sec_role_action_permission (
     (1005, 1046, 1167, FALSE, 1001, 1001, 1001, 1001),
     (1005, 1046, 1168, FALSE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- ============================================================================
+-- SEED DATA: Step 10.1 (Chart of Accounts & General Ledger Subsystem)
+-- DATE: 2026-10-20
+-- ============================================================================
+
+-- Screen 1047: GL_ACCOUNTS
+INSERT INTO tbl_sec_screen (
+    screen_id, module_name, screen_code, screen_name, route_path, icon_name,
+    display_order, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1047, 'ACCOUNTS', 'GL_ACCOUNTS', 'Chart of Accounts & General Ledger (GL)', '/accounts/gl', 'BookOpen', 48, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (screen_code) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1047) FROM tbl_sec_screen), 1047));
+
+-- Actions for Screen 1047
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1169, 1047, 'EXPORT',  'Export Chart of Accounts & GL Ledger Statement',   TRUE, 1001, 1001, 1001, 1001),
+    (1170, 1047, 'PRINT',   'Print Journal Voucher & Statutory Financial Sheets', TRUE, 1001, 1001, 1001, 1001),
+    (1171, 1047, 'POST',    'Post Manual & Operational Journal Vouchers',         TRUE, 1001, 1001, 1001, 1001),
+    (1172, 1047, 'REVERSE', 'Reverse Posted Journal Voucher with Audit Trail',   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1172) FROM tbl_sec_action), 1172));
+
+-- Role Screen Permissions for 1047
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1047, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1047, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1047, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (view only)
+    (1004, 1047, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC (view only)
+    (1005, 1047, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- SALES_EXEC (view only)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Role Action Permissions for 1047
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN (All allowed)
+    (1001, 1047, 1169, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1047, 1170, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1047, 1171, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1047, 1172, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All allowed)
+    (1002, 1047, 1169, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1047, 1170, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1047, 1171, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1047, 1172, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Export & Print only)
+    (1003, 1047, 1169, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1047, 1170, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1047, 1171, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1047, 1172, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (Export & Print only)
+    (1004, 1047, 1169, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1047, 1170, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1047, 1171, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1047, 1172, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (Export & Print only)
+    (1005, 1047, 1169, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1047, 1170, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1047, 1171, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1047, 1172, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- Document Number Series for JV
+INSERT INTO tbl_sys_doc_number_series (
+    series_id, series_code, series_name, module_name, doc_type_code, doc_type_name,
+    target_comp_id, target_branch_id, target_fyear_id, prefix_template, separator_char,
+    padding_digits, starting_no, current_next_no, reset_frequency, allow_manual_override,
+    is_default, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1037, 'AHM-JV-2627', 'Journal Voucher Series FY 2026-27', 'ACCOUNTS', 'JOURNAL_VOUCHER', 'General Journal Voucher',
+    1001, 1001, 1001, 'JV-AHM-2627-', '', 4, 1, 5, 'FINANCIAL_YEAR', FALSE, TRUE, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (target_comp_id, target_branch_id, target_fyear_id, series_code) DO NOTHING;
+
+-- Initial Cost Centers
+INSERT INTO tbl_acc_cost_center (
+    cost_center_id, cost_center_code, cost_center_name, dept_id,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'CC-PLANT-01', 'CNC Machining Cell 01', 1001, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'CC-ASSY-01',  'Hydro Testing & Assembly Bay', 1001, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'CC-QC-01',    'Quality Assurance & Metrology Lab', 1002, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'CC-ADMIN-01', 'General Plant Administration', 1006, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, cost_center_code) DO NOTHING;
+
+SELECT setval('seq_acc_cost_center_id', GREATEST((SELECT COALESCE(MAX(cost_center_id), 1004) FROM tbl_acc_cost_center), 1004));
+
+-- Initial Standard Chart of Accounts (Level 1, 2, 3, 4, 5)
+-- Level 1: Major Classes
+INSERT INTO tbl_acc_chart_of_accounts (
+    account_id, account_code, account_name, account_type, parent_account_id,
+    level, normal_balance, is_group, is_reconciliation, description, is_system,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, '100000', 'ASSETS',                     'ASSET',     NULL, 1, 'DEBIT',  TRUE, FALSE, 'Primary Asset Class', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1002, '200000', 'LIABILITIES',                'LIABILITY', NULL, 1, 'CREDIT', TRUE, FALSE, 'Primary Liability Class', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1003, '300000', 'EQUITY & RESERVES',          'EQUITY',    NULL, 1, 'CREDIT', TRUE, FALSE, 'Shareholders Equity and Reserves', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1004, '400000', 'REVENUE / INCOME',           'REVENUE',   NULL, 1, 'CREDIT', TRUE, FALSE, 'Operating Revenue and Other Income', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1005, '500000', 'EXPENSES / COST OF GOODS',   'EXPENSE',   NULL, 1, 'DEBIT',  TRUE, FALSE, 'Manufacturing and Operating Expenses', TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, account_code) DO NOTHING;
+
+-- Level 2 & 3: Groups
+INSERT INTO tbl_acc_chart_of_accounts (
+    account_id, account_code, account_name, account_type, parent_account_id,
+    level, normal_balance, is_group, is_reconciliation, description, is_system,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Current Assets
+    (1010, '110000', 'Current Assets',             'ASSET',     1001, 2, 'DEBIT',  TRUE, FALSE, 'Current Assets Group', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1011, '111000', 'Cash & Bank Balances',       'ASSET',     1010, 3, 'DEBIT',  TRUE, TRUE,  'Liquid cash and bank accounts', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1012, '112000', 'Trade Receivables (Debtors)','ASSET',     1010, 3, 'DEBIT',  TRUE, FALSE, 'Customer Accounts Receivable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1013, '113000', 'Inventories & Stocks',       'ASSET',     1010, 3, 'DEBIT',  TRUE, FALSE, 'Perpetual Inventory Valuations', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1014, '114000', 'Duties & Taxes - GST ITC',   'ASSET',     1010, 3, 'DEBIT',  TRUE, FALSE, 'Input Tax Credits receivable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Fixed Assets
+    (1020, '120000', 'Non-Current / Fixed Assets', 'ASSET',     1001, 2, 'DEBIT',  TRUE, FALSE, 'Capital Plant Machinery Assets', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Current Liabilities
+    (1030, '210000', 'Current Liabilities',        'LIABILITY', 1002, 2, 'CREDIT', TRUE, FALSE, 'Short-term obligations and creditors', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1031, '211000', 'Trade Payables (Creditors)', 'LIABILITY', 1030, 3, 'CREDIT', TRUE, FALSE, 'Supplier Accounts Payable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1032, '212000', 'Duties & Taxes - Dues',      'LIABILITY', 1030, 3, 'CREDIT', TRUE, FALSE, 'Output GST and statutory withholdings', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Equity
+    (1040, '310000', 'Capital & Retained Earnings','EQUITY',    1003, 2, 'CREDIT', TRUE, FALSE, 'Paid up capital and profit reserves', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Revenue
+    (1050, '410000', 'Revenue from Operations',    'REVENUE',   1004, 2, 'CREDIT', TRUE, FALSE, 'Sales of goods and processing services', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Expenses
+    (1060, '510000', 'Cost of Materials Consumed', 'EXPENSE',   1005, 2, 'DEBIT',  TRUE, FALSE, 'Direct raw materials and conversion costs', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1070, '520000', 'Operating & Admin Overheads','EXPENSE',   1005, 2, 'DEBIT',  TRUE, FALSE, 'Factory overheads, power and administrative', TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, account_code) DO NOTHING;
+
+-- Level 5: Detailed Posting Ledger Accounts
+INSERT INTO tbl_acc_chart_of_accounts (
+    account_id, account_code, account_name, account_type, parent_account_id,
+    level, normal_balance, is_group, is_reconciliation, description, is_system,
+    is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Cash & Bank
+    (1101, '111001', 'State Bank of India - Current A/c', 'ASSET', 1011, 5, 'DEBIT', FALSE, TRUE, 'Primary SBI Operating Account (A/c #3819201928)', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1102, '111002', 'HDFC Bank - Cash Credit A/c',       'ASSET', 1011, 5, 'DEBIT', FALSE, TRUE, 'HDFC Working Capital CC Facility', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1103, '111003', 'Petty Cash - Plant Store',          'ASSET', 1011, 5, 'DEBIT', FALSE, FALSE, 'Shopfloor Petty Cash Float', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Trade Receivables
+    (1111, '112001', 'Trade Debtors Control Account',      'ASSET', 1012, 5, 'DEBIT', FALSE, FALSE, 'Accounts Receivable sub-ledger control', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Inventories
+    (1121, '113001', 'Raw Material Stock Inventory',       'ASSET', 1013, 5, 'DEBIT', FALSE, FALSE, 'Stores raw materials perpetual asset', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1122, '113002', 'Work-In-Progress (WIP) Stock',       'ASSET', 1013, 5, 'DEBIT', FALSE, FALSE, 'Shopfloor WIP uncompleted jobs asset', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1123, '113003', 'Finished Goods (FG) Stock',          'ASSET', 1013, 5, 'DEBIT', FALSE, FALSE, 'Finished goods warehouse asset', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1124, '113004', 'Stores & Consumables Stock',         'ASSET', 1013, 5, 'DEBIT', FALSE, FALSE, 'Tooling, lubricants & consumables asset', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- GST Input Tax Credits
+    (1131, '114001', 'CGST Input Tax Credit',              'ASSET', 1014, 5, 'DEBIT', FALSE, FALSE, 'Central GST Input Credit Receivable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1132, '114002', 'SGST Input Tax Credit',              'ASSET', 1014, 5, 'DEBIT', FALSE, FALSE, 'State GST Input Credit Receivable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1133, '114003', 'IGST Input Tax Credit',              'ASSET', 1014, 5, 'DEBIT', FALSE, FALSE, 'Integrated GST Input Credit Receivable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Fixed Assets
+    (1141, '121001', 'Plant Machinery & CNC Equipment',    'ASSET', 1020, 5, 'DEBIT', FALSE, FALSE, 'Capital CNC machinery & equipment at cost', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1142, '121002', 'Accumulated Depreciation - Plant',   'ASSET', 1020, 5, 'CREDIT',FALSE, FALSE, 'Contra-asset accumulated depreciation', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Trade Payables
+    (1201, '211001', 'Trade Creditors Control Account',    'LIABILITY', 1031, 5, 'CREDIT', FALSE, FALSE, 'Accounts Payable sub-ledger control', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- GST & Statutory Output Liabilities
+    (1211, '212001', 'CGST Output Liability',              'LIABILITY', 1032, 5, 'CREDIT', FALSE, FALSE, 'Central GST Output Tax Payable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1212, '212002', 'SGST Output Liability',              'LIABILITY', 1032, 5, 'CREDIT', FALSE, FALSE, 'State GST Output Tax Payable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1213, '212003', 'IGST Output Liability',              'LIABILITY', 1032, 5, 'CREDIT', FALSE, FALSE, 'Integrated GST Output Tax Payable', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1214, '212004', 'TDS Payable on Vendor Contracts',    'LIABILITY', 1032, 5, 'CREDIT', FALSE, FALSE, 'Tax Deducted at Source Sec 194C/194Q', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1215, '212005', 'PF & ESIC Payable',                  'LIABILITY', 1032, 5, 'CREDIT', FALSE, FALSE, 'Provident Fund & ESIC employee dues', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Equity
+    (1301, '311001', 'Paid-Up Equity Share Capital',       'EQUITY',    1040, 5, 'CREDIT', FALSE, FALSE, 'Ordinary voting equity share capital', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1302, '312001', 'Retained Earnings & Reserves',       'EQUITY',    1040, 5, 'CREDIT', FALSE, FALSE, 'Accumulated prior years retained profit', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Operating Revenue
+    (1401, '411001', 'Domestic Sales - Finished Goods',    'REVENUE',   1050, 5, 'CREDIT', FALSE, FALSE, 'Revenue from sale of manufactured valves & fittings', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1402, '411002', 'Export Sales - Finished Goods',      'REVENUE',   1050, 5, 'CREDIT', FALSE, FALSE, 'Zero-rated export turnover', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1403, '411003', 'Job-Work Service Revenue',           'REVENUE',   1050, 5, 'CREDIT', FALSE, FALSE, 'Machining service charges billed to third parties', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1404, '412001', 'Scrap & Recoverable Waste Sales',    'REVENUE',   1050, 5, 'CREDIT', FALSE, FALSE, 'Revenue from sale of metal turnings and scrap', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    -- Expenses & COGS
+    (1501, '511001', 'Raw Material Consumption',          'EXPENSE',   1060, 5, 'DEBIT',  FALSE, FALSE, 'Cost of raw materials issued to shopfloor', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1502, '511002', 'Direct Shopfloor Machine Wages',     'EXPENSE',   1060, 5, 'DEBIT',  FALSE, FALSE, 'Direct machine operator labor cost', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1503, '511003', 'Subcontracting Job-Work Charges',    'EXPENSE',   1060, 5, 'DEBIT',  FALSE, FALSE, 'Outside vendor heat treatment & coating processing', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1504, '511004', 'Power, Fuel & Industrial Gas',       'EXPENSE',   1060, 5, 'DEBIT',  FALSE, FALSE, 'Electricity tariff, furnace fuel & argon gas', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1505, '511005', 'Inventory Write-Off & Revaluation',  'EXPENSE',   1060, 5, 'DEBIT',  FALSE, FALSE, 'Periodic stock physical variance & write-down', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1511, '521001', 'Factory & Office Admin Expenses',    'EXPENSE',   1070, 5, 'DEBIT',  FALSE, FALSE, 'General maintenance, security & administrative', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1512, '521002', 'Freight Outward & Logistics',        'EXPENSE',   1070, 5, 'DEBIT',  FALSE, FALSE, 'Customer delivery transport costs', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1513, '521003', 'Bank & Interest Charges',            'EXPENSE',   1070, 5, 'DEBIT',  FALSE, FALSE, 'Working capital interest and bank service fees', TRUE, TRUE, 1001, 1001, 1001, 1001),
+    (1514, '521004', 'Depreciation on Plant & Equipment',   'EXPENSE',   1070, 5, 'DEBIT',  FALSE, FALSE, 'Monthly SLM depreciation charges', TRUE, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, account_code) DO NOTHING;
+
+SELECT setval('seq_acc_chart_of_accounts_id', GREATEST((SELECT COALESCE(MAX(account_id), 1514) FROM tbl_acc_chart_of_accounts), 1514));
+
+
+-- ============================================================================
+-- STEP 10.2: BANKING, AP & AR SUBSYSTEM SEED DATA
+-- Screen 1048: BANKING_ACCOUNTS
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, module_name, screen_code, screen_name, route_path, icon_name,
+    display_order, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1048, 'ACCOUNTS', 'BANKING_ACCOUNTS', 'AP, AR & Bank Reconciliation Subsystem', '/accounts/banking', 'Landmark', 49, TRUE, 1001, 1001, 1001, 1001
+) ON CONFLICT (screen_code) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1048) FROM tbl_sec_screen), 1048));
+
+-- Actions for Screen 1048
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1173, 1048, 'EXPORT',    'Export AP, AR & Bank Reconciliation Register',          TRUE, 1001, 1001, 1001, 1001),
+    (1174, 1048, 'PRINT',     'Print Payment Advice & Collection Receipt',              TRUE, 1001, 1001, 1001, 1001),
+    (1175, 1048, 'DISBURSE',  'Post AP Vendor Payment Disbursement with TDS',           TRUE, 1001, 1001, 1001, 1001),
+    (1176, 1048, 'RECEIVE',   'Post AR Customer Payment Collection Receipt',            TRUE, 1001, 1001, 1001, 1001),
+    (1177, 1048, 'RECONCILE', 'Authorize Bank Statement Reconciliation (BRS)',        TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1177) FROM tbl_sec_action), 1177));
+
+-- Role Screen Permissions for 1048
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1048, TRUE,  TRUE,  TRUE,  TRUE,  1001, 1001, 1001, 1001), -- Super Admin
+    (1002, 1048, TRUE,  TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001), -- Plant Admin
+    (1003, 1048, TRUE,  TRUE,  TRUE,  FALSE, 1001, 1001, 1001, 1001), -- Accounts Manager
+    (1004, 1048, TRUE,  TRUE,  FALSE, FALSE, 1001, 1001, 1001, 1001), -- QA / Prod
+    (1005, 1048, TRUE,  FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- Auditor
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Role Action Permissions for Screen 1048
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1048, 1173, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1048, 1174, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1048, 1175, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1048, 1176, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1048, 1177, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1048, 1173, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1048, 1174, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1048, 1175, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1048, 1176, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1048, 1177, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1048, 1173, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1048, 1174, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1048, 1175, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1048, 1176, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1048, 1177, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- Document Number Series for Payments, Receipts and BRS Statements
+INSERT INTO tbl_sys_doc_number_series (
+    series_id, series_code, series_name, doc_type_code, doc_type_name, module_name,
+    prefix_template, suffix_template, starting_no, current_next_no, padding_digits,
+    separator_char, reset_frequency, allow_manual_override, is_default, is_active,
+    target_comp_id, target_branch_id, target_fyear_id, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1038, 'AHM-PAY-2627', 'Vendor Payment Disbursement Series 2026-27', 'PAYMENT_VOUCHER', 'AP Payment Voucher', 'ACCOUNTS', 'PAY-AHM-2627-', '', 1, 1, 4, '-', 'FINANCIAL_YEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001, 1001, 1001, 1001),
+    (1039, 'AHM-REC-2627', 'Customer Receipt Collection Series 2026-27', 'RECEIPT_VOUCHER', 'AR Receipt Voucher', 'ACCOUNTS', 'REC-AHM-2627-', '', 1, 1, 4, '-', 'FINANCIAL_YEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001, 1001, 1001, 1001),
+    (1040, 'AHM-BRS-2627', 'Bank Reconciliation Statement Series 2026-27', 'BRS_STATEMENT', 'Bank Reconciliation', 'ACCOUNTS', 'BRS-AHM-2627-', '', 1, 1, 4, '-', 'FINANCIAL_YEAR', FALSE, TRUE, TRUE, 1001, 1001, 1001, 1001, 1001, 1001, 1001)
+ON CONFLICT (target_comp_id, target_branch_id, target_fyear_id, series_code) DO NOTHING;
+
+SELECT setval('seq_doc_series_id', GREATEST((SELECT COALESCE(MAX(series_id), 1040) FROM tbl_sys_doc_number_series), 1040));
+
+-- Seed Active Bank Accounts
+INSERT INTO tbl_acc_bank_account (
+    bank_account_id, account_code, account_name, bank_name, branch_name, account_number,
+    account_type, ifsc_code, swift_code, currency_code, gl_account_id,
+    opening_balance, current_balance, od_limit, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 'BANK-SBI-01', 'State Bank of India - Current A/c', 'State Bank of India', 'GIDC Vatva Industrial Estate, Ahmedabad', '381920192801', 'CURRENT', 'SBIN0001234', 'SBININBB123', 'INR', 1101, 4500000.00, 4500000.00, 0.00, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'BANK-HDFC-CC', 'HDFC Bank - Working Capital CC A/c', 'HDFC Bank Ltd', 'Prahladnagar Corporate Branch, Ahmedabad', '50200088912345', 'CASH_CREDIT', 'HDFC0000123', 'HDFCINBB123', 'INR', 1102, 1500000.00, 1500000.00, 5000000.00, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'CASH-PLANT-01', 'Petty Cash - Plant Stores Safe', 'Cash in Hand', 'Plant Unit 1 Stores Safe', 'PETTY-CASH-01', 'PETTY_CASH', NULL, NULL, 'INR', 1103, 50000.00, 50000.00, 0.00, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, account_code) DO NOTHING;
+
+SELECT setval('seq_acc_bank_account_id', GREATEST((SELECT COALESCE(MAX(bank_account_id), 1003) FROM tbl_acc_bank_account), 1003));
