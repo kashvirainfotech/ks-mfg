@@ -40,6 +40,8 @@ import { PurchaseInvoiceMasterPage } from './pages/procurement/PurchaseInvoiceMa
 import { InwardQcMasterPage } from './pages/quality/InwardQcMasterPage';
 import { InProcessQcMasterPage } from './pages/quality/InProcessQcMasterPage';
 import { PdiMasterPage } from './pages/quality/PdiMasterPage';
+import { NcrMasterPage } from './pages/quality/NcrMasterPage';
+import { CalibrationMasterPage } from './pages/quality/CalibrationMasterPage';
 import { BomMasterPage } from './pages/manufacturing/BomMasterPage';
 import { WorkCenterMasterPage } from './pages/manufacturing/WorkCenterMasterPage';
 import { RoutingMasterPage } from './pages/manufacturing/RoutingMasterPage';
@@ -346,6 +348,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <PdiMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/quality/ncr"
+              element={
+                <ProtectedLayout>
+                  <NcrMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/quality/calibration"
+              element={
+                <ProtectedLayout>
+                  <CalibrationMasterPage />
                 </ProtectedLayout>
               }
             />

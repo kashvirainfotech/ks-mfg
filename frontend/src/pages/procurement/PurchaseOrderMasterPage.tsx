@@ -1240,9 +1240,6 @@ export const PurchaseOrderMasterPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Purchase Orders & Commercial Release
             </h1>
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-              Procurement Live
-            </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Enterprise procurement lifecycle, supplier contracting, GST breakdown, and commercial release authorization.
@@ -1448,7 +1445,7 @@ export const PurchaseOrderMasterPage: React.FC = () => {
         title="Purchase Orders Register"
         subtitle="Active enterprise purchase contracts, supplier orders, GST breakdowns, and commercial release authorization"
         screenCode="PURCHASE_ORDER"
-        tableNameBadge="Live"
+        tableNameBadge="tbl_pur_po_header"
         data={purchaseOrders}
         rowKey={(row) => row.poId}
         isLoading={isPoListLoading}

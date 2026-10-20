@@ -1725,3 +1725,87 @@ When a new screen is released, this manual provides:
      * Detailed chemical, mechanical, hydrostatic hold test, and NDE test data tables.
      * 3-tier authorized signatory blocks: Quality Control Inspector, Third-Party Witness / Customer TPI, and Plant Head of Quality Assurance.
 * **Action Buttons:** `Record Pre-Dispatch Inspection` (`PDI_QC -> ADD`), `Edit Inspection` (`PDI_QC -> EDIT`), `Gating & Dispatch Approval` (`PDI_QC -> APPROVE`), `Release Official CoA` (`PDI_QC -> RELEASE`), `Print Certificate of Analysis` (`PDI_QC -> PRINT`), `Export Register` (`PDI_QC -> EXPORT`), and `Cancel Inspection` (`PDI_QC -> DELETE`).
+
+
+---
+
+### 2.46 Non-Conformance Reports (NCR) & 8D CAPA Engine (`/quality/ncr`)
+* **Target Audience:** Quality Assurance (QA) Managers, Material Review Board (MRB) Members, Plant Heads, Production Leads, and Vendor Quality Engineers.
+* **Core Business Purpose:** Governs non-conforming materials, in-process routing rejections, and customer RMA returns in strict compliance with **ISO 9001:2015 Clause 8.7 (Control of Nonconforming Outputs)** and **Clause 10.2 (Nonconformity and Corrective Action)**. Ensures immediate physical quarantine with tamper-evident Red Tags, coordinates cross-functional Material Review Board (MRB) voting, authorizes legally binding dispositions (Rework, Scrap, Return to Vendor, Concession), and enforces closed-loop 8D problem-solving (5-Why root cause analysis, systemic corrective actions, and recurrence verification audits).
+* **Key Functional Capabilities:**
+  1. **Executive Quality Non-Conformance KPI Dashboard:**
+     * **Total NCRs:** Cumulative volume of non-conformance dossiers logged across inward receipt, production shop floor, pre-dispatch gating, and customer field returns.
+     * **Under MRB Review:** Active count of non-conformance reports awaiting multi-disciplinary Material Review Board voting or executive disposition sign-off.
+     * **Active 8D CAPAs:** Total corrective action plans undergoing 5-Why root cause drilldowns, containment enforcement, or interim observation.
+     * **RTV & Scrapped:** Cumulative quantity of condemned materials either returned to suppliers under debit note or scrapped with total material write-off.
+     * **Closed & Verified:** Non-conformances with 100% verified effective corrective actions and zero defect recurrence in subsequent production batches.
+  2. **4-Tier View Tab Navigation:**
+     * **All Non-Conformance Reports:** Comprehensive historical and active register of all plant non-conformances with search, sorting, and grouping.
+     * **Under MRB Review:** Focused list of items requiring urgent MRB member consensus voting or plant manager disposition authorization.
+     * **Active 8D Corrective Action Plans:** Dedicated engineering workspace for tracking root cause investigations, target deadlines, and assigned QA engineers.
+     * **Closed & Verified Effective:** Archive of successfully resolved non-conformances backed by formal closure audit certificates.
+  3. **Quarantine Gating & Physical Red Tagging:**
+     * Immediate quarantine containment assignment with specific bay allocation (e.g., `Quarantine Bay A1 - Red Tagged`).
+     * Automatic generation and assignment of statutory Red Defect Tags (`TAG-RED-XXXX`), preventing uninspected or defective materials from being consumed in bills of materials or dispatched to customers.
+     * Defect classification across multiple severities (`CRITICAL`, `MAJOR`, `MINOR`) and categories (`DIMENSIONAL`, `METALLURGICAL`, `SURFACE_FINISH`, `PRESSURE_LEAK`, `VISUAL_PACKAGING`, `DOCUMENTATION`, `ASSEMBLY_FIT`).
+  4. **Multi-Member Material Review Board (MRB) Voting Engine:**
+     * Allows cross-functional board members (Plant Head, Quality Assurance Manager, Production Lead, Tooling Supervisor) to review defective material dossiers and cast individual recommendations.
+     * Recommendation options: `RETURN_TO_VENDOR`, `REWORK_SAME_OP`, `REWORK_NEW_OP`, `USE_AS_IS_CONCESSION`, `SCRAP`.
+     * Immutable voting log capturing member name, organizational role, vote timestamp, and technical engineering justifications.
+  5. **Authorized Final Disposition Clearance (`DISPOSITION`):**
+     * Controlled authority sign-off for authorized Plant Managers / Quality Directors to finalize legal material dispositions.
+     * Automatically transitions non-conformance status (`DISPOSITIONED`, `CAPA_ASSIGNED`, or `CLOSED` for authorized engineering concessions).
+     * Automatically triggers mandatory 8D CAPA generation when root cause investigation is required.
+  6. **8D Problem Solving & Root Cause Action Engine (D1 - D8):**
+     * Comprehensive closed-loop problem-solving framework:
+       * **D1/D2:** Cross-functional team formation & structured problem description.
+       * **D3:** Immediate interim containment action plan to protect customer and downstream manufacturing cells.
+       * **D4:** Deep root cause analysis utilizing formal methodologies (**5-Why Analysis**, **Fishbone / Ishikawa 6M**, **FMEA**, **Fault Tree**).
+       * **D5/D6:** Permanent corrective action planning and trial implementation with quantitative effectiveness metrics.
+       * **D7:** Systemic preventive actions including Standard Operating Procedure (SOP) revisions, Control Plan updates, and Poka-Yoke error-proofing.
+       * **D8:** Formal audit verification, management recognition, and zero-recurrence sign-off.
+  7. **Printable Statutory ISO 9001 Non-Conformance & 8D CAPA Sheet (`PRINT`):**
+     * Official corporate quality document featuring corporate letterhead, defect severity badges, physical red tag references, and part specifications.
+     * Complete 5-Why root cause breakdown, containment logs, and corrective/preventive action tables.
+     * 3-tier legal signatory blocks: Quality Inspector, MRB Chairman / Plant Head, and Head of Quality Assurance.
+* **Action Buttons:** `Raise Non-Conformance Report` (`NCR_QC -> ADD`), `Edit NCR` (`NCR_QC -> EDIT`), `Cast MRB Vote` (`NCR_QC -> EDIT`), `Authorize Disposition` (`NCR_QC -> DISPOSITION`), `Manage 8D CAPA Plan` (`NCR_QC -> EDIT`), `Verify & Close CAPA` (`NCR_QC -> CLOSE_CAPA`), `Print Statutory Sheet` (`NCR_QC -> PRINT`), `Export Register` (`NCR_QC -> EXPORT`), and `Delete NCR` (`NCR_QC -> DELETE`).
+
+
+---
+
+### 2.47 Gauge & Measuring Instrument Calibration Register (`/quality/calibration`)
+* **Target Audience:** Metrology Engineers, Toolroom Supervisors, QA Inspectors, Production Line Leads, and External NABL Calibration Auditors.
+* **Core Business Purpose:** Manages plant-wide measurement integrity and inspection tooling accuracy in strict adherence to **ISO 9001:2015 Clause 7.1.5 (Monitoring and Measuring Resources)** and **ISO/IEC 17025 (General Requirements for the Competence of Testing and Calibration Laboratories)**. Maintains an immutable digital equipment passport for all micrometers, verniers, pressure dials, torque wrenches, and height gauges, automates periodic recalibration scheduling, logs national standard traceable calibration events, and enforces automatic out-of-tolerance lockouts.
+* **Key Functional Capabilities:**
+  1. **Executive Metrology & Calibration KPI Dashboard:**
+     * **Total Instruments:** Active inventory count of all precision inspection tools and measurement assets registered in the plant.
+     * **Valid / In Tolerance:** Gauges with active, unexpired calibration certificates conforming to permissible tolerance limits.
+     * **Due Soon (≤ 15 Days):** High-priority instruments approaching scheduled calibration expiry requiring routing to internal metrology or external NABL laboratories.
+     * **Overdue / Expired:** Instruments that have exceeded calibration validity dates, immediately highlighted with warning alerts.
+     * **Lockout / Quarantined:** Decommissioned or out-of-tolerance gauges locked out from shopfloor usage to prevent measurement corruption.
+  2. **4-Tier View Tab Organization:**
+     * **All Measuring Instruments:** Comprehensive searchable metrology register across all instrument types and manufacturing cells.
+     * **Valid / In Specification:** Gated view filtering for tools certified for immediate precision shopfloor inspection.
+     * **Recalibration Due (≤ 15 Days):** Preventive scheduler list allowing metrology engineers to organize recall batches without halting production.
+     * **Overdue & Quarantined Lockouts:** Immediate risk containment view showing quarantined tools requiring servicing or permanent decommissioning.
+  3. **Comprehensive Digital Instrument Passport:**
+     * Records full metrological specifications: Unique Gauge Asset ID (`GAG-MIC-XXX`, `GAG-VER-XXX`), Make/Brand (Mitutoyo, Baker, WIKA, Norbar), Model Number, Serial Number.
+     * Measurement envelope specifications: Range Min & Max, Unit of Measure (mm, Bar, Nm, µm), Least Count / Resolution, Maximum Permissible Error (MPE).
+     * Physical custody tracking: Specific work center / metrology cabinet location and designated Engineer Custodian.
+     * Periodic frequency scheduler: Custom calibration recurrence interval (e.g., 90, 180, 360 days) with automated next due date projection.
+  4. **Calibration Verification Event Logging (`CALIBRATE`):**
+     * Detailed event recorder tracking periodic verification cycles: Calibration Date, Official Certificate Number, Accredited Calibrating Agency, Metrologist Name.
+     * National standard traceability: Grade-0 Ceramic Gauge Block Set, Deadweight Testers, or Master Length Bars with traceable NPL / NIST certifications.
+     * Quantitative observation matrix: Nominal Value vs Observed Value, calculated error delta, and permissible tolerance comparison.
+     * Verdict determination: `PASS`, `PASS_WITH_CORRECTION`, or `FAIL_OUT_OF_TOLERANCE`.
+     * Upon certification, automatically recalculates next due date and resets instrument status to `VALID`.
+  5. **Out-of-Tolerance Automatic Lockout & Quarantine Enforcement (`LOCKOUT`):**
+     * If a verification cycle records an error exceeding Maximum Permissible Error (MPE), the system immediately sets the instrument to `OUT_OF_TOLERANCE_LOCKOUT`.
+     * Manual lockout capability allows toolroom supervisors to immediately quarantine gauges exhibiting physical damage, ratchet slipping, or zero drift.
+     * Locked-out instruments are visually branded with bright red warning tags across tables, preventing operators from logging inspection readings with compromised equipment.
+  6. **Printable Statutory ISO/IEC 17025 Calibration Certificate & Passport (`PRINT`):**
+     * Formal, clean printable certificate ready for customer QA audits and ISO registrar verification.
+     * Includes corporate metrology letterhead, instrument identification, measurement capacity, and reference standard traceability.
+     * Tabular historical verification records displaying nominal vs observed values, calculated errors, and pass/fail verdicts.
+     * 2-tier authorized signatory blocks: Certified Metrologist / Calibrating Engineer and Head of Metrology & Quality Assurance.
+* **Action Buttons:** `Register Measuring Instrument` (`CALIBRATION_QC -> ADD`), `Edit Instrument` (`CALIBRATION_QC -> EDIT`), `Log Calibration Event` (`CALIBRATION_QC -> CALIBRATE`), `Lockout / Quarantine` (`CALIBRATION_QC -> LOCKOUT`), `Print Calibration Certificate` (`CALIBRATION_QC -> PRINT`), `Export Register` (`CALIBRATION_QC -> EXPORT`), and `Delete Instrument` (`CALIBRATION_QC -> DELETE`).

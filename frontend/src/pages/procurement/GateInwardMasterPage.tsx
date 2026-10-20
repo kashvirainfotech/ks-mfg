@@ -1107,9 +1107,6 @@ export const GateInwardMasterPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Gate Entry & Security Inward Register
             </h1>
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-              Procurement Live
-            </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Factory security perimeter logistics, vehicle weighbridge logging, supplier delivery challan inspection, and stores offload clearance.
@@ -1294,7 +1291,7 @@ export const GateInwardMasterPage: React.FC = () => {
         title="Gate Inward Register"
         subtitle="Live physical logistics register tracking incoming supplier trucks, weighments, challans, and offloading clearance"
         screenCode="GATE_INWARD"
-        tableNameBadge="Live"
+        tableNameBadge="tbl_pur_gate_inward_header"
         data={gateInwards}
         rowKey={(row) => row.gateInwardId}
         isLoading={isGinListLoading}

@@ -600,45 +600,45 @@ export const AgingDashboardPage: React.FC = () => {
 
   // Summary counts
   const summary = summaryData?.data || {
-    totalInventoryValuation: 445450,
-    totalTrackedLines: 6,
-    totalTrackedSkus: 6,
+    totalInventoryValuation: 0,
+    totalTrackedLines: 0,
+    totalTrackedSkus: 0,
     agingBrackets: {
-      freshStockValue: 178500,
-      normalStockValue: 70000,
-      slowMovingValue: 100000,
-      stagnantStockValue: 15750,
-      dormantStockValue: 61200,
-      deadStockValue: 20000,
+      freshStockValue: 0,
+      normalStockValue: 0,
+      slowMovingValue: 0,
+      stagnantStockValue: 0,
+      dormantStockValue: 0,
+      deadStockValue: 0,
     },
     fsnAnalysis: {
-      fastMovingCount: 2,
-      fastMovingValue: 248500,
-      slowMovingCount: 2,
-      slowMovingValue: 115750,
-      nonMovingCount: 2,
-      nonMovingValue: 81200,
+      fastMovingCount: 0,
+      fastMovingValue: 0,
+      slowMovingCount: 0,
+      slowMovingValue: 0,
+      nonMovingCount: 0,
+      nonMovingValue: 0,
     },
     reorderAlerts: {
-      stockoutCount: 1,
-      belowSafetyCount: 1,
-      belowRopCount: 2,
-      totalCriticalSkus: 4,
+      stockoutCount: 0,
+      belowSafetyCount: 0,
+      belowRopCount: 0,
+      totalCriticalSkus: 0,
     },
     provisioning: {
-      recommendedProvision: 39935,
-      deadStockValuation: 20000,
-      stagnantValuation: 76950,
+      recommendedProvision: 0,
+      deadStockValuation: 0,
+      stagnantValuation: 0,
     },
   };
 
-  const totalVal = summary.totalInventoryValuation || 1;
-  const pctFresh = Math.round((summary.agingBrackets.freshStockValue / totalVal) * 100);
-  const pctNormal = Math.round((summary.agingBrackets.normalStockValue / totalVal) * 100);
-  const pctSlow = Math.round((summary.agingBrackets.slowMovingValue / totalVal) * 100);
-  const pctStagnant = Math.round((summary.agingBrackets.stagnantStockValue / totalVal) * 100);
-  const pctDormant = Math.round((summary.agingBrackets.dormantStockValue / totalVal) * 100);
-  const pctDead = Math.max(0, 100 - (pctFresh + pctNormal + pctSlow + pctStagnant + pctDormant));
+  const totalVal = summary.totalInventoryValuation || 0;
+  const pctFresh = totalVal > 0 ? Math.round((summary.agingBrackets.freshStockValue / totalVal) * 100) : 0;
+  const pctNormal = totalVal > 0 ? Math.round((summary.agingBrackets.normalStockValue / totalVal) * 100) : 0;
+  const pctSlow = totalVal > 0 ? Math.round((summary.agingBrackets.slowMovingValue / totalVal) * 100) : 0;
+  const pctStagnant = totalVal > 0 ? Math.round((summary.agingBrackets.stagnantStockValue / totalVal) * 100) : 0;
+  const pctDormant = totalVal > 0 ? Math.round((summary.agingBrackets.dormantStockValue / totalVal) * 100) : 0;
+  const pctDead = totalVal > 0 ? Math.max(0, 100 - (pctFresh + pctNormal + pctSlow + pctStagnant + pctDormant)) : 0;
 
   // ----------------------------------------------------------------------------
   // Render

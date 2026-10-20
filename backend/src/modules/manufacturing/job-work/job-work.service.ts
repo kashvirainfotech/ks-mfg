@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Pool } from 'pg';
-import { DRIZZLE_DB } from '../../../database/database.module';
+import { DRIZZLE_DB, PG_POOL } from '../../../database/database.module';
 import type { DrizzleDb } from '../../../database/database.module';
 import { AuditLogService } from '../../../common/services/audit-log.service';
 import {
@@ -31,7 +31,7 @@ export class JobWorkService {
 
   constructor(
     @Inject(DRIZZLE_DB) private readonly drizzle: DrizzleDb,
-    @Inject('DATABASE_POOL') private readonly pool: Pool,
+    @Inject(PG_POOL) private readonly pool: Pool,
     private readonly auditLogService: AuditLogService,
   ) {}
 

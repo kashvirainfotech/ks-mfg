@@ -5408,3 +5408,189 @@ export const tblQcPdiCoaSpec = pgTable(
     uqQcPdiCoaSpec: unique('uq_qc_pdi_coa_spec').on(table.pdiId),
   }),
 );
+
+
+// ============================================================================
+// 91. Non-Conformance Reports (NCR) Header Table
+// ============================================================================
+export const tblQcNcrHeader = pgTable(
+  'tbl_qc_ncr_header',
+  {
+    ncrId: bigint('ncr_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_ncr_id')`),
+    ncrNo: varchar('ncr_no', { length: 50 }).notNull().unique(),
+    ncrDate: date('ncr_date').notNull().default(sql`CURRENT_DATE`),
+    ncrType: varchar('ncr_type', { length: 40 }).notNull().default('IN_PROCESS_DEFECT'),
+    sourceDocType: varchar('source_doc_type', { length: 40 }).notNull().default('IN_PROCESS_QC'),
+    sourceDocId: bigint('source_doc_id', { mode: 'number' }),
+    sourceDocNo: varchar('source_doc_no', { length: 50 }),
+    sourceDocDate: date('source_doc_date'),
+    itemId: bigint('item_id', { mode: 'number' }).notNull().references(() => tblInvItem.itemId),
+    itemCode: varchar('item_code', { length: 50 }).notNull(),
+    itemName: varchar('item_name', { length: 150 }).notNull(),
+    batchNo: varchar('batch_no', { length: 50 }),
+    heatNo: varchar('heat_no', { length: 50 }),
+    defectSeverity: varchar('defect_severity', { length: 20 }).notNull().default('MAJOR'),
+    defectCategory: varchar('defect_category', { length: 50 }).notNull().default('DIMENSIONAL'),
+    defectDescription: text('defect_description').notNull(),
+    inspectedQty: numeric('inspected_qty', { precision: 14, scale: 4 }).notNull().default('1.0000'),
+    rejectedQty: numeric('rejected_qty', { precision: 14, scale: 4 }).notNull().default('1.0000'),
+    uomId: bigint('uom_id', { mode: 'number' }).notNull().references(() => tblInvUom.uomId),
+    uomCode: varchar('uom_code', { length: 20 }),
+    containmentAction: text('containment_action'),
+    quarantineLocation: varchar('quarantine_location', { length: 100 }).default('Quarantine Bay A1 (Red Tagged)'),
+    redTagNo: varchar('red_tag_no', { length: 50 }),
+    mrbDisposition: varchar('mrb_disposition', { length: 40 }).notNull().default('PENDING'),
+    mrbApproverId: bigint('mrb_approver_id', { mode: 'number' }).references(() => tblSecUser.userId),
+    mrbApproverName: varchar('mrb_approver_name', { length: 100 }),
+    mrbApprovalDate: timestamp('mrb_approval_date', { withTimezone: true }),
+    mrbNotes: text('mrb_notes'),
+    isCapaRequired: boolean('is_capa_required').notNull().default(true),
+    capaStatus: varchar('capa_status', { length: 30 }).notNull().default('NOT_INITIATED'),
+    status: varchar('status', { length: 30 }).notNull().default('DRAFT'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 92. Material Review Board (MRB) Member Votes & Dispositions
+// ============================================================================
+export const tblQcNcrMrbVote = pgTable(
+  'tbl_qc_ncr_mrb_vote',
+  {
+    voteId: bigint('vote_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_ncr_mrb_vote_id')`),
+    ncrId: bigint('ncr_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblQcNcrHeader.ncrId, { onDelete: 'cascade' }),
+    voterId: bigint('voter_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblSecUser.userId),
+    voterName: varchar('voter_name', { length: 100 }).notNull(),
+    voterRole: varchar('voter_role', { length: 50 }).notNull(),
+    recommendedDisposition: varchar('recommended_disposition', { length: 40 }).notNull(),
+    voteComments: text('vote_comments'),
+    votedAt: timestamp('voted_at', { withTimezone: true }).notNull().defaultNow(),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 93. 8D Corrective and Preventive Action (CAPA) Engine
+// ============================================================================
+export const tblQcCapaAction = pgTable(
+  'tbl_qc_capa_action',
+  {
+    capaId: bigint('capa_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_capa_id')`),
+    capaNo: varchar('capa_no', { length: 50 }).notNull().unique(),
+    ncrId: bigint('ncr_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblQcNcrHeader.ncrId, { onDelete: 'cascade' }),
+    initiationDate: date('initiation_date').notNull().default(sql`CURRENT_DATE`),
+    targetCompletionDate: date('target_completion_date').notNull(),
+    actualClosureDate: date('actual_closure_date'),
+    rootCauseMethod: varchar('root_cause_method', { length: 50 }).notNull().default('5_WHY'),
+    rootCauseAnalysis: text('root_cause_analysis').notNull(),
+    containmentActionPlan: text('containment_action_plan'),
+    correctiveActionPlan: text('corrective_action_plan').notNull(),
+    preventiveActionPlan: text('preventive_action_plan').notNull(),
+    assignedToId: bigint('assigned_to_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblSecUser.userId),
+    assignedToName: varchar('assigned_to_name', { length: 100 }).notNull(),
+    verifierId: bigint('verifier_id', { mode: 'number' }).references(() => tblSecUser.userId),
+    verifierName: varchar('verifier_name', { length: 100 }),
+    verificationRemarks: text('verification_remarks'),
+    effectivenessStatus: varchar('effectiveness_status', { length: 30 }).notNull().default('PENDING'),
+    status: varchar('status', { length: 25 }).notNull().default('OPEN'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 94. Measuring Equipment & Gauge Calibration Master
+// ============================================================================
+export const tblQcGaugeMaster = pgTable(
+  'tbl_qc_gauge_master',
+  {
+    gaugeId: bigint('gauge_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_gauge_id')`),
+    gaugeCode: varchar('gauge_code', { length: 50 }).notNull().unique(),
+    gaugeName: varchar('gauge_name', { length: 150 }).notNull(),
+    gaugeType: varchar('gauge_type', { length: 50 }).notNull().default('MICROMETER'),
+    makeManufacturer: varchar('make_manufacturer', { length: 100 }).notNull(),
+    modelNo: varchar('model_no', { length: 50 }),
+    serialNo: varchar('serial_no', { length: 100 }).notNull(),
+    rangeMin: numeric('range_min', { precision: 10, scale: 4 }).notNull().default('0.0000'),
+    rangeMax: numeric('range_max', { precision: 10, scale: 4 }).notNull().default('25.0000'),
+    uom: varchar('uom', { length: 20 }).notNull().default('mm'),
+    leastCount: numeric('least_count', { precision: 10, scale: 5 }).notNull().default('0.00100'),
+    maxPermissibleError: numeric('max_permissible_error', { precision: 10, scale: 5 }).notNull().default('0.00200'),
+    locationCustody: varchar('location_custody', { length: 100 })
+      .notNull()
+      .default('CNC Machining Cell 01 - Quality Inspection Station'),
+    custodianId: bigint('custodian_id', { mode: 'number' }).references(() => tblSecUser.userId),
+    custodianName: varchar('custodian_name', { length: 100 }),
+    calibrationFrequencyDays: integer('calibration_frequency_days').notNull().default(180),
+    lastCalibrationDate: date('last_calibration_date').notNull(),
+    nextCalibrationDueDate: date('next_calibration_due_date').notNull(),
+    calibrationAgencyType: varchar('calibration_agency_type', { length: 30 })
+      .notNull()
+      .default('NABL_EXTERNAL_LAB'),
+    agencyName: varchar('agency_name', { length: 150 })
+      .notNull()
+      .default('Central Metallurgical & Gauge Metrology Lab (NABL Cert #CC-2914)'),
+    calibrationCertificateNo: varchar('calibration_certificate_no', { length: 100 })
+      .notNull()
+      .default('NABL-CAL-2026-9912'),
+    currentStatus: varchar('current_status', { length: 30 }).notNull().default('VALID'),
+    remarks: text('remarks'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);
+
+// ============================================================================
+// 95. Periodic Calibration Verification Events & MTC History
+// ============================================================================
+export const tblQcGaugeCalibrationHistory = pgTable(
+  'tbl_qc_gauge_calibration_history',
+  {
+    historyId: bigint('history_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_qc_gauge_cal_hist_id')`),
+    gaugeId: bigint('gauge_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblQcGaugeMaster.gaugeId, { onDelete: 'cascade' }),
+    calibrationEventNo: varchar('calibration_event_no', { length: 50 }).notNull(),
+    calibrationDate: date('calibration_date').notNull(),
+    certificateNo: varchar('certificate_no', { length: 100 }).notNull(),
+    calibratedByAgency: varchar('calibrated_by_agency', { length: 150 }).notNull(),
+    calibratorName: varchar('calibrator_name', { length: 100 }).notNull(),
+    masterInstrumentTraceability: varchar('master_instrument_traceability', { length: 200 })
+      .notNull()
+      .default('Grade-0 Ceramic Gauge Block Set (NPL / NIST Traceable)'),
+    nominalValue: numeric('nominal_value', { precision: 10, scale: 5 }).notNull().default('10.00000'),
+    observedValue: numeric('observed_value', { precision: 10, scale: 5 }).notNull().default('10.00050'),
+    errorVal: numeric('error_val', { precision: 10, scale: 5 }).notNull().default('0.00050'),
+    permissibleTolerance: numeric('permissible_tolerance', { precision: 10, scale: 5 }).notNull().default('0.00200'),
+    calibrationResult: varchar('calibration_result', { length: 30 }).notNull().default('PASS'),
+    nextDueDate: date('next_due_date').notNull(),
+    environmentalConditions: varchar('environmental_conditions', { length: 150 })
+      .default('Temp: 20.0 ± 0.5 °C, Humidity: 50 ± 5% RH'),
+    certificateUrl: varchar('certificate_url', { length: 255 }),
+    verifiedByUserId: bigint('verified_by_user_id', { mode: 'number' }).references(() => tblSecUser.userId),
+    verifiedByName: varchar('verified_by_name', { length: 100 }),
+    remarks: text('remarks'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  }
+);

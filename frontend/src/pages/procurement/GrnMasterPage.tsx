@@ -1215,9 +1215,6 @@ export const GrnMasterPage: React.FC = () => {
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Goods Receipt Note (GRN) & Quarantine Put-Away
                 </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  Live
-                </span>
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Physical dock verification, shortage/excess logging, quarantine staging bay put-away, and PO auto-sync.
@@ -1398,7 +1395,7 @@ export const GrnMasterPage: React.FC = () => {
         title="Goods Receipt Notes (GRN)"
         subtitle="Physical dock verification, shortage/excess logging, quarantine staging bay put-away, and PO auto-sync"
         screenCode="PURCHASE_GRN"
-        tableNameBadge="Live"
+        tableNameBadge="tbl_pur_grn_header"
         data={grns}
         columns={columns}
         isLoading={isListLoading}

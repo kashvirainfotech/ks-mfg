@@ -900,7 +900,7 @@ export const PutAwayMasterPage: React.FC = () => {
           title="Warehouse Put-Away & Bin Allocation"
           subtitle="Track physical material movement from receiving quarantine bays into permanent warehouse storage bins and post real-time stock ledger"
           screenCode="BIN_PUTAWAY"
-          tableNameBadge="WMS Execution"
+          tableNameBadge="tbl_inv_putaway_header"
           rowKey={(row) => row.putawayId}
           columns={columns}
           data={tasks}

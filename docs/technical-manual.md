@@ -1648,3 +1648,123 @@ Each screen or feature documentation entry must contain:
      * **Release Certificate of Analysis Modal (`RELEASE`):** Official digital release and authorization of EN 10204 Type 3.1 certificate.
      * **Statutory Certificate of Analysis Printable Report (`PRINT`):** ISO 9001:2015 & EN 10204:2004 Type 3.1 compliant legal inspection certificate with corporate letterhead, customer order reference, chemical ladle analysis, mechanical properties, hydrostatic hold pressure tests, NDE examination, and 3-tier authorized signatures (QC Inspector, TPI Third Party Witness, Head of QA).
      * **Confirm Delete Modal (`DELETE`):** Safe cancellation modal for unreleased inspection records.
+
+---
+
+### 2.46 Non-Conformance Reports (NCR), Material Review Board & 8D CAPA Action Engine (`/quality/ncr`)
+1. **Database Schema & Relational Model:**
+   * Tables Created:
+     * `tbl_qc_ncr_header` (Section 91):
+       * Primary Key: `ncr_id` BIGINT (`seq_qc_ncr_id`, starts at 1001).
+       * Document Number: `ncr_no` VARCHAR(50) NOT NULL (e.g. `NCR-AHM-2627-0001`).
+       * Date & Context: `ncr_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Source: `ncr_source` VARCHAR(30) NOT NULL (`INWARD_IQC`, `IN_PROCESS_IPQC`, `FINAL_PDI`, `RMA_SALES_RETURN`, `CUSTOMER_AUDIT`, `SUPPLIER_DEFECT`).
+       * Defect Classification: `severity` VARCHAR(20) NOT NULL DEFAULT `'MAJOR'` (`CRITICAL`, `MAJOR`, `MINOR`), `defect_type` VARCHAR(50) NOT NULL (`DIMENSIONAL`, `SURFACE_FINISH`, `METALLURGICAL_HARDNESS`, `HYDRO_PRESSURE_LEAK`, `VISUAL_CRACK_FLAW`, `PACKAGING_DAMAGE`, `DOCUMENTATION_MISMATCH`).
+       * Relational Traceability: `source_ref_no` VARCHAR(100), `source_ref_id` BIGINT, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `vendor_id` BIGINT REFERENCES `tbl_crm_party(party_id)`, `customer_id` BIGINT REFERENCES `tbl_crm_party(party_id)`, `wo_id` BIGINT REFERENCES `tbl_mfg_wo_header(wo_id)`, `job_card_id` BIGINT REFERENCES `tbl_mfg_job_card(job_card_id)`, `warehouse_id` BIGINT REFERENCES `tbl_inv_warehouse(warehouse_id)`, `storage_bin_id` BIGINT REFERENCES `tbl_inv_storage_bin(bin_id)`.
+       * Heat & Batch: `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Quantities & Immediate Containment: `defect_qty` NUMERIC(14,3) NOT NULL DEFAULT 1.000, `uom_code` VARCHAR(20) DEFAULT `'NOS'`, `containment_action` VARCHAR(500), `is_quarantined` BOOLEAN NOT NULL DEFAULT TRUE.
+       * Root Cause Analysis: `root_cause_analysis` VARCHAR(1000), `five_why_analysis` VARCHAR(1000).
+       * Disposition & Status: `disposition` VARCHAR(30) NOT NULL DEFAULT `'PENDING_MRB'` (`PENDING_MRB`, `SCRAP`, `REWORK`, `USE_AS_IS_CONCESSION`, `RETURN_TO_VENDOR`), `disposition_notes` VARCHAR(500), `disposition_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `disposition_date` TIMESTAMPTZ, `estimated_scrap_value` NUMERIC(14,2) DEFAULT 0.00, `rework_cost` NUMERIC(14,2) DEFAULT 0.00, `capa_required` BOOLEAN NOT NULL DEFAULT FALSE, `status` VARCHAR(25) NOT NULL DEFAULT `'OPEN'` (`OPEN`, `UNDER_MRB_REVIEW`, `DISPOSITIONED`, `CAPA_IN_PROGRESS`, `CLOSED`, `CANCELLED`), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, branch_id, ncr_no)`.
+     * `tbl_qc_ncr_mrb_vote` (Section 92):
+       * Primary Key: `mrb_vote_id` BIGINT (`seq_qc_ncr_mrb_vote_id`, starts at 1001).
+       * Foreign Key: `ncr_id` BIGINT NOT NULL REFERENCES `tbl_qc_ncr_header(ncr_id)` ON DELETE CASCADE.
+       * Reviewer Context: `member_user_id` BIGINT NOT NULL REFERENCES `tbl_sec_user(user_id)`, `member_role` VARCHAR(50) NOT NULL (`QA_MANAGER`, `PRODUCTION_HEAD`, `DESIGN_ENGINEERING`, `PURCHASE_HEAD`, `PLANT_MANAGER`).
+       * Voting Decision: `vote` VARCHAR(30) NOT NULL (`APPROVE_SCRAP`, `APPROVE_REWORK`, `APPROVE_CONCESSION`, `APPROVE_RTV`, `REJECT_DISPOSITION`), `comments` VARCHAR(500), `vote_date` TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(ncr_id, member_user_id)`.
+     * `tbl_qc_capa_action` (Section 93):
+       * Primary Key: `capa_id` BIGINT (`seq_qc_capa_id`, starts at 1001).
+       * Foreign Key: `ncr_id` BIGINT NOT NULL REFERENCES `tbl_qc_ncr_header(ncr_id)` ON DELETE CASCADE.
+       * CAPA Context: `capa_no` VARCHAR(50) NOT NULL (e.g. `CAPA-AHM-2627-0001`), `capa_type` VARCHAR(25) NOT NULL DEFAULT `'CORRECTIVE'` (`CORRECTIVE`, `PREVENTIVE`), `d_discipline` VARCHAR(20) NOT NULL DEFAULT `'D5_CORRECTIVE'` (`D1_TEAM`, `D2_PROBLEM`, `D3_CONTAINMENT`, `D4_ROOT_CAUSE`, `D5_CORRECTIVE`, `D6_VALIDATION`, `D7_PREVENTION`, `D8_CLOSURE`).
+       * Action Assignment: `action_description` VARCHAR(1000) NOT NULL, `assigned_to` BIGINT NOT NULL REFERENCES `tbl_sec_user(user_id)`, `target_date` DATE NOT NULL, `completion_date` DATE, `status` VARCHAR(25) NOT NULL DEFAULT `'OPEN'` (`OPEN`, `IN_PROGRESS`, `COMPLETED`, `VERIFIED_EFFECTIVE`).
+       * Effectiveness Verification: `verification_notes` VARCHAR(500), `verified_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `verified_date` TIMESTAMPTZ, `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, branch_id, capa_no)`.
+   * Sequences: `seq_qc_ncr_id`, `seq_qc_ncr_mrb_vote_id`, `seq_qc_capa_id` (starting at 1001).
+   * Indexes: `idx_qc_ncr_comp_branch`, `idx_qc_ncr_source`, `idx_qc_ncr_status`, `idx_qc_ncr_severity`, `idx_qc_ncr_item`, `idx_qc_ncr_vendor`, `idx_qc_ncr_dates`, `idx_qc_ncr_mrb_ncr`, `idx_qc_ncr_mrb_user`, `idx_qc_capa_ncr`, `idx_qc_capa_status`, `idx_qc_capa_assigned`.
+   * Triggers: `trg_qc_ncr_header_updated_date`, `trg_qc_ncr_mrb_vote_updated_date`, and `trg_qc_capa_action_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1045` (`NCR_QC`, `/quality/ncr`, `AlertTriangle`, sort order 45) with actions `1161` (`EXPORT`), `1162` (`PRINT`), `1163` (`DISPOSITION`), and `1164` (`CLOSE_CAPA`). Registered Document Number Series `AHM-NCR-2627` (prefix `NCR-AHM-2627-`) and `AHM-CAPA-2627` (prefix `CAPA-AHM-2627-`). Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded `NCR-AHM-2627-0001` (Inward IQC dimensional defect with RTV disposition and CAPA-0001), `NCR-AHM-2627-0002` (In-process IPQC shrinkage defect under MRB review), and `NCR-AHM-2627-0003` (PDI minor coating concession accepted).
+2. **Backend Architecture & API Contracts (`backend/src/modules/quality/ncr/`):**
+   * Controller: `NcrController` mapped to `/api/v1/quality/ncr`.
+   * Service: `NcrService` injecting `DRIZZLE_DB`, `PG_POOL`, and `AuditLogService`.
+   * Endpoints:
+     * `GET /quality/ncr/summary` (`@RequirePermission('NCR_QC', 'VIEW')`) — KPI metrics (`totalNcrs`, `criticalCount`, `pendingMrbCount`, `capaInProgressCount`, `closedCount`).
+     * `GET /quality/ncr/lookups` (`@RequirePermission('NCR_QC', 'VIEW')`) — items, vendors, customers, work orders, job cards, warehouses, storage bins, and users.
+     * `GET /quality/ncr/:id` (`@RequirePermission('NCR_QC', 'VIEW')`) — single NCR with all MRB committee votes and 8D CAPA action items.
+     * `GET /quality/ncr` (`@RequirePermission('NCR_QC', 'VIEW')`) — multi-parameter filtered query with joins across items, vendors, customers, and users.
+     * `POST /quality/ncr` (`@RequirePermission('NCR_QC', 'ADD')`) — atomic creation of NCR with auto document numbering series.
+     * `PUT /quality/ncr/:id` (`@RequirePermission('NCR_QC', 'EDIT')`) — updates NCR defect data, containment action, and 5-Why analysis while open/under review.
+     * `POST /quality/ncr/:id/mrb-vote` (`@RequirePermission('NCR_QC', 'DISPOSITION')`) — casts cross-functional MRB member vote (`APPROVE_SCRAP`, `APPROVE_REWORK`, etc.) and automatically updates NCR status to `UNDER_MRB_REVIEW`.
+     * `POST /quality/ncr/:id/disposition` (`@RequirePermission('NCR_QC', 'DISPOSITION')`) — formalizes final MRB disposition (`SCRAP`, `REWORK`, `USE_AS_IS_CONCESSION`, `RETURN_TO_VENDOR`), records scrap/rework costs, and transitions status to `DISPOSITIONED` or `CAPA_IN_PROGRESS`.
+     * `POST /quality/ncr/:id/capa` (`@RequirePermission('NCR_QC', 'DISPOSITION')`) — creates an 8D CAPA action item linked to the NCR with auto CAPA numbering.
+     * `POST /quality/ncr/capa/:capaId/close` (`@RequirePermission('NCR_QC', 'CLOSE_CAPA')`) — closes and verifies CAPA effectiveness with verification notes, closing the parent NCR if all actions are verified.
+     * `DELETE /quality/ncr/:id` (`@RequirePermission('NCR_QC', 'DELETE')`) — soft-cancels un-dispositioned NCR record.
+3. **Frontend Architecture (`frontend/src/pages/quality/NcrMasterPage.tsx`):**
+   * Accessible at route `/quality/ncr` under `QUALITY ASSURANCE & QC` with `AlertTriangle` icon.
+   * Built with `<PermissionGate screen="NCR_QC">`.
+   * 5 KPI summary cards (`Total Non-Conformances`, `Critical Severity`, `Pending MRB Review`, `Active CAPA Engine`, `Closed & Resolved`).
+   * Tab-based view (`All NCRs`, `Critical Severity`, `Pending MRB Disposition`, `Active CAPA Engine`, `Closed / Resolved`).
+   * Filter toolbar with search, source filter, severity filter, disposition filter, and status filter.
+   * Master table with row actions for inspection detail, MRB voting, final disposition, 8D CAPA drawer, printable ISO/IATF 8D sheet, editing, and cancellation.
+   * Modals & Drawers:
+     * **Log / Edit Non-Conformance Report Modal (`ADD` / `EDIT`):** Source tracking, item selection, defect classification, quarantine status, containment actions, and 5-Why root cause breakdown.
+     * **NCR Detail & MRB Review Board Modal (`VIEW`):** Full technical review of defect evidence, containment state, MRB consensus matrix, and 8D CAPA timeline.
+     * **Cast MRB Committee Vote Modal (`DISPOSITION`):** Cross-functional managerial voting with technical remarks.
+     * **Final MRB Disposition Modal (`DISPOSITION`):** Material disposition selection, rework/scrap cost estimation, and CAPA enforcement trigger.
+     * **8D Problem Solving & CAPA Action Engine Drawer (`DISPOSITION`):** Interactive D1–D8 discipline checklist, assigned owners, target dates, and status tracker.
+     * **Verify & Close CAPA Action Modal (`CLOSE_CAPA`):** Quality audit verification notes and effectiveness sign-off.
+     * **Printable ISO 9001 / IATF 16949 NCR & 8D Sheet (`PRINT`):** Statutory report with company letterhead, root cause 5-Why analysis, MRB voting matrix, 8D corrective actions, and 3-tier authorized signatures (Initiator, MRB Chair, QA Head).
+
+---
+
+### 2.47 Gauge, Tool & Measuring Instrument Calibration Register (`/quality/calibration`)
+1. **Database Schema & Relational Model:**
+   * Tables Created:
+     * `tbl_qc_gauge_master` (Section 94):
+       * Primary Key: `gauge_id` BIGINT (`seq_qc_gauge_id`, starts at 1001).
+       * Identification: `gauge_code` VARCHAR(50) NOT NULL (e.g. `GAG-MIC-001`), `gauge_name` VARCHAR(150) NOT NULL.
+       * Asset Specification: `category` VARCHAR(50) NOT NULL (`MICROMETER`, `VERNIER_CALIPER`, `DIAL_INDICATOR`, `PRESSURE_GAUGE`, `TORQUE_WRENCH`, `TEMPERATURE_CONTROLLER`, `BORE_GAUGE`, `HEIGHT_GAUGE`, `CMM`, `WEIGHING_SCALE`), `manufacturer` VARCHAR(100), `model_no` VARCHAR(100), `serial_no` VARCHAR(100) NOT NULL.
+       * Metrology Parameters: `measurement_range` VARCHAR(100), `least_count` NUMERIC(10,5), `uom_code` VARCHAR(20) DEFAULT `'mm'`, `permissible_tolerance` NUMERIC(10,5).
+       * Physical Custody: `location_department` VARCHAR(100) NOT NULL, `custodian_user_id` BIGINT REFERENCES `tbl_sec_user(user_id)`.
+       * Calibration Schedule: `calibration_frequency_days` INT NOT NULL DEFAULT 180, `last_calibration_date` DATE NOT NULL, `next_due_date` DATE NOT NULL.
+       * Laboratory & Accreditation: `calibration_agency` VARCHAR(150), `is_external_nabl` BOOLEAN NOT NULL DEFAULT TRUE, `nabl_certificate_no` VARCHAR(100), `master_standard_traceability` VARCHAR(200).
+       * Status & Out-of-Tolerance Gating: `status` VARCHAR(25) NOT NULL DEFAULT `'VALID'` (`VALID`, `CALIBRATION_DUE_SOON`, `OVERDUE_EXPIRED`, `OUT_OF_TOLERANCE_LOCKED`, `UNDER_MAINTENANCE`, `DECOMMISSIONED`), `lockout_reason` VARCHAR(250), `lockout_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `lockout_date` TIMESTAMPTZ, `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraint: Unique constraint on `(comp_id, branch_id, gauge_code)`.
+     * `tbl_qc_gauge_calibration_history` (Section 95):
+       * Primary Key: `history_id` BIGINT (`seq_qc_gauge_cal_hist_id`, starts at 1001).
+       * Foreign Key: `gauge_id` BIGINT NOT NULL REFERENCES `tbl_qc_gauge_master(gauge_id)` ON DELETE CASCADE.
+       * Calibration Certificate Event: `calibration_date` DATE NOT NULL, `calibrated_by_agency` VARCHAR(150) NOT NULL, `technician_name` VARCHAR(100), `nabl_cert_no` VARCHAR(100), `valid_until_date` DATE NOT NULL.
+       * Observed Metrology Data: `observed_error` NUMERIC(10,5), `permissible_limit` NUMERIC(10,5), `calibration_result` VARCHAR(25) NOT NULL DEFAULT `'PASS'` (`PASS`, `FAIL_LOCKED`, `CONDITIONAL_PASS`), `uncertainty_measurement` NUMERIC(10,5), `environmental_temp_c` NUMERIC(5,2), `humidity_pct` NUMERIC(5,2), `master_equipment_used` VARCHAR(200), `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+   * Sequences: `seq_qc_gauge_id`, `seq_qc_gauge_cal_hist_id` (starting at 1001).
+   * Indexes: `idx_qc_gauge_comp_branch`, `idx_qc_gauge_status`, `idx_qc_gauge_category`, `idx_qc_gauge_next_due`, `idx_qc_gauge_custodian`, `idx_qc_gauge_cal_hist_gauge`, `idx_qc_gauge_cal_hist_date`.
+   * Triggers: `trg_qc_gauge_master_updated_date` and `trg_qc_gauge_cal_hist_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1046` (`CALIBRATION_QC`, `/quality/calibration`, `Gauge`, sort order 46) with actions `1165` (`EXPORT`), `1166` (`PRINT`), `1167` (`CALIBRATE`), and `1168` (`LOCKOUT`). Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded `GAG-MIC-001` (Digital Micrometer, Valid with Mitutoyo Cal Master), `GAG-VER-002` (Dial Vernier, Due Soon in 15 days), `GAG-PRS-003` (Bourdon Pressure Gauge, Overdue / Expired), and `GAG-TRQ-004` (Click Torque Wrench, Locked Out / Quarantined).
+2. **Backend Architecture & API Contracts (`backend/src/modules/quality/calibration/`):**
+   * Controller: `CalibrationController` mapped to `/api/v1/quality/calibration`.
+   * Service: `CalibrationService` injecting `DRIZZLE_DB`, `PG_POOL`, and `AuditLogService`.
+   * Endpoints:
+     * `GET /quality/calibration/summary` (`@RequirePermission('CALIBRATION_QC', 'VIEW')`) — KPI metrics (`totalGauges`, `activeValidCount`, `dueSoonCount`, `expiredOverdueCount`, `lockedOutCount`).
+     * `GET /quality/calibration/lookups` (`@RequirePermission('CALIBRATION_QC', 'VIEW')`) — users, departments, and categories.
+     * `GET /quality/calibration/:id` (`@RequirePermission('CALIBRATION_QC', 'VIEW')`) — gauge asset card with chronological calibration event history.
+     * `GET /quality/calibration` (`@RequirePermission('CALIBRATION_QC', 'VIEW')`) — multi-parameter filtered query with auto status evaluation based on current date.
+     * `POST /quality/calibration` (`@RequirePermission('CALIBRATION_QC', 'ADD')`) — registers new measuring instrument asset.
+     * `PUT /quality/calibration/:id` (`@RequirePermission('CALIBRATION_QC', 'EDIT')`) — updates gauge metadata, location, and custodian.
+     * `POST /quality/calibration/:id/calibrate` (`@RequirePermission('CALIBRATION_QC', 'CALIBRATE')`) — logs a certified calibration event, verifies observed error against permissible tolerance, updates `last_calibration_date` and `next_due_date`, and unlocks or locks out the gauge.
+     * `POST /quality/calibration/:id/lockout` (`@RequirePermission('CALIBRATION_QC', 'LOCKOUT')`) — administrative immediate safety lockout placing gauge into `OUT_OF_TOLERANCE_LOCKED` quarantine.
+     * `DELETE /quality/calibration/:id` (`@RequirePermission('CALIBRATION_QC', 'DELETE')`) — soft-cancels decommissioned instrument.
+3. **Frontend Architecture (`frontend/src/pages/quality/CalibrationMasterPage.tsx`):**
+   * Accessible at route `/quality/calibration` under `QUALITY ASSURANCE & QC` with `Gauge` icon.
+   * Built with `<PermissionGate screen="CALIBRATION_QC">`.
+   * 5 KPI summary cards (`Total Metrology Assets`, `Active & Valid`, `Recalibration Due Soon`, `Expired / Overdue`, `Locked Out / Quarantine`).
+   * Tab-based view (`All Instruments`, `Valid & Certified`, `Due Soon (< 30 Days)`, `Overdue / Expired`, `Locked Out / Quarantined`).
+   * Filter toolbar with search, category dropdown, status dropdown, and department filter.
+   * Master table with row actions for asset passport, logging calibration, emergency lockout, printable calibration tag/certificate, editing, and decommissioning.
+   * Modals:
+     * **Register / Edit Measuring Instrument Modal (`ADD` / `EDIT`):** Tool code, serial number, least count, permissible tolerance, calibration interval, and custodian assignment.
+     * **Instrument Calibration Passport Modal (`VIEW`):** Full metrology specifications, uncertainty ratings, and interactive chronological calibration history ledger.
+     * **Log Calibration Event Modal (`CALIBRATE`):** Calibration date, NABL cert number, testing agency, observed error vs permissible tolerance, ambient temperature/humidity, and auto-computed next due date.
+     * **Safety Quarantine & Lockout Modal (`LOCKOUT`):** Tool quarantine tagging and non-conformance containment locking out instrument from production.
+     * **Printable ISO/IEC 17025 & NABL Metrology Certificate & Tool Tag (`PRINT`):** Formatted legal calibration certificate and shopfloor instrument sticker tag with master equipment traceability and authorized metrologist sign-off blocks.

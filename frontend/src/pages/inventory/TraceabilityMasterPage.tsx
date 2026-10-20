@@ -508,14 +508,14 @@ export const TraceabilityMasterPage: React.FC = () => {
 
   // Summary counts
   const summary = summaryData?.data || {
-    totalBatches: 5,
-    activeHeats: 2,
-    totalSerials: 3,
-    deliveredSerials: 1,
-    availableSerials: 2,
-    totalGenealogyLinks: 2,
+    totalBatches: 0,
+    activeHeats: 0,
+    totalSerials: 0,
+    deliveredSerials: 0,
+    availableSerials: 0,
+    totalGenealogyLinks: 0,
     quarantinedBatches: 0,
-    approvedBatches: 5,
+    approvedBatches: 0,
   };
 
   const explore = exploreData?.data;

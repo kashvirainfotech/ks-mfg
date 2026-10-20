@@ -49,6 +49,8 @@ import { StockTraceabilityModule } from './modules/inventory/traceability/tracea
 import { StockAgingModule } from './modules/inventory/aging/aging.module';
 import { InProcessQcModule } from './modules/quality/in-process-qc/in-process-qc.module';
 import { PdiModule } from './modules/quality/pdi/pdi.module';
+import { NcrModule } from './modules/quality/ncr/ncr.module';
+import { CalibrationModule } from './modules/quality/calibration/calibration.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -108,6 +110,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     StockAgingModule,
     InProcessQcModule,
     PdiModule,
+    NcrModule,
+    CalibrationModule,
   ],
   controllers: [AppController],
   providers: [

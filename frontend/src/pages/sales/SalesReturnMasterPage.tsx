@@ -315,7 +315,10 @@ export const SalesReturnMasterPage: React.FC = () => {
   // ----------------------------------------------------------------------------
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery<ApiResponse<ReturnSummaryKPI>>({
     queryKey: ['sales-returns-summary'],
-    queryFn: () => apiClient.get('/sales/returns/summary'),
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<ReturnSummaryKPI>>('/sales/returns/summary');
+      return res.data;
+    },
   });
 
   const { data: lookupsData } = useQuery<
@@ -327,21 +330,30 @@ export const SalesReturnMasterPage: React.FC = () => {
     }>
   >({
     queryKey: ['sales-returns-lookups'],
-    queryFn: () => apiClient.get('/sales/returns/lookups'),
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<{
+        invoices: any[];
+        customers: any[];
+        warehouses: any[];
+        bins: any[];
+      }>>('/sales/returns/lookups');
+      return res.data;
+    },
   });
 
   const { data: returnsData, isLoading: isTableLoading, refetch } = useQuery<
-    ApiResponse<{ data: SalesReturnHeader[]; pagination: { total: number } }>
+    ApiResponse<SalesReturnHeader[]>
   >({
     queryKey: ['sales-returns', statusFilter, qcStatusFilter, restockStatusFilter, creditStatusFilter, customerFilter],
-    queryFn: () => {
+    queryFn: async () => {
       const params: Record<string, any> = {};
       if (statusFilter !== 'ALL') params.status = statusFilter;
       if (qcStatusFilter !== 'ALL') params.qcStatus = qcStatusFilter;
       if (restockStatusFilter !== 'ALL') params.restockStatus = restockStatusFilter;
       if (creditStatusFilter !== 'ALL') params.creditNoteStatus = creditStatusFilter;
       if (customerFilter !== 'ALL') params.customerId = customerFilter;
-      return apiClient.get('/sales/returns', { params });
+      const res = await apiClient.get<ApiResponse<SalesReturnHeader[]>>('/sales/returns', { params });
+      return res.data;
     },
   });
 
@@ -957,7 +969,14 @@ export const SalesReturnMasterPage: React.FC = () => {
         title="Sales Returns, RMA & Credit Notes"
         subtitle="Manage customer rejections, technical RMA quarantine inspections, statutory GST Section 34 credit notes, IRN e-invoicing, and WMS inventory restock"
         screenCode="SALES_RETURN"
-        data={returnsData?.data?.data || []}
+        tableNameBadge="tbl_sales_return_header"
+        data={
+          Array.isArray(returnsData?.data)
+            ? returnsData.data
+            : Array.isArray((returnsData?.data as any)?.data)
+            ? (returnsData?.data as any).data
+            : []
+        }
         columns={columns}
         rowKey={(row) => row.returnId}
         searchPredicate={searchPredicate}

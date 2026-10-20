@@ -1351,7 +1351,7 @@ export const PdiMasterPage: React.FC = () => {
           title="Pre-Dispatch Quality Inspections (PDI) & CoAs"
           subtitle="Final quality gating, hydrostatic pressure hold tests, metallurgical analysis, and EN 10204 Type 3.1 certification"
           screenCode="PDI_QC"
-          tableNameBadge="Live"
+          tableNameBadge="tbl_qc_pdi_header"
           data={filteredRecords}
           columns={columns}
           isLoading={isRecordsLoading}

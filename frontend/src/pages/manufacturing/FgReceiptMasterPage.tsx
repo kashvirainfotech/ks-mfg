@@ -597,9 +597,6 @@ export const FgReceiptMasterPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
               Finished Goods Receipt & Absorption Costing
             </h1>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-              Step 6.9 Live
-            </span>
           </div>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Shopfloor production receipts, scrap/by-product accounting, automated WMS stock ledger posting, and Work Order absorption cost rollups.

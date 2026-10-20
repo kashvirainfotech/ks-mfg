@@ -1064,9 +1064,6 @@ export const InwardQcMasterPage: React.FC = () => {
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Inward Material QC Inspection &amp; Quarantine Clearance
                 </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  Live
-                </span>
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Incoming raw material metallurgy testing, dimensional CMM verification, supplier heat allocation, and quarantine release.
@@ -1262,7 +1259,7 @@ export const InwardQcMasterPage: React.FC = () => {
         title="Inward Material QC Inspections"
         subtitle="Laboratory spectroscopy, physical & dimensional incoming quality verification, heat/batch allocation, and quarantine clearance"
         screenCode="INWARD_QC"
-        tableNameBadge="Live"
+        tableNameBadge="tbl_pur_inward_qc_header"
         data={qcReports}
         columns={columns}
         isLoading={isListLoading}

@@ -5,6 +5,7 @@ import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from './schema';
 
 export const PG_POOL = 'PG_POOL';
+export const DATABASE_POOL = 'DATABASE_POOL';
 export const DRIZZLE_DB = 'DRIZZLE_DB';
 export type DrizzleDb = NodePgDatabase<typeof schema>;
 
@@ -31,6 +32,10 @@ export type DrizzleDb = NodePgDatabase<typeof schema>;
       },
     },
     {
+      provide: 'DATABASE_POOL',
+      useExisting: PG_POOL,
+    },
+    {
       provide: DRIZZLE_DB,
       inject: [PG_POOL],
       useFactory: (pool: Pool): DrizzleDb => {
@@ -38,7 +43,7 @@ export type DrizzleDb = NodePgDatabase<typeof schema>;
       },
     },
   ],
-  exports: [PG_POOL, DRIZZLE_DB],
+  exports: [PG_POOL, DRIZZLE_DB, 'DATABASE_POOL'],
 })
 export class DatabaseModule implements OnModuleDestroy {
   private readonly logger = new Logger(DatabaseModule.name);

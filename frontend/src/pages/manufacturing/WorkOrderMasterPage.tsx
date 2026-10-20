@@ -764,9 +764,6 @@ export const WorkOrderMasterPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
               Production Work Orders
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--brand-50)] dark:bg-[var(--brand-900)]/40 text-[var(--brand-600)] dark:text-[var(--brand-300)] border border-[var(--brand-200)] dark:border-[var(--brand-700)]">
-              Step 6.5 Live
-            </span>
           </div>
           <p className="text-sm text-[var(--text-muted)] mt-1">
             Discrete manufacturing work order execution, BOM frozen snapshots, sequential

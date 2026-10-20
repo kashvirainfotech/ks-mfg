@@ -315,12 +315,18 @@ export const SalesOrderMasterPage: React.FC = () => {
   // --------------------------------------------------------------------------
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery<ApiResponse<OrderSummary>>({
     queryKey: ['sales-orders-summary'],
-    queryFn: () => apiClient.get('/sales/orders/summary'),
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<OrderSummary>>('/sales/orders/summary');
+      return res.data;
+    },
   });
 
   const { data: lookupsData } = useQuery<ApiResponse<OrderLookups>>({
     queryKey: ['sales-orders-lookups'],
-    queryFn: () => apiClient.get('/sales/orders/lookups'),
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<OrderLookups>>('/sales/orders/lookups');
+      return res.data;
+    },
   });
 
   const {
@@ -329,19 +335,24 @@ export const SalesOrderMasterPage: React.FC = () => {
     refetch: refetchOrders,
   } = useQuery<ApiResponse<SalesOrder[]>>({
     queryKey: ['sales-orders-list', statusFilter, atpFilter, customerFilter, holdOnlyFilter],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
       if (atpFilter !== 'ALL') params.append('atpReservationStatus', atpFilter);
       if (customerFilter !== 'ALL') params.append('customerId', customerFilter);
       if (holdOnlyFilter) params.append('isHold', 'true');
-      return apiClient.get(`/sales/orders?${params.toString()}`);
+      const res = await apiClient.get<ApiResponse<SalesOrder[]>>(`/sales/orders?${params.toString()}`);
+      return res.data;
     },
   });
 
   const summary = summaryData?.data;
   const lookups = lookupsData?.data;
-  const orders = ordersData?.data || [];
+  const orders: SalesOrder[] = Array.isArray(ordersData?.data)
+    ? ordersData.data
+    : Array.isArray((ordersData?.data as any)?.data)
+    ? (ordersData?.data as any).data
+    : [];
 
   // --------------------------------------------------------------------------
   // Mutations

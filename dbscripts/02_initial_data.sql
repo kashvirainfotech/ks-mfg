@@ -2807,3 +2807,113 @@ INSERT INTO tbl_sec_role_action_permission (
     (1005, 1044, 1159, FALSE, 1001, 1001, 1001, 1001),
     (1005, 1044, 1160, FALSE, 1001, 1001, 1001, 1001)
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+
+
+-- ============================================================================
+-- SEED DATA: Step 9.3 (NCR & 8D CAPA Engine) & Step 9.4 (Gauge Calibration Register)
+-- DATE: 2026-10-20
+-- ============================================================================
+
+-- Insert Screens 1045 & 1046
+INSERT INTO tbl_sec_screen (
+    screen_id, module_name, screen_code, screen_name, route_path, icon_name,
+    display_order, is_active, comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1045, 'QUALITY', 'NCR_QC', 'Non-Conformance Reports (NCR) & 8D CAPA Engine', '/quality/ncr', 'AlertTriangle', 46, TRUE, 1001, 1001, 1001, 1001),
+    (1046, 'QUALITY', 'CALIBRATION_QC', 'Gauge & Measuring Instrument Calibration Register', '/quality/calibration', 'Gauge', 47, TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_code) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1046) FROM tbl_sec_screen), 1046));
+
+-- Screen-specific Actions
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Screen 1045: NCR_QC
+    (1161, 1045, 'EXPORT',      'Export Non-Conformance Reports & CAPA register',               TRUE, 1001, 1001, 1001, 1001),
+    (1162, 1045, 'PRINT',       'Print Statutory Non-Conformance Report (NCR) & 8D CAPA Sheet', TRUE, 1001, 1001, 1001, 1001),
+    (1163, 1045, 'DISPOSITION', 'Authorize Material Review Board (MRB) Final Disposition',      TRUE, 1001, 1001, 1001, 1001),
+    (1164, 1045, 'CLOSE_CAPA',  'Verify & Close 8D Corrective Action Plan',                     TRUE, 1001, 1001, 1001, 1001),
+    -- Screen 1046: CALIBRATION_QC
+    (1165, 1046, 'EXPORT',      'Export Gauge Calibration Master & Overdue Registers',          TRUE, 1001, 1001, 1001, 1001),
+    (1166, 1046, 'PRINT',       'Print Instrument Calibration Certificate & Gauge Passport',    TRUE, 1001, 1001, 1001, 1001),
+    (1167, 1046, 'CALIBRATE',   'Log & Authorize Calibration Verification Event',               TRUE, 1001, 1001, 1001, 1001),
+    (1168, 1046, 'LOCKOUT',     'Decommission / Quarantine Out-of-Tolerance Instrument',        TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1168) FROM tbl_sec_action), 1168));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Screen 1045: NCR_QC
+    (1001, 1045, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1045, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1045, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1004, 1045, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1045, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- SALES_EXEC
+    -- Screen 1046: CALIBRATION_QC
+    (1001, 1046, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1046, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1046, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER
+    (1004, 1046, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC
+    (1005, 1046, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- SALES_EXEC
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN (1001) - All Allowed
+    (1001, 1045, 1161, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1045, 1162, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1045, 1163, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1045, 1164, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1046, 1165, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1046, 1166, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1046, 1167, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1046, 1168, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (1002) - All Allowed
+    (1002, 1045, 1161, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1045, 1162, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1045, 1163, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1045, 1164, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1046, 1165, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1046, 1166, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1046, 1167, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1046, 1168, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (1003) - Export & Print only
+    (1003, 1045, 1161, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1045, 1162, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1045, 1163, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1045, 1164, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1046, 1165, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1046, 1166, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1046, 1167, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1046, 1168, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (1004) - Export & Print only
+    (1004, 1045, 1161, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1045, 1162, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1045, 1163, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1045, 1164, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1046, 1165, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1046, 1166, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1046, 1167, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1046, 1168, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (1005) - Export & Print only
+    (1005, 1045, 1161, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1045, 1162, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1045, 1163, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1045, 1164, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1046, 1165, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1046, 1166, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1046, 1167, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1046, 1168, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;

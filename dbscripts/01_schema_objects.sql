@@ -4225,4 +4225,231 @@ CREATE TABLE IF NOT EXISTS tbl_qc_pdi_coa_spec (
 
 CREATE INDEX IF NOT EXISTS idx_qc_pdi_coa_spec_pdi ON tbl_qc_pdi_coa_spec (pdi_id);
 
+-- ============================================================================
+-- SECTION 91: tbl_qc_ncr_header
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.3 - Non-Conformance Reports (NCR) & Material Review Board (MRB)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_ncr_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_ncr_header (
+    ncr_id                      BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_ncr_id'),
+    ncr_no                      VARCHAR(50)     NOT NULL UNIQUE,
+    ncr_date                    DATE            NOT NULL DEFAULT CURRENT_DATE,
+    ncr_type                    VARCHAR(40)     NOT NULL DEFAULT 'IN_PROCESS_DEFECT'
+                                                CHECK (ncr_type IN ('INWARD_REJECTION', 'IN_PROCESS_DEFECT', 'PDI_FAILURE', 'CUSTOMER_RMA_RETURN', 'INTERNAL_AUDIT')),
+    source_doc_type             VARCHAR(40)     NOT NULL DEFAULT 'IN_PROCESS_QC'
+                                                CHECK (source_doc_type IN ('INWARD_QC', 'IN_PROCESS_QC', 'PDI_QC', 'SALES_RETURN', 'WORK_ORDER', 'GENERAL')),
+    source_doc_id               BIGINT,
+    source_doc_no               VARCHAR(50),
+    source_doc_date             DATE,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    batch_no                    VARCHAR(50),
+    heat_no                     VARCHAR(50),
+    defect_severity             VARCHAR(20)     NOT NULL DEFAULT 'MAJOR'
+                                                CHECK (defect_severity IN ('CRITICAL', 'MAJOR', 'MINOR')),
+    defect_category             VARCHAR(50)     NOT NULL DEFAULT 'DIMENSIONAL'
+                                                CHECK (defect_category IN ('DIMENSIONAL', 'METALLURGICAL', 'SURFACE_FINISH', 'PRESSURE_LEAK', 'VISUAL_PACKAGING', 'DOCUMENTATION', 'ASSEMBLY_FIT')),
+    defect_description          TEXT            NOT NULL,
+    inspected_qty               NUMERIC(14, 4)  NOT NULL DEFAULT 1.0000,
+    rejected_qty                NUMERIC(14, 4)  NOT NULL DEFAULT 1.0000,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    uom_code                    VARCHAR(20),
+    containment_action          TEXT,
+    quarantine_location         VARCHAR(100)    DEFAULT 'Quarantine Bay A1 (Red Tagged)',
+    red_tag_no                  VARCHAR(50),
+    mrb_disposition             VARCHAR(40)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (mrb_disposition IN ('PENDING', 'SCRAP', 'REWORK_SAME_OP', 'REWORK_NEW_OP', 'USE_AS_IS_CONCESSION', 'RETURN_TO_VENDOR')),
+    mrb_approver_id             BIGINT          REFERENCES tbl_sec_user(user_id),
+    mrb_approver_name           VARCHAR(100),
+    mrb_approval_date           TIMESTAMPTZ,
+    mrb_notes                   TEXT,
+    is_capa_required            BOOLEAN         NOT NULL DEFAULT TRUE,
+    capa_status                 VARCHAR(30)     NOT NULL DEFAULT 'NOT_INITIATED'
+                                                CHECK (capa_status IN ('NOT_INITIATED', 'INITIATED', 'UNDER_INVESTIGATION', 'IMPLEMENTED', 'VERIFIED_CLOSED')),
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'UNDER_MRB_REVIEW', 'DISPOSITIONED', 'CAPA_ASSIGNED', 'CLOSED', 'CANCELLED')),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_ncr_comp_branch ON tbl_qc_ncr_header (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_ncr_item ON tbl_qc_ncr_header (item_id);
+CREATE INDEX IF NOT EXISTS idx_qc_ncr_status ON tbl_qc_ncr_header (status);
+CREATE INDEX IF NOT EXISTS idx_qc_ncr_date ON tbl_qc_ncr_header (ncr_date DESC);
+
+-- ============================================================================
+-- SECTION 92: tbl_qc_ncr_mrb_vote
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.3 - Material Review Board (MRB) Member Votes & Dispositions
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_ncr_mrb_vote_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_ncr_mrb_vote (
+    vote_id                     BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_ncr_mrb_vote_id'),
+    ncr_id                      BIGINT          NOT NULL REFERENCES tbl_qc_ncr_header(ncr_id) ON DELETE CASCADE,
+    voter_id                    BIGINT          NOT NULL REFERENCES tbl_sec_user(user_id),
+    voter_name                  VARCHAR(100)    NOT NULL,
+    voter_role                  VARCHAR(50)     NOT NULL,
+    recommended_disposition     VARCHAR(40)     NOT NULL
+                                                CHECK (recommended_disposition IN ('SCRAP', 'REWORK_SAME_OP', 'REWORK_NEW_OP', 'USE_AS_IS_CONCESSION', 'RETURN_TO_VENDOR')),
+    vote_comments               TEXT,
+    voted_at                    TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_ncr_mrb_vote_ncr ON tbl_qc_ncr_mrb_vote (ncr_id, is_active);
+
+-- ============================================================================
+-- SECTION 93: tbl_qc_capa_action
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.3 - 8D Corrective and Preventive Action (CAPA) Engine
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_capa_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_capa_action (
+    capa_id                     BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_capa_id'),
+    capa_no                     VARCHAR(50)     NOT NULL UNIQUE,
+    ncr_id                      BIGINT          NOT NULL REFERENCES tbl_qc_ncr_header(ncr_id) ON DELETE CASCADE,
+    initiation_date             DATE            NOT NULL DEFAULT CURRENT_DATE,
+    target_completion_date      DATE            NOT NULL,
+    actual_closure_date         DATE,
+    root_cause_method           VARCHAR(50)     NOT NULL DEFAULT '5_WHY'
+                                                CHECK (root_cause_method IN ('5_WHY', 'FISHBONE_ISHIKAWA', 'FMEA', 'FAULT_TREE')),
+    root_cause_analysis         TEXT            NOT NULL,
+    containment_action_plan     TEXT,
+    corrective_action_plan      TEXT            NOT NULL,
+    preventive_action_plan      TEXT            NOT NULL,
+    assigned_to_id              BIGINT          NOT NULL REFERENCES tbl_sec_user(user_id),
+    assigned_to_name            VARCHAR(100)    NOT NULL,
+    verifier_id                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    verifier_name               VARCHAR(100),
+    verification_remarks        TEXT,
+    effectiveness_status        VARCHAR(30)     NOT NULL DEFAULT 'PENDING'
+                                                CHECK (effectiveness_status IN ('PENDING', 'IMPLEMENTED', 'VERIFIED_EFFECTIVE', 'REOPENED')),
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'OPEN'
+                                                CHECK (status IN ('OPEN', 'IN_PROGRESS', 'SUBMITTED_FOR_VERIFICATION', 'CLOSED', 'REOPENED')),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_capa_ncr ON tbl_qc_capa_action (ncr_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_capa_status ON tbl_qc_capa_action (status);
+
+-- ============================================================================
+-- SECTION 94: tbl_qc_gauge_master
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.4 - Measuring Equipment & Gauge Calibration Master
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_gauge_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_gauge_master (
+    gauge_id                    BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_gauge_id'),
+    gauge_code                  VARCHAR(50)     NOT NULL UNIQUE,
+    gauge_name                  VARCHAR(150)    NOT NULL,
+    gauge_type                  VARCHAR(50)     NOT NULL DEFAULT 'MICROMETER'
+                                                CHECK (gauge_type IN ('VERNIER_CALIPER', 'MICROMETER', 'DIAL_INDICATOR', 'PRESSURE_GAUGE', 'TORQUE_WRENCH', 'TEMPERATURE_CONTROLLER', 'HARDNESS_TESTER', 'CMM_PROBE', 'HEIGHT_GAUGE', 'BORE_GAUGE', 'SURFACE_ROUGHNESS_TESTER')),
+    make_manufacturer           VARCHAR(100)    NOT NULL,
+    model_no                    VARCHAR(50),
+    serial_no                   VARCHAR(100)    NOT NULL,
+    range_min                   NUMERIC(10, 4)  NOT NULL DEFAULT 0.0000,
+    range_max                   NUMERIC(10, 4)  NOT NULL DEFAULT 25.0000,
+    uom                         VARCHAR(20)     NOT NULL DEFAULT 'mm',
+    least_count                 NUMERIC(10, 5)  NOT NULL DEFAULT 0.00100,
+    max_permissible_error       NUMERIC(10, 5)  NOT NULL DEFAULT 0.00200,
+    location_custody            VARCHAR(100)    NOT NULL DEFAULT 'CNC Machining Cell 01 - Quality Inspection Station',
+    custodian_id                BIGINT          REFERENCES tbl_sec_user(user_id),
+    custodian_name              VARCHAR(100),
+    calibration_frequency_days  INT             NOT NULL DEFAULT 180,
+    last_calibration_date       DATE            NOT NULL,
+    next_calibration_due_date   DATE            NOT NULL,
+    calibration_agency_type     VARCHAR(30)     NOT NULL DEFAULT 'NABL_EXTERNAL_LAB'
+                                                CHECK (calibration_agency_type IN ('INTERNAL_LAB', 'NABL_EXTERNAL_LAB', 'OEM_MANUFACTURER')),
+    agency_name                 VARCHAR(150)    NOT NULL DEFAULT 'Central Metallurgical & Gauge Metrology Lab (NABL Cert #CC-2914)',
+    calibration_certificate_no  VARCHAR(100)    NOT NULL DEFAULT 'NABL-CAL-2026-9912',
+    current_status              VARCHAR(30)     NOT NULL DEFAULT 'VALID'
+                                                CHECK (current_status IN ('VALID', 'CALIBRATION_DUE', 'OVERDUE', 'UNDER_CALIBRATION', 'OUT_OF_TOLERANCE_LOCKOUT', 'SCRAPPED')),
+    remarks                     TEXT,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_gauge_comp_branch ON tbl_qc_gauge_master (comp_id, branch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_gauge_status ON tbl_qc_gauge_master (current_status);
+CREATE INDEX IF NOT EXISTS idx_qc_gauge_due_date ON tbl_qc_gauge_master (next_calibration_due_date ASC);
+
+-- ============================================================================
+-- SECTION 95: tbl_qc_gauge_calibration_history
+-- DATE: 2026-10-20
+-- FEATURE: Step 9.4 - Periodic Calibration Verification Events & MTC History
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_qc_gauge_cal_hist_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_qc_gauge_calibration_history (
+    history_id                  BIGINT          PRIMARY KEY DEFAULT nextval('seq_qc_gauge_cal_hist_id'),
+    gauge_id                    BIGINT          NOT NULL REFERENCES tbl_qc_gauge_master(gauge_id) ON DELETE CASCADE,
+    calibration_event_no        VARCHAR(50)     NOT NULL,
+    calibration_date            DATE            NOT NULL,
+    certificate_no              VARCHAR(100)    NOT NULL,
+    calibrated_by_agency        VARCHAR(150)    NOT NULL,
+    calibrator_name             VARCHAR(100)    NOT NULL,
+    master_instrument_traceability VARCHAR(200) NOT NULL DEFAULT 'Grade-0 Ceramic Gauge Block Set (NPL / NIST Traceable)',
+    nominal_value               NUMERIC(10, 5)  NOT NULL DEFAULT 10.00000,
+    observed_value              NUMERIC(10, 5)  NOT NULL DEFAULT 10.00050,
+    error_val                   NUMERIC(10, 5)  NOT NULL DEFAULT 0.00050,
+    permissible_tolerance       NUMERIC(10, 5)  NOT NULL DEFAULT 0.00200,
+    calibration_result          VARCHAR(30)     NOT NULL DEFAULT 'PASS'
+                                                CHECK (calibration_result IN ('PASS', 'PASS_WITH_CORRECTION', 'FAIL_OUT_OF_TOLERANCE')),
+    next_due_date               DATE            NOT NULL,
+    environmental_conditions    VARCHAR(150)    DEFAULT 'Temp: 20.0 ± 0.5 °C, Humidity: 50 ± 5% RH',
+    certificate_url             VARCHAR(255),
+    verified_by_user_id         BIGINT          REFERENCES tbl_sec_user(user_id),
+    verified_by_name            VARCHAR(100),
+    remarks                     TEXT,
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_qc_gauge_cal_hist_gauge ON tbl_qc_gauge_calibration_history (gauge_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_qc_gauge_cal_hist_date ON tbl_qc_gauge_calibration_history (calibration_date DESC);
+
+
 

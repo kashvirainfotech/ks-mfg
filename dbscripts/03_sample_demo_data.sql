@@ -4373,3 +4373,155 @@ ON CONFLICT (pdi_id) DO NOTHING;
 
 SELECT setval('seq_qc_pdi_coa_spec_id', GREATEST((SELECT COALESCE(MAX(coa_spec_id), 1001) FROM tbl_qc_pdi_coa_spec), 1001));
 
+
+
+-- ============================================================================
+
+
+-- ============================================================================
+-- SAMPLE DEMO DATA: Step 9.3 (NCR & 8D CAPA Engine) & Step 9.4 (Calibration Register)
+-- DATE: 2026-10-20
+-- ============================================================================
+
+-- Non-Conformance Reports (NCR) Header
+INSERT INTO tbl_qc_ncr_header (
+    ncr_id, ncr_no, ncr_date, ncr_type, source_doc_type, source_doc_id, source_doc_no, source_doc_date,
+    item_id, item_code, item_name, batch_no, heat_no, defect_severity, defect_category,
+    defect_description, inspected_qty, rejected_qty, uom_id, uom_code, containment_action,
+    quarantine_location, red_tag_no, mrb_disposition, mrb_approver_id, mrb_approver_name,
+    mrb_approval_date, mrb_notes, is_capa_required, capa_status, status,
+    created_by, comp_id, branch_id, fyear_id
+) VALUES
+    (1001, 'NCR-AHM-2627-0001', CURRENT_DATE - INTERVAL '12 days', 'INWARD_REJECTION', 'INWARD_QC', 1001, 'IQC-AHM-2627-0001', CURRENT_DATE - INTERVAL '13 days',
+     1001, 'RAW-SS316-BAR', 'SS 316L Round Bar 50mm dia', 'LOT-SS-9921', 'HEAT-7741', 'MAJOR', 'DIMENSIONAL',
+     'Outer diameter measured 49.62mm against drawing tolerance of 50.00 ± 0.10mm. Total 12 bars out of lot of 50 failed gauge check.',
+     50.0000, 12.0000, 1001, 'KGS', 'Immediate quarantine of entire lot with RED rejection tags in Inward Quarantine Bay QA-01.',
+     'Quarantine Bay A1 (Red Tagged)', 'TAG-RED-0081', 'RETURN_TO_VENDOR', 1001, 'System Administrator',
+     CURRENT_DATE - INTERVAL '10 days', 'Supplier acknowledged defect. Full replacement order dispatched under debit note #DN-2627-001.',
+     TRUE, 'INITIATED', 'DISPOSITIONED', 1001, 1001, 1001, 1001),
+
+    (1002, 'NCR-AHM-2627-0002', CURRENT_DATE - INTERVAL '8 days', 'IN_PROCESS_DEFECT', 'IN_PROCESS_QC', 1001, 'IPQC-AHM-2627-0001', CURRENT_DATE - INTERVAL '8 days',
+     1004, 'VLV-BL-2IN-BODY', 'Flanged Ball Valve Body 2 inch Class 150', 'CAST-BATCH-8842', 'HEAT-8842', 'CRITICAL', 'METALLURGICAL',
+     'Sub-surface shrinkage cavity exposed during CNC turning of flange face seal groove.',
+     20.0000, 4.0000, 1003, 'NOS', 'Stop CNC batch machining. Conduct 100% dye penetrant inspection of all 20 castings in batch.',
+     'WIP Quarantine Rack #04', 'TAG-RED-0092', 'REWORK_NEW_OP', 1001, 'System Administrator',
+     CURRENT_DATE - INTERVAL '6 days', 'Approved weld buttering repair using AWS E316L-16 electrode followed by re-machining and 100% PT examination.',
+     TRUE, 'UNDER_INVESTIGATION', 'CAPA_ASSIGNED', 1001, 1001, 1001, 1001),
+
+    (1003, 'NCR-AHM-2627-0003', CURRENT_DATE - INTERVAL '3 days', 'PDI_FAILURE', 'PDI_QC', 1001, 'PDI-AHM-2627-0001', CURRENT_DATE - INTERVAL '3 days',
+     1005, 'VLV-SEAT-PTFE', 'PTFE Valve Seat Ring Class 150', 'SEAT-LOT-1102', 'N/A', 'MINOR', 'SURFACE_FINISH',
+     'Light micro-abrasion marks on outer non-sealing periphery of PTFE seat ring.',
+     100.0000, 25.0000, 1003, 'NOS', 'Inspect under 10x optical magnification. Verify seal contact face integrity.',
+     'PDI Hold Area', 'TAG-YELLOW-0014', 'USE_AS_IS_CONCESSION', 1002, 'Praveen Sharma',
+     CURRENT_DATE - INTERVAL '2 days', 'Concession approved by Chief Metallurgist. Zero impact on valve shut-off seat bubble tightness.',
+     FALSE, 'NOT_INITIATED', 'CLOSED', 1002, 1001, 1001, 1001)
+ON CONFLICT (ncr_id) DO NOTHING;
+
+SELECT setval('seq_qc_ncr_id', GREATEST((SELECT COALESCE(MAX(ncr_id), 1003) FROM tbl_qc_ncr_header), 1003));
+
+-- Material Review Board (MRB) Votes
+INSERT INTO tbl_qc_ncr_mrb_vote (
+    vote_id, ncr_id, voter_id, voter_name, voter_role,
+    recommended_disposition, vote_comments, voted_at,
+    created_by, comp_id, branch_id, fyear_id
+) VALUES
+    (1001, 1001, 1001, 'System Administrator', 'Plant Head', 'RETURN_TO_VENDOR', 'Vendor exceeded tolerance band. Unacceptable for high-pressure stem machining.', CURRENT_DATE - INTERVAL '11 days', 1001, 1001, 1001, 1001),
+    (1002, 1001, 1002, 'Praveen Sharma', 'Quality Assurance Manager', 'RETURN_TO_VENDOR', 'Agreed. Reject entire 12 bars for debit note / supplier corrective action.', CURRENT_DATE - INTERVAL '10 days', 1002, 1001, 1001, 1001),
+    (1003, 1002, 1001, 'System Administrator', 'Plant Head', 'REWORK_NEW_OP', 'Permissible ASME Sec IX weld repair procedure can salvage castings safely.', CURRENT_DATE - INTERVAL '7 days', 1001, 1001, 1001, 1001),
+    (1004, 1002, 1002, 'Praveen Sharma', 'Production Lead', 'REWORK_NEW_OP', 'Production tooling setup is ready for re-facing after stress relief.', CURRENT_DATE - INTERVAL '7 days', 1002, 1001, 1001, 1001)
+ON CONFLICT (vote_id) DO NOTHING;
+
+SELECT setval('seq_qc_ncr_mrb_vote_id', GREATEST((SELECT COALESCE(MAX(vote_id), 1004) FROM tbl_qc_ncr_mrb_vote), 1004));
+
+-- 8D Corrective & Preventive Action (CAPA)
+INSERT INTO tbl_qc_capa_action (
+    capa_id, capa_no, ncr_id, initiation_date, target_completion_date, actual_closure_date,
+    root_cause_method, root_cause_analysis, containment_action_plan, corrective_action_plan,
+    preventive_action_plan, assigned_to_id, assigned_to_name, verifier_id, verifier_name,
+    verification_remarks, effectiveness_status, status,
+    created_by, comp_id, branch_id, fyear_id
+) VALUES
+    (1001, 'CAPA-AHM-2627-0001', 1002, CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE + INTERVAL '14 days', NULL,
+     '5_WHY',
+     'Why 1: Flange face had surface void? Due to sub-surface cavity.
+Why 2: Why shrinkage cavity? Shrinkage during alloy cooling.
+Why 3: Why inadequate feeding? Riser feeder volume undersized.
+Why 4: Why undersized? Supplier foundry pattern design error.
+Why 5: Root Cause: Supplier gating design lacked solidification simulation verification.',
+     'Quarantined current casting lot #CST-8842 and initiated 100% ultrasonic pre-scan prior to CNC machining.',
+     'Modify pattern gating system with 20% increased feeder volume and add internal ceramic chill cores at supplier foundry. Trial melt #8850 poured.',
+     'Updated Foundry Quality Plan (FQP-REV-03) requiring mandatory radiography level-1 certification for first 5 pieces of every casting melt.',
+     1002, 'Praveen Sharma (Quality Head)', 1001, 'System Administrator',
+     'Interim containment audited and in place. Awaiting first trial lot from supplier.',
+     'IMPLEMENTED', 'IN_PROGRESS',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (capa_id) DO NOTHING;
+
+SELECT setval('seq_qc_capa_id', GREATEST((SELECT COALESCE(MAX(capa_id), 1001) FROM tbl_qc_capa_action), 1001));
+
+-- Gauges & Instruments Master Register
+INSERT INTO tbl_qc_gauge_master (
+    gauge_id, gauge_code, gauge_name, gauge_type, make_manufacturer, model_no, serial_no,
+    range_min, range_max, uom, least_count, max_permissible_error,
+    location_custody, custodian_id, custodian_name, calibration_frequency_days,
+    last_calibration_date, next_calibration_due_date, calibration_agency_type,
+    agency_name, calibration_certificate_no, current_status, remarks,
+    created_by, comp_id, branch_id, fyear_id
+) VALUES
+    (1001, 'GAG-MIC-001', 'Digital Outside Micrometer 25-50mm', 'MICROMETER', 'Mitutoyo (Japan)', '293-240-30', 'SN-MIT-992144',
+     25.0000, 50.0000, 'mm', 0.00100, 0.00200,
+     'CNC Machining Cell 01 - Metrology Station', 1002, 'Praveen Sharma', 180,
+     CURRENT_DATE - INTERVAL '45 days', CURRENT_DATE + INTERVAL '135 days', 'NABL_EXTERNAL_LAB',
+     'Apex NABL Calibration Metrology Lab (Cert #TC-5120)', 'CAL-2026-NABL-8910', 'VALID', 'Primary reference standard for CNC stem precision machining.',
+     1001, 1001, 1001, 1001),
+
+    (1002, 'GAG-VER-002', 'Digital Vernier Caliper 0-300mm', 'VERNIER_CALIPER', 'Baker Gauges', 'ED-30', 'SN-BKR-44120',
+     0.0000, 300.0000, 'mm', 0.01000, 0.02000,
+     'Machine Shop Inspection Station', 1002, 'Praveen Sharma', 90,
+     CURRENT_DATE - INTERVAL '85 days', CURRENT_DATE + INTERVAL '5 days', 'INTERNAL_LAB',
+     'Internal Metrology Standards', 'CAL-INT-2026-044', 'CALIBRATION_DUE', 'Notice generated for recalibration due in 5 days.',
+     1001, 1001, 1001, 1001),
+
+    (1003, 'GAG-PRS-003', 'High-Pressure Test Dial Gauge 0-250 Bar', 'PRESSURE_GAUGE', 'WIKA Germany', '232.50.100', 'SN-WIK-88419',
+     0.0000, 250.0000, 'Bar', 1.00000, 2.50000,
+     'Hydrostatic Pressure Testing Bay', 1002, 'Praveen Sharma', 180,
+     CURRENT_DATE - INTERVAL '200 days', CURRENT_DATE - INTERVAL '20 days', 'NABL_EXTERNAL_LAB',
+     'Apex Metrology Services', 'CAL-APX-2025-1102', 'OVERDUE', 'Recalibration overdue - instrument flagged for immediate service.',
+     1001, 1001, 1001, 1001),
+
+    (1004, 'GAG-TRQ-004', 'Industrial Click-Type Torque Wrench 20-100 Nm', 'TORQUE_WRENCH', 'Norbar', 'Model 100', 'SN-NRB-77112',
+     20.0000, 100.0000, 'Nm', 0.50000, 1.00000,
+     'Assembly Line #1 Station B', 1002, 'Praveen Sharma', 120,
+     CURRENT_DATE - INTERVAL '130 days', CURRENT_DATE - INTERVAL '10 days', 'OEM_MANUFACTURER',
+     'Norbar Calibration Center', 'CAL-NRB-2025-998', 'OUT_OF_TOLERANCE_LOCKOUT', 'Quarantined due to ratchet slip observed during verification.',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (gauge_id) DO NOTHING;
+
+SELECT setval('seq_qc_gauge_id', GREATEST((SELECT COALESCE(MAX(gauge_id), 1004) FROM tbl_qc_gauge_master), 1004));
+
+-- Gauge Calibration Verification History
+INSERT INTO tbl_qc_gauge_calibration_history (
+    history_id, gauge_id, calibration_event_no, calibration_date, certificate_no,
+    calibrated_by_agency, calibrator_name, master_instrument_traceability,
+    nominal_value, observed_value, error_val, permissible_tolerance, calibration_result,
+    next_due_date, environmental_conditions, verified_by_user_id, verified_by_name, remarks,
+    created_by, comp_id, branch_id, fyear_id
+) VALUES
+    (1001, 1001, 'EVT-CAL-2026-001', CURRENT_DATE - INTERVAL '45 days', 'CAL-2026-NABL-8910',
+     'Apex NABL Calibration Metrology Lab (Cert #TC-5120)', 'Er. Deepak Verma (Metrologist)',
+     'Grade-0 Ceramic Gauge Block Set (NPL / NIST Traceable Standard)',
+     25.00000, 25.00040, 0.00040, 0.00200, 'PASS',
+     CURRENT_DATE + INTERVAL '135 days', 'Temp: 20.0 ± 0.5 °C, Humidity: 50 ± 5% RH',
+     1002, 'Praveen Sharma', 'Calibration within ISO/IEC 17025 accredited limits.',
+     1001, 1001, 1001, 1001),
+
+    (1002, 1002, 'EVT-CAL-2026-002', CURRENT_DATE - INTERVAL '85 days', 'CAL-INT-2026-044',
+     'Internal Metrology Standards', 'Er. Rajesh Kumar',
+     'Master Length Caliper Check Bar 0-300mm Class A',
+     100.00000, 100.00800, 0.00800, 0.02000, 'PASS',
+     CURRENT_DATE + INTERVAL '5 days', 'Temp: 20.2 °C, Humidity: 52% RH',
+     1002, 'Praveen Sharma', 'Valid for precision production machining.',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (history_id) DO NOTHING;
+
+SELECT setval('seq_qc_gauge_cal_hist_id', GREATEST((SELECT COALESCE(MAX(history_id), 1002) FROM tbl_qc_gauge_calibration_history), 1002));

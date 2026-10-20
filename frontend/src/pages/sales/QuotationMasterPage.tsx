@@ -612,9 +612,6 @@ export const QuotationMasterPage: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 Customer Quotations & Proforma Invoices
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-semibold">
-                  Phase 7.1 Live
-                </span>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Presales commercial inquiry management, multi-tier pricing, automated Indian GST derivation, and 1-Click Sales Order conversion.

@@ -169,6 +169,8 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 ### 🛡️ Phase 9: Quality Control & Inspection Management (`QUALITY`)
 - **Step 9.1 — In-Process & Stage-Wise Quality Inspection (`/quality/in-process-qc`)**: Operational quality gating engine (`tbl_qc_in_process_header` & `tbl_qc_in_process_param`) compliant with ISO 9001:2015 Clause 8.6 & IATF 16949 Section 8.5.1, featuring 4 inspection stage gates (`FIRST_PIECE` setup approval, `PATROL_INSPECTION` periodic checks, `STAGE_COMPLETION` batch clearance, `LAST_PIECE` tool wear verification), characteristic parameter matrix across 6 inspection categories (Dimensional, Surface Ra, Metallurgical Hardness, Visual Flaws, Functional/Hydrostatic Pressure), 5-point observation sampling with live calculated mean and automatic tolerance pass/fail determination, bidirectional synchronization with shopfloor job cards (`tbl_mfg_job_card`), technical concession / engineering deviation clearance (`DEVIATION`), material disposition actions (`DIRECT_ACCEPT`, `SCRAP`, `REWORK_SAME_OP`, `CONCESSION_USE_AS_IS`), CAPA / 8D investigation triggers, and printable statutory ISO/IATF Stage Inspection Certificates (`PRINT`).
 - **Step 9.2 — Final Pre-Dispatch Inspection (PDI) & Certificate of Analysis (CoA) (`/quality/pdi`)**: Statutory quality gating & certification engine (`tbl_qc_pdi_header`, `tbl_qc_pdi_param`, `tbl_qc_pdi_coa_spec`) compliant with ISO 9001:2015 Clause 8.6, API Spec Q1 / API 6D, and EN 10204:2004 Type 3.1, featuring 4-tier view tabs (All PDI Lots, Released CoAs, Concessions, Quarantine Holds), comprehensive characteristic parameter matrix across 6 categories (Dimensional, Functional Pressure, Surface Paint DFT, Visual Packaging/Stamping, Electrical Actuator, Metallurgical Hardness), 8-element ladle chemical analysis matrix (% C, Mn, Si, P, S, Cr, Ni, Mo), mechanical tensile and impact toughness properties (Yield, Tensile, Elongation, Hardness, Charpy V-Notch), hydrostatic shell and seat hold pressure test registers, non-destructive examination (NDE) tracking, packaging and anti-rust preservation coating verification, customer / Third-Party Inspection (TPI) witness sign-off, digital CoA release authorization (`RELEASE`), and printable statutory EN 10204 Type 3.1 Inspection Certificates with 3-tier authorized signatures (`PRINT`).
+- **Step 9.3 — Non-Conformance Reports (NCR), Material Review Board & CAPA Action Engine (`/quality/ncr`)**: Closed-loop quality deviation management and 8D problem-solving engine (`tbl_qc_ncr_header`, `tbl_qc_ncr_mrb_vote`, `tbl_qc_capa_action`) compliant with ISO 9001:2015 Clause 8.7 & 10.2 and IATF 16949 Section 10.2.3, featuring multi-source NCR initiation (Inward IQC, In-Process IPQC, Final PDI, RMA Sales Returns, Customer Audits, Supplier Defect), 3 severity tiers (Critical, Major, Minor), quarantine containment gating, 5-Why root cause breakdown, cross-functional Material Review Board (MRB) voting matrix (`APPROVE_SCRAP`, `APPROVE_REWORK`, `APPROVE_CONCESSION`, `APPROVE_RTV`), final disposition authorization (`DISPOSITION`) with scrap/rework cost accounting, 8D Problem-Solving discipline tracker (D1 through D8), preventive CAPA assignment with target completion dates, quality effectiveness verification sign-off (`CLOSE_CAPA`), and printable statutory ISO/IATF 8D Non-Conformance Investigation Reports (`PRINT`).
+- **Step 9.4 — Gauge, Tool & Measuring Instrument Calibration Register (`/quality/calibration`)**: Metrology asset lifecycle and calibration management subsystem (`tbl_qc_gauge_master` & `tbl_qc_gauge_calibration_history`) compliant with ISO 9001:2015 Clause 7.1.5 & ISO/IEC 17025, featuring comprehensive instrument registry (Vernier Calipers, Micrometers, Dial Indicators, Pressure Gauges, Torque Wrenches, Temperature Controllers, Bore Gauges, Height Gauges, CMMs, Weighing Scales), custodian location tracking, dynamic recalibration scheduler (monthly, quarterly, semi-annual, annual) with automated due-date alerts (`DUE_SOON` < 30 days and `OVERDUE_EXPIRED`), certified calibration event logging (`CALIBRATE`) verifying observed error against permissible limits, ambient temperature/humidity environmental tracking, NABL certificate linking with national primary standard traceability, automated out-of-tolerance and expired instrument lockouts (`LOCKOUT` / `OUT_OF_TOLERANCE_LOCKED`), and printable ISO/IEC 17025 Calibration Certificates and Shopfloor Instrument Sticker Tags (`PRINT`).
 
 ---
 
@@ -176,46 +178,44 @@ Most mid-market manufacturing companies outgrow basic accounting software (which
 
 Development proceeds strictly **one screen/feature at a time**, completely implemented end-to-end (PostgreSQL DDL/DML $\rightarrow$ NestJS API $\rightarrow$ React UI $\rightarrow$ Living Manuals):
 
-- **Phase 5 — Procurement, Inward GRN, Quality Inspection, Put-Away & Commercial Matching (`PROCUREMENT`) (✅ 100% Complete)**:
-  - ✅ **Step 5.1**: Material Purchase Requisition (MR) & Multi-Level Authorization (`/procurement/requisitions`).
-  - ✅ **Step 5.2**: Request for Quotation (RFQ) & Vendor Rate Comparison Matrix (`/procurement/rfqs`).
-  - ✅ **Step 5.3**: Purchase Order (PO) with GST Tax Calculation & Multi-Plant Delivery Schedule (`/procurement/purchase-orders`).
-  - ✅ **Step 5.4**: Gate Entry & Security Inward Register (`/procurement/gate-inward`).
-  - ✅ **Step 5.5**: Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`).
-  - ✅ **Step 5.6**: Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`).
-  - ✅ **Step 5.7**: Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`).
-  - ✅ **Step 5.8**: Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`).
-  - Complete Procure-to-Pay (P2P) closed loop: Material Requisition $\rightarrow$ RFQ Bidding $\rightarrow$ Purchase Order $\rightarrow$ Gate Security $\rightarrow$ Goods Receipt $\rightarrow$ Quality Lab Inspection $\rightarrow$ Bin Put-Away $\rightarrow$ Purchase Invoice 3-Way Matching & AP Clearance.
-- **Phase 6 — Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`) (✅ 100% Complete)**:
-  - ✅ **Step 6.1**: Multi-Level Bill of Materials (BOM) with versions, scrap factors, and co-products/by-products (`/manufacturing/boms`).
-  - ✅ **Step 6.2**: Work Centers, Production Lines, Capacity & Shift Calendars (`/manufacturing/work-centers`).
-  - ✅ **Step 6.3**: Production Routings, Operation Sequences, Cycle Times & Tooling (`/manufacturing/routings`).
-  - ✅ **Step 6.4**: Material Requirements Planning (MRP-I Engine) & Gross-to-Net Planned Orders (`/manufacturing/mrp`).
-  - ✅ **Step 6.5**: Production Work Orders (WO), Scheduling, BOM Snapshot & Operation Routing Release (`/manufacturing/work-orders`).
-  - ✅ **Step 6.6**: Shopfloor Material Issue, Lineside Staging & Backflushing (`/manufacturing/material-issues`).
-  - ✅ **Step 6.7**: Stage-Wise Production Job Cards, Operation Time Logging & In-Process QC Inspection (`/manufacturing/job-cards`).
-  - ✅ **Step 6.8**: Subcontractor Job-Work Outward Delivery Challan, Inward Receipt & Material Reconciliation (`/manufacturing/job-work`).
-  - ✅ **Step 6.9**: Finished Goods (FG) Production Receipt, Scrap/By-Product Accounting & Absorption Cost Rollup (`/manufacturing/fg-receipts`).
-  - Complete Design-to-Finished-Goods closed loop: Engineering BOM & Routings $\rightarrow$ Plant Work Centers & Capacity $\rightarrow$ MRP Gross-to-Net Engine $\rightarrow$ Work Order Release $\rightarrow$ Lineside Material Issue $\rightarrow$ Stage Job Cards & In-Process QC $\rightarrow$ Subcontractor Job-Work & Reconciliation $\rightarrow$ Finished Goods Production Receipt & Absorption Costing.
-- **Phase 7 — Sales Order, Reservation, Dispatch & Invoicing (`SALES`) (✅ 100% Complete)**:
-  - ✅ **Step 7.1**: Customer Inquiry & Quotation / Proforma Invoice (`/sales/quotations`).
-  - ✅ **Step 7.2**: Sales Order (SO), Commercial Credit Check & Available-to-Promise (ATP) Stock Reservation (`/sales/orders`).
-  - ✅ **Step 7.3**: Outward Warehouse Pick/Pack Slip & Dispatch Delivery Challan (`/sales/delivery-challans`).
-  - ✅ **Step 7.4**: Statutory GST Tax Invoice Generation, E-Invoicing (IRN) & Customer Accounts Receivable (`/sales/invoices`).
-  - ✅ **Step 7.5**: Sales Return (Credit Note) & Inward RMA Quarantine Inspection (`/sales/returns`).
-  - Complete Order-to-Cash (O2C) closed loop: Customer Inquiry / Quotation $\rightarrow$ Sales Order (SO) & ATP Stock Reservation $\rightarrow$ Warehouse Pick/Pack Slip & Dispatch Delivery Challan $\rightarrow$ Statutory GST Tax Invoice & E-Invoicing (IRN) $\rightarrow$ Sales Return (Credit Note) & Inward RMA Quarantine Restock.
-- **Phase 8 — Inventory Ledger, Valuation & Analytics (`INVENTORY_ANALYTICS`) (✅ 100% Complete)**:
-  - ✅ **Step 8.1**: Real-Time Stock Balance, Multi-Bin Inventory Ledger & FIFO Stock Valuation (`/inventory/balance`).
-  - ✅ **Step 8.2**: Physical Stock Reconciliation, Periodic Stock Audit & Stock Adjustments / Write-Offs (`/inventory/adjustments`).
-  - ✅ **Step 8.3**: Warehouse Internal Transfers & Inter-Branch Stock Transfers (STO) (`/inventory/transfers`).
-  - ✅ **Step 8.4**: End-to-End Batch & Serial Number 360-Degree Genealogy & Traceability Explorer (`/inventory/traceability`).
-  - ✅ **Step 8.5**: Inventory Aging, Dead Stock Analysis & Reorder Level Alert Dashboard (`/inventory/aging`).
-  - Complete Inventory & Logistics closed loop: Multi-Bin Perpetual Ledger & FIFO Valuation $\rightarrow$ CARO 2020 Physical Audit & Discrepancy Reconciliation $\rightarrow$ Multi-Tier Internal & Inter-Branch STO Transfers $\rightarrow$ EN 10204 3.1 Bi-Directional Batch/Serial Genealogy $\rightarrow$ Ind AS 2 / CARO Aging, Dead Stock Provisioning & 1-Click Procurement Reorder Bridge.
-- **Phase 9 — Quality Control & Inspection Management (`QUALITY`) (In Progress)**:
-  - ✅ **Step 9.1**: In-Process & Stage-Wise Quality Inspection (`/quality/in-process-qc`).
-  - ✅ **Step 9.2**: Final Pre-Dispatch Inspection (PDI) & Certificate of Analysis (CoA) (`/quality/pdi`).
-  - 🔄 **Step 9.3**: Non-Conformance Reports (NCR) & CAPA Action Engine (`/quality/ncr`).
-  - 🔄 **Step 9.4**: Gauge & Equipment Calibration Register (`/quality/calibration`).
+### 🏁 Milestone Execution Summary
+
+| Phase | Functional Scope | Status | Details |
+| :--- | :--- | :--- | :--- |
+| **Phase 0** | Core DB Foundation, Security Kernel & AppShell | **100% Complete** | Multi-tenant schema, Drizzle ORM, Redis session cache, Theme engine |
+| **Phase 1** | Organization & Multi-Tenant Hierarchy | **100% Complete** | Company, Branch/Plant, Financial Year & Branch-FY Locking |
+| **Phase 2** | HR Workforce, Global RBAC & Security | **100% Complete** | Departments, Designations, Employees, Roles, Users, Audit Logs, System Config |
+| **Phase 3** | Inventory Foundation & Warehouse Hierarchy | **100% Complete** | 5-Level Warehouses/Bins, Standard UOMs & Conversions, Item Master |
+| **Phase 4** | Unified Party Master & Commercial Terms | **100% Complete** | Unified Customers/Suppliers/Transporters/Job-Workers, Tiered Price Lists |
+| **Phase 5** | Procurement & Physical Inward Supply Chain | **100% Complete** | Requisitions, RFQ Comparative Matrix, PO, Gate Entry, GRN, Inward QC, Put-Away, Invoices |
+| **Phase 6** | Manufacturing Engineering, MRP & Shopfloor | **100% Complete** | Multi-level BOMs, Work Centers, Routings, MRP-I, Work Orders, Issues, Job Cards, Job-Work, FG Receipts |
+| **Phase 7** | Sales Order, Reservation, Dispatch & Invoicing | **100% Complete** | Quotations, Sales Orders & ATP, Delivery Challans, GST Tax Invoices & IRN, Sales Returns / Credit Notes |
+| **Phase 8** | Inventory Ledger, Valuation & Analytics | **100% Complete** | Real-Time Stock Balance, Physical Audit Adjustments, STO Transfers, 360° Genealogy, Aging & ROP |
+| **Phase 9** | Quality Control & Inspection Management | **100% Complete** | In-Process QC, Final PDI & CoA, Non-Conformance (NCR) & 8D CAPA, Gauge Calibration Register |
+| **Phase 10** | Financial Accounting & Statutory Sync | **Planned** | General Ledger, Chart of Accounts, Bank Reconciliation, Direct E-Way Bill / NIC Portal API |
+| **Phase 11** | Plant Maintenance & Mobile PDA Execution | **Planned** | Equipment Calibration & CMMS, Mobile Barcode/QR Scanner PDA App, Visual Gantt Scheduling |
+
+---
+
+### 🔄 Upcoming Implementation Roadmap
+
+#### Phase 10: Financial Accounting, Sub-Ledgers & Direct Statutory Gateway
+- 🔄 **Step 10.1 — Chart of Accounts (COA) & General Ledger (GL) Subsystem (`/accounts/gl`)**:
+  - Standard 5-level Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expense) with multi-company and branch cost center tagging.
+  - Automated journal voucher posting from operational events (Purchase Invoices, Sales Invoices, Inventory Revaluations, Absorption Costing).
+- 🔄 **Step 10.2 — Accounts Payable (AP) & Accounts Receivable (AR) Cash & Bank Management (`/accounts/banking`)**:
+  - Vendor payment processing, customer receipt allocations, cheque / NEFT / RTGS tracking, and bank statement reconciliation.
+- 🔄 **Step 10.3 — Direct GST Portal & E-Way Bill API Gateway (`/admin/integrations/gst`)**:
+  - Direct machine-to-machine API integration with NIC E-Way Bill and E-Invoice portal via GSP (GST Suvidha Provider) for automatic 1-click IRN generation, cancellation, and active vehicle part-B updating without manual JSON upload.
+
+#### Phase 11: Enterprise Plant Maintenance (CMMS) & Shopfloor Mobile PDA App
+- 🔄 **Step 11.1 — Computerized Maintenance Management System (CMMS) (`/maintenance`)**:
+  - Preventative maintenance schedules (running hours / calendar-based), breakdown maintenance tickets, spare parts consumption, and MTBF / MTTR machinery analytics.
+- 🔄 **Step 11.2 — Shopfloor Mobile Scanner / Handheld Terminal App (Android & iOS)**:
+  - 100% native mobile client utilizing existing REST APIs (`/api/v1/*`) for camera-based 1D/2D barcode and QR scanning.
+  - Real-time dock receiving GRN scanning, bin-to-bin put-away confirmation, lineside material issue picking, and physical stock count auditing.
+- 🔄 **Step 11.3 — Advanced Visual Finite Capacity Scheduling & Gantt Board (`/manufacturing/scheduling`)**:
+  - Interactive drag-and-drop Gantt chart visualizer for Work Orders and Job Cards across machine work centers with live machine maintenance conflict alerts and shift capacity constraints.
 
 ---
 

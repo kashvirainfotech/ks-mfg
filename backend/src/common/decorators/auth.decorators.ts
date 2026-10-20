@@ -59,7 +59,11 @@ export type PermissionAction =
   | 'REGISTER_SERIAL'
   | 'PROVISION'
   | 'REORDER'
-  | 'DEVIATION';
+  | 'DEVIATION'
+  | 'DISPOSITION'
+  | 'CLOSE_CAPA'
+  | 'CALIBRATE'
+  | 'LOCKOUT';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

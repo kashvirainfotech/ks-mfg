@@ -52,7 +52,11 @@ export type AuditActionType =
   | 'REGISTER_SERIAL'
   | 'PROVISION'
   | 'REORDER'
-  | 'DEVIATION';
+  | 'DEVIATION'
+  | 'DISPOSITION'
+  | 'CLOSE_CAPA'
+  | 'CALIBRATE'
+  | 'LOCKOUT';
 
 export interface RecordAuditLogParams {
   userId: number;

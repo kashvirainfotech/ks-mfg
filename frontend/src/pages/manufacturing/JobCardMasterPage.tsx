@@ -698,9 +698,6 @@ export const JobCardMasterPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
               Production Job Cards & Operation Execution
             </h1>
-            <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Live
-            </span>
           </div>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">
             Stage-wise routing operation dispatch, shopfloor time logging, machine asset tracking, and in-process quality inspection clearance

@@ -375,12 +375,18 @@ export const InProcessQcMasterPage: React.FC = () => {
     ApiResponse<InProcessQcSummary>
   >({
     queryKey: ['in-process-qc-summary'],
-    queryFn: () => apiClient.get('/quality/in-process-qc/summary'),
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<InProcessQcSummary>>('/quality/in-process-qc/summary');
+      return res.data;
+    },
   });
 
   const { data: lookupsData } = useQuery<ApiResponse<LookupsData>>({
     queryKey: ['in-process-qc-lookups'],
-    queryFn: () => apiClient.get('/quality/in-process-qc/lookups'),
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<LookupsData>>('/quality/in-process-qc/lookups');
+      return res.data;
+    },
   });
 
   const {
@@ -395,13 +401,14 @@ export const InProcessQcMasterPage: React.FC = () => {
       statusFilter,
       searchTerm,
     ],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (stageFilter !== 'ALL') params.append('inspectionStage', stageFilter);
       if (verdictFilter !== 'ALL') params.append('overallResult', verdictFilter);
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
       if (searchTerm) params.append('search', searchTerm);
-      return apiClient.get(`/quality/in-process-qc?${params.toString()}`);
+      const res = await apiClient.get<ApiResponse<InProcessQcRecord[]>>(`/quality/in-process-qc?${params.toString()}`);
+      return res.data;
     },
   });
 
@@ -413,7 +420,11 @@ export const InProcessQcMasterPage: React.FC = () => {
     activePendingCount: 0,
   };
 
-  const records = listData?.data || [];
+  const records: InProcessQcRecord[] = Array.isArray(listData?.data)
+    ? listData.data
+    : Array.isArray((listData?.data as any)?.data)
+    ? (listData?.data as any).data
+    : [];
   const lookups = lookupsData?.data || {
     workOrders: [],
     jobCards: [],
@@ -1255,7 +1266,7 @@ export const InProcessQcMasterPage: React.FC = () => {
           title="In-Process & Stage Quality Inspections"
           subtitle="First-off approval, in-process patrol inspection, dimensional sampling, and technical concession gating"
           screenCode="IN_PROCESS_QC"
-          tableNameBadge="Live"
+          tableNameBadge="tbl_qc_in_process_header"
           data={displayedRecords}
           columns={columns}
           isLoading={isListLoading}

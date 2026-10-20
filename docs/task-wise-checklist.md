@@ -1,366 +1,147 @@
 # Task-Wise Implementation Checklist (KS-MFG)
 
-**Document Version:** 1.0.0  
-**Project:** KS-MFG Web ERP (Phase 1) & Mobile API Parity  
-**Usage:** Progress tracking across development sprints. Mark tasks with `[x]` upon completion and peer review.
+**Document Version:** 2.0.0  
+**Project:** KS-MFG Web ERP & Mobile API Parity  
+**Last Updated:** 2026-10-20  
+**Usage:** Progress tracking across development sprints. Mark tasks with `[x]` upon completion and verification.
 
 ---
 
-## Phase 1: Database Foundation, Tenancy Core & Infrastructure
-
-### 1.1 Database Scripts & Schema Setup (`dbscripts/` Root Folder)
-- [x] Verify root folder structure `dbscripts/`, `dbscripts/views/`, `dbscripts/functions/`, `dbscripts/triggers/`, `dbscripts/procedures/`
-- [x] In `dbscripts/01_schema_objects.sql`:
-  - [x] Create core sequences (`seq_comp_id`, `seq_branch_id`, `seq_fyear_id`, `seq_user_id`, `seq_role_id`, `seq_screen_id`, `seq_action_id`, `seq_audit_id`)
-  - [x] Create `tbl_org_company` (with standard 7 audit columns)
-  - [x] Create `tbl_org_branch` (with standard 7 audit columns)
-  - [x] Create `tbl_org_financial_year` (`fyear_id`, `fyear_code`, `start_date`, `end_date`, `is_closed`)
-  - [x] Create `tbl_org_branch_fyear` mapping table for branch-level financial year activation and locking
-  - [x] Create `tbl_sec_user_preference` for user theme mode and theme color preferences
-  - [x] Create `tbl_sys_audit_log` (`audit_id`, `comp_id`, `branch_id`, `user_id`, `screen_code`, `action_type`, `entity_table`, `record_id`, `changed_fields` JSONB, `old_value` JSONB, `new_value` JSONB, `ip_address`, `user_agent`, `created_date`)
-- [x] In `dbscripts/functions/fn_set_updated_timestamp.sql`:
-  - [x] Create trigger function updating `updated_date` automatically
-- [x] In `dbscripts/triggers/trg_set_updated_timestamp.sql`:
-  - [x] Create trigger binding for company and branch tables
-- [x] In `dbscripts/02_initial_data.sql`:
-  - [x] Add root Super Admin user seed (`admin` / `Admin@123`) unmapped to employee/party
-  - [x] Add default system parameters and initial screen codes
-
-### 1.2 Backend Framework Setup (NestJS & Drizzle ORM)
-- [x] Initialize NestJS project with TypeScript strict mode
-- [x] Configure environment variable management (`@nestjs/config`) with `.env.example`
-- [x] Configure Drizzle ORM in strict non-sync query builder mode
-  - [x] Verify `drizzle-kit push` and auto-sync are disabled
-  - [x] Establish connection pool with `pg` driver
-  - [x] Create schema mapping classes matching reviewed SQL tables
-- [x] Set up structured logging and Correlation ID middleware
-- [x] Set up global `AuditLogInterceptor` for automated activity logging and JSONB field-level change deltas
-- [x] Set up `DependencyCheckService` to verify foreign references before any master or transaction deletion
-- [x] Configure Redis client for session tokens and cache management
-- [x] Set up Zod schema validation for DTOs
-- [x] Set up global `AllExceptionsFilter` and `ResponseEnvelopeInterceptor` for standardized JSON responses
-
-### 1.3 Frontend Framework Setup (Vite + React 19 + TypeScript)
-- [x] Initialize Vite React TypeScript project
-- [x] Install and configure Tailwind CSS and `src/styles/index.css` with CSS variable design tokens
-- [x] Configure Theme Engine with Light and Dark mode support (`ThemeProvider` & `useThemeStore`)
-- [x] Configure Dynamic Theme Color system (Blue, Indigo, Violet, Emerald, Amber, Rose) via `data-theme-color` attribute
-- [x] Configure core reusable UI components (`AppShell`, `ThemeCustomizerModal`, `PermissionGate`)
-- [x] Set up TanStack Query (React Query) provider with default stale-time policies
-- [x] Set up Zustand client stores (session, active company, active branch, financial year, theme preferences)
-- [x] Set up React Router with protected layout routes (`ProtectedLayout`)
-- [x] Configure Axios API client (`apiClient.ts`) with automatic token attachment, tenant headers (`x-comp-id`, `x-branch-id`, `x-fyear-id`), and refresh interceptors
+## ✅ Phase 0: Core Database Foundation, Security Kernel & AppShell
+- [x] Canonical PostgreSQL schema architecture (`tbl_`, `vw_`, `fn_`, `trg_`, `idx_`) with `BIGINT` sequence PKs and 7 standard audit/tenant columns (`comp_id`, `branch_id`, `fyear_id`, `created_by`, `created_date`, `updated_by`, `updated_date`)
+- [x] In `dbscripts/01_schema_objects.sql`: Core sequences, `tbl_org_company`, `tbl_org_branch`, `tbl_org_financial_year`, `tbl_org_branch_fyear`, `tbl_sec_user_preference`, `tbl_sys_audit_log`
+- [x] In `dbscripts/02_initial_data.sql`: Seed root Super Admin (`admin` / `Admin@123`), initial screens and standard action permissions
+- [x] In `dbscripts/03_sample_demo_data.sql`: Realistic manufacturing enterprise seed data (heavy discrete & process manufacturing)
+- [x] NestJS 11 Security & Architecture Kernel:
+  - [x] Global `JwtAuthGuard` and `@RequirePermission()` `PermissionsGuard`
+  - [x] `CorrelationIdMiddleware` with `X-Correlation-Id` header tracking
+  - [x] `ResponseEnvelopeInterceptor` for standardized JSON envelope
+  - [x] `AllExceptionsFilter` with structured error handling
+  - [x] `AuditLogService` with automated JSONB `old_value` vs `new_value` field diffing
+  - [x] `DependencyCheckService` for pre-delete foreign key verification
+  - [x] Redis caching with automatic graceful fallback to PostgreSQL
+  - [x] Drizzle ORM + `pg.Pool` connection pooling in strict non-sync query builder mode
+- [x] Modern Web ERP Frontend Shell (React 19, Vite 8, Tailwind v4):
+  - [x] Persistent Theme Engine (Light / Dark / System modes + 6 dynamic brand palettes: Indigo, Blue, Emerald, Violet, Amber, Rose)
+  - [x] Full CSS utility token mapping (`--card`, `--background`, `--foreground`, `--muted`, `--border`, `--erp-*`)
+  - [x] Dynamic Company, Branch, and Financial Year switcher in top navigation
+  - [x] Hover-to-peek collapsible sidebar navigation
+  - [x] `<MasterDataTable>` (multi-column search, grouping, sorting, pagination, CSV export, print)
+  - [x] `<PermissionGate>` UI component for button-level RBAC enforcement
+  - [x] `<ConfirmDeleteModal>` with structured dependency conflict breakdowns
 
 ---
 
-## Phase 2: Organization Hierarchy, Users Management, Global Roles & Granular RBAC
-
-### 2.1 Database Scripts (`dbscripts/`)
-- [ ] In `dbscripts/01_schema_objects.sql` (appended at end with date & comment header):
-  - [ ] Create `tbl_mst_department`
-  - [ ] Create `tbl_mst_designation`
-  - [ ] Create `tbl_mst_employee` (with self-referencing reporting manager)
-  - [ ] Create `tbl_sec_user` (`user_id`, `username`, `email`, `mobile_no`, `password_hash`, `user_type` ENUM: `EMPLOYEE`/`PARTY`, `ref_id`, `is_active`)
-  - [ ] Create `tbl_sec_role` (Global definition independent of company/branch)
-  - [ ] Create `tbl_sec_screen` (`screen_id`, `screen_code`, `module_name`, `route_path`)
-  - [ ] Create `tbl_sec_action_item` (`action_id`, `action_code`, `action_name` e.g., `PRINT`, `EXPORT`, `AUTHORIZE`, `CANCEL`, `REOPEN`)
-  - [ ] Create `tbl_sec_screen_action` mapping screen to eligible actions
-  - [ ] Create `tbl_sec_role_screen_permission` (`role_id`, `screen_id`, `can_view`, `can_add`, `can_edit`, `can_delete`)
-  - [ ] Create `tbl_sec_role_action_permission` (`role_id`, `screen_id`, `action_id`, `is_allowed`)
-  - [ ] Create `tbl_sec_user_company_role` mapping `(user_id, comp_id, role_id)`
-  - [ ] Create `tbl_sec_user_branch_role` mapping `(user_id, comp_id, branch_id, role_id)`
-  - [ ] Create `tbl_sec_user_session` (for active refresh tokens and device metadata)
-- [ ] In `dbscripts/02_initial_data.sql`:
-  - [ ] Append initial global roles ("Super Admin", "Branch Manager", "QC Inspector", "Inventory Operator", "Billing Clerk")
-  - [ ] Append initial screen definitions and standard action items
-- [ ] In `dbscripts/03_sample_demo_data.sql`:
-  - [ ] Append sample company, branches, departments, designations, employees, parties, and demo users
-
-### 2.2 Backend APIs
-- [ ] Implement Authentication Module:
-  - [ ] `POST /api/v1/auth/login` (Returns short-lived access token + sets `httpOnly` refresh token cookie)
-  - [ ] `POST /api/v1/auth/refresh` (Rotates refresh token and issues new access token)
-  - [ ] `POST /api/v1/auth/logout` (Blacklists session in Redis and clears cookie)
-  - [ ] `POST /api/v1/auth/switch-branch` (Validates branch assignment, switches active branch in token)
-- [ ] Implement User Profile & Theme Preferences API:
-  - [ ] `GET /api/v1/users/profile/preferences`
-  - [ ] `PUT /api/v1/users/profile/preferences` (Updates theme mode: Light/Dark/System and theme color)
-- [ ] Implement Organization & Employee Endpoints:
-  - [ ] Department CRUD (`/api/v1/departments`) with pre-deletion dependency check
-  - [ ] Designation CRUD (`/api/v1/designations`) with pre-deletion dependency check
-  - [ ] Employee CRUD (`/api/v1/employees`) with pre-deletion dependency check
-- [ ] Implement User Management Endpoints:
-  - [ ] User CRUD (`/api/v1/users`) enforcing mandatory persona mapping (`EMPLOYEE` vs `PARTY`)
-  - [ ] User Company-Role Assignment endpoint (`POST /api/v1/users/:id/company-roles`)
-  - [ ] User Branch-Role Assignment endpoint (`POST /api/v1/users/:id/branch-roles`)
-  - [ ] User Effective Permissions endpoint (`GET /api/v1/users/me/permissions`)
-- [ ] Implement Global Role Management Endpoints (`/api/v1/roles`)
-- [ ] Implement RBAC Security Guards:
-  - [ ] `AuthGuard` (Verifies JWT access token)
-  - [ ] `TenantGuard` (Ensures `comp_id` and `branch_id` context match user claims)
-  - [ ] `PermissionsGuard` (Validates screen and action permissions against active branch roles)
-
-### 2.3 Frontend Screens & Components
-- [ ] Build Theme Switcher & Color Customizer in User Profile screen
-- [ ] Build Login Screen with modern layout and validation
-- [ ] Build Top Navigation Bar with Company & Branch Context Switcher dropdown
-- [ ] Build Department, Designation, and Employee Master Management screens
-- [ ] Build User Management UI:
-  - [ ] User Creation Dialog with Radio Buttons for User Type (`Employee` vs `Party`)
-  - [ ] Dynamic conditional dropdown: Shows Employee autocomplete if Employee selected; Shows Party autocomplete if Party selected
-  - [ ] Company-Role and Multi-Branch Role Assignment Matrix
-- [ ] Build Screen & Action Item Permission Management UI:
-  - [ ] Global Role editor with screen permission matrix (View, Add, Edit, Delete checkboxes)
-  - [ ] Action item permission sub-matrix (Print, Export, Authorize, Cancel checkboxes)
-- [ ] Build Activity Trail & Audit Log viewer dialog/drawer (shows field-level before/after diffs)
-- [ ] Create reusable `<PermissionGate>` component to wrap UI buttons
+## ✅ Phase 1: Organization & Multi-Tenant Hierarchy (`ORGANIZATION`)
+- [x] **Step 1.1 — Company Master (`/org/companies`)**: Full CRUD on `tbl_org_company` with 15-char Indian GSTIN derivation, PAN, CIN, base currency, and pre-delete checks across branches, FYs, and user mappings.
+- [x] **Step 1.2 — Branch & Plant Master (`/org/branches`)**: Full CRUD on `tbl_org_branch` supporting `PLANT`, `HO`, `WAREHOUSE`, and `SALES_OFFICE` facility types, state GSTIN validation, and Head Office rules.
+- [x] **Step 1.3 — Financial Year Master & Branch-FY Locking (`/org/financial-years`)**: Full CRUD on `tbl_org_financial_year` with automatic `tbl_org_branch_fyear` provisioning, Quick FY Generator, company-wide period closing (`is_closed`), and branch-specific fiscal period locking (`is_locked`).
 
 ---
 
-## Phase 3: Dynamic Parameter Engine & Dynamic Multi-Level Warehouses
-
-### 3.1 Database Scripts
-- [ ] Author `005_config_parameters.sql`
-  - [ ] Create `tbl_cfg_parameter_master` (`param_id`, `param_code`, `data_type`, `scope_level`, `default_value`, `category`)
-  - [ ] Create `tbl_cfg_company_override` (`comp_id`, `param_id`, `param_value`)
-  - [ ] Create `tbl_cfg_branch_override` (`comp_id`, `branch_id`, `param_id`, `param_value`)
-  - [ ] Create `tbl_cfg_user_override` (`comp_id`, `branch_id`, `user_id`, `param_id`, `param_value`)
-- [ ] Author `006_dynamic_warehouses.sql`
-  - [ ] Create `tbl_mst_warehouse` (`warehouse_id`, `warehouse_code`, `warehouse_name`, `hierarchy_levels`)
-  - [ ] Create `tbl_mst_location_type` (`location_type_id`, `type_code`, `type_name`, `is_allocatable`)
-  - [ ] Create `tbl_mst_warehouse_location` (Adjacency list with `parent_location_id`, `level_depth`, `level_name`, `path_string`, `location_type_id`)
-- [ ] Author `backend/db/seeds/002_seed_default_configs.sql` with default flags:
-  - [ ] `ENABLE_DUAL_UNIT` = false
-  - [ ] `ENABLE_BATCH_TRACKING` = false
-  - [ ] `ENABLE_SERIAL_TRACKING` = false
-  - [ ] `ENABLE_BARCODE_SCANNING` = false
-  - [ ] `ALLOW_NEGATIVE_STOCK` = false
-
-### 3.2 Backend Services & APIs
-- [ ] Implement Configuration Resolution Engine Service:
-  - [ ] Implements fallback cascading: User $\rightarrow$ Branch $\rightarrow$ Company $\rightarrow$ System Default
-  - [ ] Redis caching layer for evaluated configurations with bulk invalidation
-  - [ ] CRUD endpoints for updating Company, Branch, and User config overrides
-  - [ ] API endpoint `GET /api/v1/config/resolved` to load all active parameters for client session
-- [ ] Implement Dynamic Warehouse & Location Services:
-  - [ ] Warehouse CRUD (`/api/v1/warehouses`)
-  - [ ] Location Type CRUD (`/api/v1/location-types`)
-  - [ ] Location Node management (Add child node, edit node, move node)
-  - [ ] Endpoint `GET /api/v1/warehouses/:id/tree` returning nested JSON hierarchy
-  - [ ] Endpoint to map any location level node to a `location_type_id`
-
-### 3.3 Frontend Screens & Components
-- [ ] Build Configuration & Parameter Setting Screen:
-  - [ ] Dynamic parameter matrix with category tabs (Inventory, Production, Security)
-  - [ ] Company-level toggle, Branch-level override toggle, User-level override toggle
-  - [ ] Visual indicator showing where a value is inherited from (e.g., "Inherited from Company")
-- [ ] Build Warehouse & Dynamic Location Tree Builder Screen:
-  - [ ] Tree view component (expand/collapse nodes)
-  - [ ] "Add Child Location" dialog supporting arbitrary names (e.g., Chamber, Rack, Bin, Floor, Block)
-  - [ ] Dynamic dropdown to assign `Location Type` (General, QC, Quarantine, Damaged, WIP) to any selected node
-  - [ ] Visual badges displaying assigned location types on tree nodes
+## ✅ Phase 2: HR Workforce Hierarchy, Global RBAC & Security (`SECURITY`)
+- [x] **Step 2.1 — Department & Designation Master (`/hr/departments`)**: Dual-tab management for functional plant departments (`tbl_hr_department` with parent-child tree and cost centers) and job designations (`tbl_hr_designation` with grade bands `E1`–`L5`).
+- [x] **Step 2.2 — Employee Master Directory (`/hr/employees`)**: 3-tab workforce registry (`tbl_hr_employee`) covering plant/department assignment, self-referencing reporting manager hierarchy, statutory identifiers (PAN, Masked Aadhaar, PF UAN, ESIC), and payroll bank records.
+- [x] **Step 2.3 — Global Roles & Granular Screen/Action Permissions Matrix (`/security/roles`)**: Global role catalogue (`tbl_sec_role`) with baseline role cloning and interactive Screen/Action permissions matrix (`tbl_sec_role_permission` and `tbl_sec_role_action_permission`) with `SUPER_ADMIN` self-lockout protection.
+- [x] **Step 2.4 — User Master & Multi-Company / Multi-Branch Role Assignment (`/security/users`)**: ERP user accounts (`tbl_sec_user`) with HR employee linking, Bcrypt hashing, atomic multi-company (`tbl_sec_user_company_role`) and multi-branch (`tbl_sec_user_branch_role`) role assignments, administrative password reset, and account lockout unlock.
+- [x] **Step 2.5 — Security & Field-Delta Audit Trail Viewer (`/security/audit-logs`)**: Complete immutable audit viewer (`tbl_sys_audit_log`) with side-by-side JSONB `old_value` vs `new_value` field diff inspector, multi-column search, and CSV export.
+- [x] **Step 2.6 — System Configuration Matrix & Document Numbering Series Engine (`/admin/configurations`)**: Dual-tab administration engine managing company/plant configuration overrides (`tbl_sys_config`) and multi-plant document numbering series (`tbl_sys_doc_number_series`) with live preview, token generation, and rollover rules.
 
 ---
 
-## Phase 4: Product Catalog, Dynamic Units, Tracking Flags & Unified Party Master
-
-### 4.1 Database Scripts
-- [ ] Author `007_items_and_units.sql`
-  - [ ] Create `tbl_mst_uom` (Unit of Measurement Master: `uom_id`, `uom_code`, `uom_name`, `decimal_places`)
-  - [ ] Create `tbl_mst_item_group` and `tbl_mst_item_category`
-  - [ ] Create `tbl_mst_item` (`item_id`, `item_code`, `item_name`, `item_type`, `base_uom_id`, `has_batch_tracking`, `has_serial_tracking`, `has_dual_unit`, `hsn_code`, `gst_rate`)
-  - [ ] Create `tbl_mst_item_uom_conversion` (`item_id`, `secondary_uom_id`, `conversion_factor`, `is_default_purchase_uom`, `is_default_sales_uom`)
-- [ ] Author `008_parties_and_pricing.sql`
-  - [ ] Create `tbl_mst_party` (`party_id`, `party_code`, `party_name`, `is_customer`, `is_supplier`, `is_job_worker`, `is_transporter`, `pan_no`, `gstin`, `credit_limit`, `credit_days`)
-  - [ ] Create `tbl_mst_party_address` (Multiple Billing and Shipping addresses)
-  - [ ] Create `tbl_mst_pricelist_hdr` and `tbl_mst_pricelist_dtl` (Standard, Customer Group, and Customer-specific prices)
-
-### 4.2 Backend APIs
-- [ ] Implement UOM Master CRUD (`/api/v1/uoms`)
-- [ ] Implement Item Master Service & Controller:
-  - [ ] Item CRUD endpoints (`/api/v1/items`)
-  - [ ] Backend validation: Reject saving `has_dual_unit = true` if `ENABLE_DUAL_UNIT` config is OFF
-  - [ ] Backend validation: Reject saving `has_batch_tracking = true` if `ENABLE_BATCH_TRACKING` config is OFF
-  - [ ] Backend validation: Reject saving `has_serial_tracking = true` if `ENABLE_SERIAL_TRACKING` config is OFF
-  - [ ] Multi-UOM conversion factor management endpoints
-- [ ] Implement Unified Party Master Service & Controller:
-  - [ ] Party CRUD endpoints (`/api/v1/parties`) supporting filtering by `?type=customer`, `?type=supplier`, `?type=job_worker`
-  - [ ] Party Address CRUD endpoints
-- [ ] Implement Tiered Pricing Resolution Service:
-  - [ ] Price list CRUD endpoints
-  - [ ] Evaluation API: `GET /api/v1/pricing/resolve?party_id=X&item_id=Y` resolving customer-specific $\rightarrow$ group $\rightarrow$ standard rate
-
-### 4.3 Frontend Screens & Components
-- [ ] Build UOM Master Screen
-- [ ] Build Item Master Creation/Edit Screen:
-  - [ ] Base Unit selection (mandatory)
-  - [ ] Conditional UI: Multi-Unit tab displayed **only if** `ENABLE_DUAL_UNIT` is active
-  - [ ] Conditional UI: Batch Tracking switch displayed **only if** `ENABLE_BATCH_TRACKING` is active
-  - [ ] Conditional UI: Serial Tracking switch displayed **only if** `ENABLE_SERIAL_TRACKING` is active
-  - [ ] Secondary UOM conversion table editor (e.g., 1 Box = 50 Pcs)
-- [ ] Build Unified Party Master Screen:
-  - [ ] Role flags checkboxes (`Customer`, `Supplier`, `Job Worker`, `Transporter`)
-  - [ ] Dynamic address grid (Billing, Shipping with GSTIN & State Code)
-- [ ] Build Price List Management Screen:
-  - [ ] Price list header editor (scope: General, Region, Customer Group, Customer)
-  - [ ] Excel-like data grid to bulk-set item prices
+## ✅ Phase 3: Inventory Foundation & Warehouse Hierarchy (`INVENTORY`)
+- [x] **Step 3.1 — Multi-Level Warehouse, Zone, Rack, Shelf & Bin Master (`/inventory/warehouses`)**: Physical logistics model (`tbl_inv_warehouse` and `tbl_inv_storage_bin`) supporting Raw Materials, Quarantine Hold, WIP Lineside, Finished Goods, and Scrap Yards with coordinate path preview (`Warehouse` $\rightarrow$ `Zone` $\rightarrow$ `Rack` $\rightarrow$ `Shelf` $\rightarrow$ `Bin`).
+- [x] **Step 3.2 — Unit of Measure (UOM), UOM Conversion Matrix & Item Category Hierarchy (`/inventory/uoms`)**: 3-tab inventory configuration managing standardized industrial UOMs (`tbl_inv_uom`), bidirectional conversion ratios (`tbl_inv_uom_conversion`), and recursive item category tree hierarchies (`tbl_inv_item_category`).
+- [x] **Step 3.3 — Item & Material Master, Multi-UOM, Pricing, Quality & BOM Parameters (`/inventory/items`)**: Comprehensive 4-tab engineering material master (`tbl_inv_item`) managing standard/purchase/sales rates, multi-UOM mappings (Base, Purchase, Sales), inventory buffer thresholds (ROP, Min, Safety Stock), QC inspection flags, heat/batch/serial tracking, and BOM parent flags.
 
 ---
 
-## Phase 5: Transaction & Voucher Engine & Sequence Reset Utility
-
-### 5.1 Database Scripts
-- [ ] Author `009_voucher_framework.sql`
-  - [ ] Create `tbl_mst_voucher_type` (`voucher_type_id` INT, `voucher_type_code`, `voucher_type_name`, `category`)
-  - [ ] Create `tbl_trn_voucher_sequence_tracker` (`comp_id`, `branch_id`, `fyear_id`, `voucher_type_id`, `prefix`, `current_seq`, `padding_digits`, `suffix`, `last_generated_no`)
-  - [ ] Insert unique constraint on `(comp_id, branch_id, fyear_id, voucher_type_id)` in sequence tracker
-- [ ] Author `backend/db/seeds/001_seed_voucher_types.sql`:
-  - [ ] PO = 1, GRN = 2, PI = 3, SQ = 4, SO = 5, DC = 6, SI = 7
-  - [ ] BTI = 11, BTR = 12, WBT = 13
-  - [ ] JWI = 21, JWR = 22
-  - [ ] BOM = 31, PWO = 32, MIS = 33, PRN = 34
-  - [ ] STK_ADJ = 41, SCRAP = 42
-
-### 5.2 Backend Services & APIs
-- [ ] Implement Atomic Voucher Sequence Generator Service:
-  - [ ] `generateNextVoucherNo(compId, branchId, fyearId, voucherTypeId, trx)`
-  - [ ] Uses PostgreSQL row-level lock `SELECT ... FOR UPDATE` on sequence tracker row
-  - [ ] Increments `current_seq` and formats voucher number string (e.g., `PO/PUN/26-27/000042`)
-  - [ ] Returns generated number within the same active database transaction
-- [ ] Implement Sequence Configuration & Reset Service:
-  - [ ] Endpoint `GET /api/v1/voucher-sequences` (Filter by branch and financial year)
-  - [ ] Endpoint `POST /api/v1/voucher-sequences/reset` (Resets counter with admin audit logging)
-  - [ ] Endpoint `PUT /api/v1/voucher-sequences/:id` (Updates prefix, suffix, and padding)
-
-### 5.3 Frontend Screens & Components
-- [ ] Build Voucher Sequence Reset & Management Screen:
-  - [ ] Branch and Financial Year selector
-  - [ ] Table listing all Voucher Types with current sequence, prefix, and last generated voucher number
-  - [ ] Edit Prefix / Suffix modal
-  - [ ] "Reset Sequence" action with confirmation dialog and warning prompt
+## ✅ Phase 4: Unified Party Master & Commercial Terms (`CRM_SRM`)
+- [x] **Step 4.1 — Unified Customer, Supplier, Transporter & Job-Worker Master (`/parties/customers` & `/parties/master`)**: Multi-faceted corporate entity directory (`tbl_crm_party`) with 1-to-N multi-plant addresses and state-level GSTINs (`tbl_crm_party_address`), PAN, MSME Udyam classification, credit limit controls, and payment terms.
+- [x] **Step 4.2 — Tiered Price Lists, Volume Discounts & Vendor Rate Contracts (`/parties/price-lists`)**: Commercial sales price lists, vendor procurement contracts, and subcontractor machining rate cards (`tbl_crm_price_list`) with multi-tier quantity break discounts (`tbl_crm_price_list_item`), validity dates, default fallback rules, and authorized trading partner assignments (`tbl_crm_party_price_list`).
 
 ---
 
-## Phase 6: Procurement Lifecycle & Multi-Level Bin Put-Away
-
-### 6.1 Database Scripts
-- [ ] Author `010_procurement_transactions.sql`
-  - [ ] Create `tbl_trn_purchase_order_hdr` (with standard 7 audit columns + `fyear_id`, `voucher_no`, `voucher_type_id = 1`)
-  - [ ] Create `tbl_trn_purchase_order_dtl` (`item_id`, `trans_uom_id`, `trans_qty`, `conversion_factor`, `base_qty`, `base_uom_id`, `unit_rate`, `tax_amount`, `total_amount`)
-  - [ ] Create `tbl_trn_grn_hdr` (`voucher_type_id = 2`, `po_id`, `vendor_invoice_no`, `vendor_invoice_date`)
-  - [ ] Create `tbl_trn_grn_dtl` (`item_id`, `trans_uom_id`, `trans_qty`, `base_qty`, `accepted_qty`, `rejected_qty`)
-  - [ ] Create `tbl_trn_grn_bin_allocation` (`grn_dtl_id`, `warehouse_id`, `location_id`, `allocated_qty`, `batch_no`, `serial_no`, `mfg_date`, `expiry_date`)
-  - [ ] Create `tbl_trn_purchase_invoice_hdr` & `tbl_trn_purchase_invoice_dtl` (`voucher_type_id = 3`)
-
-### 6.2 Backend APIs
-- [ ] Implement Purchase Order Service & Controller (`/api/v1/purchase-orders`)
-  - [ ] Save draft, submit, approve, print, export endpoints with RBAC guards
-- [ ] Implement Goods Receipt Note (GRN) Service & Controller (`/api/v1/grn`):
-  - [ ] Inward receipt against PO or direct receipt
-  - [ ] Validate dynamic unit conversion (`trans_qty * conversion_factor = base_qty`)
-  - [ ] Validate batch and serial mandatory fields if item has corresponding flags active
-  - [ ] Validate warehouse location IDs against dynamic location hierarchy
-  - [ ] Automatically route items to Non-Allocatable inventory if location has QC/Quarantine type
-- [ ] Implement Purchase Invoice 3-Way Match Service (`/api/v1/purchase-invoices`)
-
-### 6.3 Frontend Screens & Components
-- [ ] Build Purchase Order Entry Screen:
-  - [ ] Supplier autocomplete (filtered by `is_supplier = true`)
-  - [ ] High-density line items grid (Item, Trans Unit dropdown, Trans Qty, Conv Factor, Base Qty, Rate, Tax)
-  - [ ] Action buttons: Save Draft, Submit, Authorize (wrapped in `<PermissionGate screen="PO" action="AUTHORIZE">`), Print, Export
-- [ ] Build Inward GRN Entry Screen:
-  - [ ] PO lookup and pending balance loader
-  - [ ] Bin Put-Away Modal: Interactive dynamic tree selector to pick destination Chamber/Rack/Bin
-  - [ ] Conditional Batch modal (Mfg Date, Exp Date, Batch No) if item is batch-tracked
-  - [ ] Conditional Serial Numbers input (manual entry or CSV/barcode paste) if item is serial-tracked
-- [ ] Build Purchase Invoice Verification & Booking Screen
+## ✅ Phase 5: Procurement & Physical Inward Supply Chain (`PROCUREMENT`)
+- [x] **Step 5.1 — Material Purchase Requisition (MR) & Multi-Level Authorization (`/procurement/requisitions`)**: Internal shopfloor & department material indents (`tbl_pur_requisition_header` & `tbl_pur_requisition_item`) with multi-level approval workflows, benchmark rate estimation, and printable requisition vouchers.
+- [x] **Step 5.2 — Supplier Request for Quotation (RFQ) & Comparative Statement Matrix (`/procurement/rfqs`)**: Multi-vendor bidding tenders (`tbl_pur_rfq_header`, `tbl_pur_rfq_item`, `tbl_pur_rfq_vendor`, `tbl_pur_rfq_vendor_item`) with 1-click requisition import, supplier bid logging, dynamic Comparative Statement (CS) evaluation matrix with automated L1 bidder detection, and contract awarding.
+- [x] **Step 5.3 — Purchase Order (PO) Management & Commercial Release Workflow (`/procurement/purchase-orders`)**: Legally binding purchase contracts (`tbl_pur_po_header` & `tbl_pur_po_item`) covering Standard PO, Blanket Agreement, Subcontracting Job-Work, Service PO, and CapEx, real-time GST tax computation, 1-click sourcing import from Awarded RFQs / Approved PRs, commercial release (`RELEASE`), cancellation workflows, and printable purchase order vouchers.
+- [x] **Step 5.4 — Gate Entry & Security Inward Register (`/procurement/gate-inward`)**: Factory perimeter security checkpoints (`tbl_pur_gate_inward_header` & `tbl_pur_gate_inward_item`) tracking incoming supplier transport trucks, delivery challans, Indian GST E-Way Bills, LR consignment notes, weighbridge gross/tare/net weight verification, stores offloading clearance (`UNLOAD`), and security outward departure passes (`EXIT`).
+- [x] **Step 5.5 — Goods Receipt Note (GRN) & Quarantine Put-Away (`/procurement/grn`)**: Dock receiving vouchers (`tbl_pur_grn_header` & `tbl_pur_grn_item`) with 1-click Gate Inward / PO sync, shortage/excess variance logging, supplier heat/batch number tracking, quarantine staging cage put-away (`QC_IN_PROGRESS`), store approval (`APPROVED`) with automatic PO received balance increments, and printable official GRN vouchers.
+- [x] **Step 5.6 — Inward Material QC Inspection, Heat/Batch Allocation & Quarantine Clearance (`/quality/inward-qc`)**: Full metallurgical and physical laboratory testing (`tbl_pur_inward_qc_header` & `tbl_pur_inward_qc_item`) with 1-click Quarantine GRN import, 4-pillar testing checklist (Visual, Dimensional, Chemical/Spectro, Hardness), JSON observed parameters tracking, split accepted vs rejected lot disposition, upstream PO and GRN synchronization on approval, and printable official QC certificates.
+- [x] **Step 5.7 — Warehouse Bin Put-Away, Lot Allocation & Stock Ledger Posting (`/inventory/put-away`)**: WMS execution (`tbl_inv_putaway_header` & `tbl_inv_putaway_item`) transferring accepted materials from quarantine staging to permanent storage racks, operator dispatching (`ASSIGN`), and real-time on-hand stock balance updates in `tbl_inv_bin_stock` and immutable transactions in `tbl_inv_stock_ledger`.
+- [x] **Step 5.8 — Purchase Invoice 3-Way Matching, GST Input Tax Credit & Accounts Payable Clearance (`/procurement/invoices`)**: Commercial finance 3-way matching engine (`tbl_pur_invoice_header` & `tbl_pur_invoice_item`) comparing PO rates, GRN received quantities, and QC accepted quantities, automated price/quantity variance detection, GST Input Tax Credit (ITC) breakdown, TDS/TCS withholding tax calculations, AP clearance approvals, payment disbursements, and printable commercial vouchers.
 
 ---
 
-## Phase 7: Manufacturing Lifecycle & 3rd-Party Subcontracting (Job-Work)
-
-### 7.1 Database Scripts
-- [ ] Author `011_manufacturing_tables.sql`
-  - [ ] Create `tbl_mfg_bom_hdr` & `tbl_mfg_bom_dtl` (`voucher_type_id = 31`, output FG item, input components, scrap %)
-  - [ ] Create `tbl_mfg_routing` & `tbl_mfg_routing_operation` (Operations, work centers, cycle times)
-  - [ ] Create `tbl_trn_production_work_order` (`voucher_type_id = 32`, planned qty, start/end dates)
-  - [ ] Create `tbl_trn_material_issue_hdr` & `dtl` (`voucher_type_id = 33`, source bin $\rightarrow$ shopfloor WIP)
-  - [ ] Create `tbl_trn_fg_receipt_hdr` & `dtl` (`voucher_type_id = 34`, WIP relief $\rightarrow$ destination FG bins)
-- [ ] Author `012_subcontracting_tables.sql`
-  - [ ] Create `tbl_trn_jobwork_challan_hdr` & `dtl` (`voucher_type_id = 21`, party_id, challan_no, dispatch items)
-  - [ ] Create `tbl_trn_jobwork_receipt_hdr` & `dtl` (`voucher_type_id = 22`, received processed items, consumed RM, scrap returned, vendor service charges)
-
-### 7.2 Backend APIs
-- [ ] Implement BOM & Routing Management Service (`/api/v1/manufacturing/bom`)
-- [ ] Implement Production Work Order Service (`/api/v1/manufacturing/work-orders`)
-- [ ] Implement Material Issue Service (`/api/v1/manufacturing/material-issues`):
-  - [ ] Deducts Raw Material stock from source bin
-  - [ ] Credits WIP Floor Account
-  - [ ] Validates batch/serial availability in source bin
-- [ ] Implement Finished Goods Receipt Service (`/api/v1/manufacturing/fg-receipts`):
-  - [ ] Relieves WIP inventory
-  - [ ] Credits FG inventory in destination warehouse bins
-  - [ ] Generates batch/serial numbers for newly minted finished goods
-- [ ] Implement Subcontracting (Job-Work) Services:
-  - [ ] Job-Work Delivery Challan endpoints (`/api/v1/subcontracting/challans`)
-  - [ ] Job-Work Receipt Note endpoints (`/api/v1/subcontracting/receipts`)
-  - [ ] Track outstanding vendor job-work material balances
-
-### 7.3 Frontend Screens & Components
-- [ ] Build BOM & Recipe Designer Screen (Interactive tree showing finished good with child raw materials & scrap)
-- [ ] Build Production Work Order Management Screen
-- [ ] Build Material Issue to Shopfloor Screen:
-  - [ ] Pick-list assistant showing available stock in dynamic bins
-  - [ ] Batch/Serial picker modal
-- [ ] Build Finished Goods Receipt Screen (With automatic batch generation and bin put-away)
-- [ ] Build Job-Work Challan Dispatch Screen (Vendor selection, item dispatch, delivery challan printout)
-- [ ] Build Job-Work Material Receipt Screen (Record processed output, process wastage, vendor bill amount)
+## ✅ Phase 6: Manufacturing Engineering, MRP, Shopfloor Execution & Job-Work (`MANUFACTURING`)
+- [x] **Step 6.1 — Multi-Level Bill of Materials (BOM), Versions, Scrap Factors & Co-Products / By-Products (`/manufacturing/boms`)**: Engineering product recipes and hierarchical assembly structures (`tbl_mfg_bom_header`, `tbl_mfg_bom_item`, `tbl_mfg_bom_byproduct`) with recursive indented tree explosion (`EXPLODE`), cycle detection, process scrap factors, co-product recovery credits, 1-click version cloning, engineering approval workflow, live absorption cost rollups, and printable costed engineering datasheets.
+- [x] **Step 6.2 — Work Centers, Production Lines, Capacity & Shift Calendars (`/manufacturing/work-centers`)**: Shopfloor workstations, CNC machining cells, assembly lines, and furnaces (`tbl_mfg_work_center`), capital machinery assets (`tbl_mfg_work_center_machine`), factory production shifts (`tbl_mfg_shift`), working shift allocations, daily rated capacity & OEE efficiency calculations, maintenance logging, absorption hourly cost matrices, and printable capacity sheets.
+- [x] **Step 6.3 — Production Routings, Operation Sequences, Standard Cycle Times & Machine Tooling (`/manufacturing/routings`)**: Chronological multi-stage manufacturing operation sequences (`tbl_mfg_routing_header` & `tbl_mfg_routing_operation`), work center assignment, machine tooling and fixture tracking, setup & run cycle times, interactive sequential operation timeline visualizer, engineering approval workflow, 1-click revision cloning, absorption unit costing rollups, and printable shopfloor route traveler cards.
+- [x] **Step 6.4 — Material Requirements Planning (MRP-I Engine) & Gross-to-Net Planned Orders (`/manufacturing/mrp`)**: Supply chain calculation engine (`tbl_mfg_mrp_run_header` & `tbl_mfg_mrp_planned_order`) computing multi-level gross-to-net material deficits ($\text{Net} = \text{Gross} - \text{On-Hand Stock} - \text{Scheduled PO Receipts} + \text{Safety Buffer}$), recursive BOM scrap factor explosion, action classification (`MAKE` vs `BUY` vs `SUBCONTRACT`), backward scheduling, 1-click batch conversion into Purchase Requisitions, indented BOM tree visualization, and printable planning schedules.
+- [x] **Step 6.5 — Production Work Orders (WO), Scheduling, BOM Snapshot & Operation Routing Release (`/manufacturing/work-orders`)**: Discrete manufacturing shopfloor execution engine (`tbl_mfg_wo_header`, `tbl_mfg_wo_bom_item`, `tbl_mfg_wo_routing_op`) featuring frozen bill-of-material component snapshots, sequential routing operation freezing, multi-warehouse segregation (Finished Goods vs WIP Lineside), 1-click conversion from MRP planned orders, shopfloor release authorization, production yield efficiency calculation, and printable job card traveler sheets.
+- [x] **Step 6.6 — Shopfloor Material Issue, Lineside Staging & Backflushing (`/manufacturing/material-issues`)**: Production component requisition and staging register (`tbl_mfg_material_issue_header` & `tbl_mfg_material_issue_item`) tracking issue vouchers (`MI-`), 1-click "Load from Work Order", automated stock posting debiting store inventory (`ISSUE_TO_WIP`), incrementing Work Order `issued_qty`, auto-transitioning Work Orders to `IN_PROGRESS`, accumulating actual material cost, shopfloor unconsumed surplus returns, and printable store requisition vouchers.
+- [x] **Step 6.7 — Stage-Wise Production Job Cards, Operation Time Logging & In-Process QC Inspection (`/manufacturing/job-cards`)**: Shopfloor routing traveler cards and MES execution register (`tbl_mfg_job_card` & `tbl_mfg_job_card_time_log`) tracking travelers (`JC-`), 1-click batch generation of sequential operation travelers from active Work Orders, shopfloor clock-in, shift-wise setup/run/downtime booking and output reporting, mandatory in-process QC inspection clearance, automatic sequential stage handover queueing, cumulative operation cost rollup into parent Work Order headers upon completion, and printable traveler sheets.
+- [x] **Step 6.8 — Subcontractor Job-Work Outward Delivery Challan, Inward Receipt & Material Reconciliation (`/manufacturing/job-work`)**: Statutory Indian GST Section 143 & Rule 55 delivery challan register (`tbl_mfg_job_work_challan`, `tbl_mfg_job_work_challan_item`, `tbl_mfg_job_work_receipt`, `tbl_mfg_job_work_receipt_item`) tracking outward challans (`JW-OUT-`), vendor third-party processing, Work Order and routing step link, outward warehouse inventory issue (`PRODUCTION_ISSUE` in `tbl_inv_stock_ledger`), inward goods receipt (`JW-IN-`) with QC disposition, warehouse put-away (`PUTAWAY_INWARD`), processing charges + 18% GST calculation, absorption into Work Order actual machining costs, multi-line material reconciliation ($\text{Sent} = \text{Received} + \text{Scrap} + \text{Loss}$), and printable GST Section 143 delivery challans.
+- [x] **Step 6.9 — Finished Goods (FG) Production Receipt, Scrap/By-Product Accounting & Absorption Cost Rollup (`/manufacturing/fg-receipts`)**: Finished goods receipt register (`tbl_mfg_fg_receipt_header`, `tbl_mfg_fg_receipt_byproduct`) tracking production output vouchers (`FGR-`), Work Order linkage, batch/lot and melt heat traceability, output yield efficiency percentage, 1-click "Suggest from BOM" co-product and recoverable scrap recovery crediting, live actual absorption costing rollups ($\text{Net Cost} = \text{Actual Material} + \text{Actual Operation} - \text{Scrap Credit}$), in-process/final QC clearance, automated stock ledger posting (`PUTAWAY_INWARD` in `tbl_inv_stock_ledger`), bin inventory put-away (`tbl_inv_bin_stock`), Work Order completion synchronization, and printable production inward vouchers.
 
 ---
 
-## Phase 8: Inventory Ledger, Valuation & Analytics
-
-### 8.1 Database Scripts
-- [ ] Author `013_inventory_ledger.sql`
-  - [ ] Create `tbl_inv_stock_ledger` (Immutable double-entry inventory ledger: `ledger_id`, `comp_id`, `branch_id`, `fyear_id`, `voucher_type_id`, `voucher_id`, `voucher_no`, `item_id`, `warehouse_id`, `location_id`, `batch_no`, `serial_no`, `in_trans_qty`, `out_trans_qty`, `trans_uom_id`, `in_base_qty`, `out_base_qty`, `base_uom_id`, `unit_cost`, `total_cost`, `is_allocatable`)
-  - [ ] Create `tbl_inv_batch_master` (`batch_id`, `item_id`, `batch_no`, `mfg_date`, `expiry_date`, `status`)
-  - [ ] Create `tbl_inv_serial_master` (`serial_id`, `item_id`, `serial_no`, `current_warehouse_id`, `current_location_id`, `status`)
-- [ ] Author `014_indexes_and_triggers.sql`
-  - [ ] Composite indexes on `tbl_inv_stock_ledger` for ultra-fast balance lookups
-  - [ ] Materialized view or summary table for instantaneous stock balance queries
-
-### 8.2 Backend APIs
-- [ ] Implement Stock Balance & Valuation Queries (`/api/v1/inventory/balance`)
-  - [ ] Filter by Item, Branch, Warehouse, specific dynamic Location Bin, or Batch
-  - [ ] Real-time total base quantity and dual unit breakdown
-- [ ] Implement Batch & Serial Traceability API (`/api/v1/inventory/traceability/:batchOrSerial`):
-  - [ ] Returns complete genealogy tree: Vendor PO $\rightarrow$ GRN $\rightarrow$ Bin Put-away $\rightarrow$ Production Issue $\rightarrow$ Work Order $\rightarrow$ FG Receipt $\rightarrow$ Sales Invoice
-- [ ] Implement Physical Stock Reconciliation endpoints (`/api/v1/inventory/adjustments`)
-
-### 8.3 Frontend Screens & Dashboards
-- [ ] Build Real-Time Inventory Balance Grid:
-  - [ ] Multi-filter header (Branch, Warehouse, Dynamic Location, Item Group, Stock Status)
-  - [ ] Shows Base Stock alongside Alternate Unit quantities
-- [ ] Build 360-Degree Batch & Serial Traceability Explorer:
-  - [ ] Visual timeline tracing a serial/batch number through every manufacturing and vendor job-work stage
-- [ ] Build Stock Aging & Reorder Level Alert Dashboard
+## ✅ Phase 7: Sales Order, Reservation, Dispatch & Invoicing (`SALES`)
+- [x] **Step 7.1 — Customer Inquiry & Quotation / Proforma Invoice (`/sales/quotations`)**: Pre-sales commercial quotations (`tbl_sales_quotation_header` & `tbl_sales_quotation_item`) featuring auto-numbering (`QT-`), customer address & GSTIN sync, intra-state vs inter-state tax engine, commercial revision tracking, 1-click conversion to Sales Order (`CONVERT_TO_SO`), and printable statutory Indian GST proforma invoices.
+- [x] **Step 7.2 — Sales Order (SO), Commercial Credit Check & Available-to-Promise (ATP) Stock Reservation (`/sales/orders`)**: Legally binding customer contracts (`tbl_sales_order_header` & `tbl_sales_order_item`) with auto-numbering (`SO-`), 1-click quotation import, customer commercial credit check vs master limits (`tbl_crm_party`) with managerial override, real-time Available-to-Promise (ATP) FIFO finished goods stock reservation engine against warehouse bins (`tbl_inv_bin_stock`), 1-click production Work Order generation for deficit unreserved quantities, operational & credit hold management, and printable sales order acknowledgements.
+- [x] **Step 7.3 — Outward Warehouse Pick/Pack Slip & Dispatch Delivery Challan (`/sales/delivery-challans`)**: Statutory outward dispatch delivery challans and warehouse pick/pack slips (`tbl_sales_delivery_challan_header` & `tbl_sales_delivery_challan_item`) compliant with Rule 55 of CGST Rules, 2017, featuring auto-numbering (`DC-`), 1-click import from confirmed Sales Orders, 5-stage warehouse milestone lifecycle (`DRAFT` $\rightarrow$ `PICKED` $\rightarrow$ `PACKED` $\rightarrow$ `DISPATCHED` $\rightarrow$ `DELIVERED`), real-time WMS stock ledger deduction engine (`SALES_DISPATCH` in `tbl_inv_stock_ledger` and on-hand bin reduction in `tbl_inv_bin_stock`), automated Sales Order delivery status updates, reversible cancellation engine with automated inventory restitution, and printable delivery challans and packing slips.
+- [x] **Step 7.4 — Statutory GST Tax Invoice Generation, E-Invoicing (IRN) & Customer Accounts Receivable (`/sales/invoices`)**: Statutory GST Rule 46 Tax Invoices and Accounts Receivable sub-ledger (`tbl_sales_invoice_header`, `tbl_sales_invoice_item`, `tbl_sales_ar_payment_receipt`) featuring FY-sequenced numbering (`INV-`), 1-click loading from dispatched Delivery Challans and confirmed Sales Orders, automated intra-state (CGST + SGST) vs inter-state (IGST) tax calculation with TCS and round-off, commercial invoice posting with line locking and Sales Order `invoiced_qty` synchronization, statutory Rule 48(4) E-Invoicing (IRN) engine generating 64-character SHA-256 hash, 16-digit Ack Number, signed QR code payload, and optional E-Way Bill link, Accounts Receivable (AR) payment receipt recording with TDS withholding and real-time balance reduction, and printable statutory Rule 46 GST Tax Invoices.
+- [x] **Step 7.5 — Sales Return (Credit Note) & Inward RMA Quarantine Inspection (`/sales/returns`)**: Customer return and Return Merchandise Authorization (RMA) register (`tbl_sales_return_header` & `tbl_sales_return_item`) compliant with Section 34 of the CGST Act, 2017 & Rule 53 of CGST Rules, 2017, featuring auto-numbering (`SR-`), 1-click loading from posted Tax Invoices, quarantine QC inspection recording accepted vs scrap quantities with technical defect categorizations, statutory Section 34 Credit Note issuance (`CN-`) with commercial credit computation and real-time customer invoice balance reconciliation via AR adjustment receipts (`CREDIT_ADJUSTMENT`), statutory Rule 48(4) E-Invoicing (IRN) generation with 64-character SHA-256 hash and signed QR code, automated warehouse restocking putting away accepted units into storage bins (`tbl_inv_bin_stock`) with immutable stock ledger entries (`SALES_RETURN` in `tbl_inv_stock_ledger`), reversible cancellation engine with automatic inventory restitution, and printable statutory GST Rule 53 credit notes.
 
 ---
 
-## Phase 9: Quality Assurance, Security Hardening & Mobile API Verification
+## ✅ Phase 8: Inventory Ledger, Valuation & Analytics (`INVENTORY_ANALYTICS`)
+- [x] **Step 8.1 — Real-Time Stock Balance, Multi-Bin Inventory Ledger & FIFO Stock Valuation (`/inventory/balance`)**: Multi-bin perpetual inventory register (`tbl_inv_bin_stock`) compliant with Ind AS 2 / AS-2, real-time Available-to-Promise (ATP) stock visibility across plants, warehouses, and storage bins, batch/heat number traceability, safety stock buffer alert engine, chronological double-entry movement ledger drilldown (`tbl_inv_stock_ledger`), periodic revaluation and standard absorption cost realignment, and printable official stock valuation certificates.
+- [x] **Step 8.2 — Physical Stock Reconciliation, Periodic Stock Audit & Stock Adjustments / Write-Offs (`/inventory/adjustments`)**: Physical inventory audit and variance reconciliation register (`tbl_inv_adjustment_header` & `tbl_inv_adjustment_item`) compliant with CARO 2020 Clause 3(ii) and Ind AS 2 / AS-2, featuring auto-numbering (`SA-`), 1-Click loading of warehouse bin book stock, dynamic real-time variance calculation ($\text{Physical} - \text{Book}$), 2-tier managerial sign-off, atomic inventory balance synchronization with double-entry stock ledger postings (`ADJUSTMENT` in `tbl_inv_stock_ledger`), reversible voucher cancellation engine with automated restitution, and printable CARO 2020 physical verification audit certificates.
+- [x] **Step 8.3 — Warehouse Internal Transfers & Inter-Branch Stock Transfers (STO) (`/inventory/transfers`)**: Internal logistics and inter-branch stock transfer register (`tbl_inv_transfer_header` & `tbl_inv_transfer_item`) compliant with Rule 55 of the CGST Rules, 2017 & Section 25 of the CGST Act, 2017, featuring auto-numbering (`ST-` / `STO-`), 3 movement modes (`BIN_TO_BIN`, `INTER_WAREHOUSE`, `INTER_BRANCH_STO`), 1-Click "Available Stock Picker by Warehouse", multi-stage physical dispatch & logistics tracking, destination material receipt, 1-Click atomic bin transfers, reversible cancellation with stock restitution, and printable statutory CGST Rule 55 Delivery Challans.
+- [x] **Step 8.4 — End-to-End Batch & Serial Number 360-Degree Genealogy & Traceability Explorer (`/inventory/traceability`)**: Complete bi-directional 360° genealogy engine (`tbl_inv_batch_master`, `tbl_inv_batch_genealogy`, `tbl_inv_serial_master`) conforming to EN 10204:2004 Type 3.1 & ISO 9001:2015 Clause 8.5.2, featuring universal 360° quick-search with 1-click sample exploration pills, interactive visual Directed Acyclic Graph (DAG) tree, Mill Test Certificate (MTC) quality passport with 8-element chemical composition matrix (% C, Mn, Si, P, S, Cr, Ni, Mo), mechanical tensile & hardness test results, NDE certifications, chronological physical stock movement ledger audit trail, batch & serial master registers, parent-child transformation mapping, and printable statutory EN 10204 Type 3.1 Material Inspection Certificates.
+- [x] **Step 8.5 — Inventory Aging, Dead Stock Analysis & Reorder Level Alert Dashboard (`/inventory/aging`)**: Enterprise inventory velocity and statutory provisioning engine (`tbl_inv_stock_provision_header` & `tbl_inv_stock_provision_item`) conforming to Ind AS 2 / AS-2 & CARO 2020 Clause 3(ii), featuring FIFO aging brackets (0-30, 31-60, 61-90, 91-180, 181-365, >365 Days), Fast/Slow/Non-Moving (FSN) velocity matrix, Net Realisable Value (NRV) write-down provisioning reviews, Reorder Point (ROP) & Safety Stock buffer breach console, 1-Click Purchase Requisition (PR) generation bridge, multi-warehouse distribution breakdown, and printable statutory CARO 2020 / Ind AS 2 Inventory Valuation & Provisioning Certificates.
 
-### 9.1 Verification & Quality Checks
-- [ ] Manual review of all 14 SQL scripts by DBA/Lead Engineer
-- [ ] Execute SQL scripts on clean PostgreSQL test database; confirm zero errors and all sequences created
-- [ ] Concurrency test on Voucher Sequence Generator (Run 100 concurrent requests; verify zero gaps and zero duplicates)
-- [ ] Validate parameter cascading: Verify User override $\rightarrow$ Branch override $\rightarrow$ Company default $\rightarrow$ System default
-- [ ] Validate Dynamic Unit conversion accuracy with multi-decimal floating numbers
-- [ ] Validate button-level `<PermissionGate>` enforcement on both UI and NestJS API endpoints
-- [ ] Execute comprehensive unit and integration test suite
+---
 
-### 9.2 Mobile App API Verification
-- [ ] Generate OpenAPI 3.1 specification at `/api/docs-json`
-- [ ] Verify all responses return consistent JSON envelopes with HTTP status codes
-- [ ] Verify `Authorization: Bearer <token>` header authentication works identically to browser cookies
-- [ ] Verify barcode scanner payload ingestion endpoints
-- [ ] Package SDK generation scripts for future mobile app engineering team
+## 🛡️ Phase 9: Quality Control & Inspection Management (`QUALITY`)
+- [x] **Step 9.1 — In-Process & Stage-Wise Quality Inspection (`/quality/in-process-qc`)**: Operational quality gating engine (`tbl_qc_in_process_header` & `tbl_qc_in_process_param`) compliant with ISO 9001:2015 Clause 8.6 & IATF 16949 Section 8.5.1, featuring 4 inspection stage gates (`FIRST_PIECE` setup approval, `PATROL_INSPECTION` periodic checks, `STAGE_COMPLETION` batch clearance, `LAST_PIECE` tool wear verification), characteristic parameter matrix across 6 inspection categories, 5-point observation sampling with live calculated mean and automatic tolerance pass/fail determination, bidirectional synchronization with shopfloor job cards (`tbl_mfg_job_card`), technical concession / engineering deviation clearance (`DEVIATION`), material disposition actions, CAPA triggers, and printable stage inspection certificates.
+- [x] **Step 9.2 — Final Pre-Dispatch Inspection (PDI) & Certificate of Analysis (CoA) (`/quality/pdi`)**: Statutory quality gating & certification engine (`tbl_qc_pdi_header`, `tbl_qc_pdi_param`, `tbl_qc_pdi_coa_spec`) compliant with ISO 9001:2015 Clause 8.6, API Spec Q1 / API 6D, and EN 10204:2004 Type 3.1, featuring 4-tier view tabs (All PDI Lots, Released CoAs, Concessions, Quarantine Holds), characteristic parameter matrix across 6 categories, 8-element ladle chemical analysis matrix, mechanical tensile and impact toughness properties, hydrostatic shell and seat hold pressure test registers, NDE tracking, packaging and anti-rust preservation verification, customer/TPI witness sign-off, digital CoA release authorization (`RELEASE`), and printable statutory EN 10204 Type 3.1 Inspection Certificates with 3-tier authorized signatures.
+- [x] **Step 9.3 — Non-Conformance Reports (NCR), Material Review Board & CAPA Action Engine (`/quality/ncr`)**:
+  - [x] Schema objects (`tbl_qc_ncr_header`, `tbl_qc_ncr_mrb_vote`, `tbl_qc_capa_action`)
+  - [x] Multi-source NCR initiation (Inward QC, In-Process QC, PDI, RMA Sales Returns, Customer Audit, Supplier Defect)
+  - [x] Material Review Board (MRB) voting & disposition workflow (`SCRAP`, `REWORK`, `USE_AS_IS_CONCESSION`, `RETURN_TO_VENDOR`)
+  - [x] 8D Problem Solving Methodology / 5-Why root cause analysis engine
+  - [x] Preventive action assignment with target completion dates and verification sign-off
+- [x] **Step 9.4 — Gauge, Tool & Measuring Instrument Calibration Register (`/quality/calibration`)**:
+  - [x] Schema objects (`tbl_qc_gauge_master`, `tbl_qc_gauge_calibration_history`)
+  - [x] Instrument master (Vernier, Micrometer, Dial Indicator, Pressure Gauges, Torque Wrenches, CMM, Weighing Scales)
+  - [x] Periodic calibration scheduler (monthly, quarterly, annual) with automated due-date alerts
+  - [x] Calibration certificate upload, error limit drift monitoring, and expired instrument lockout (`OUT_OF_TOLERANCE_LOCKED`)
+
+---
+
+## 💼 Phase 10: Financial Accounting & Statutory Compliance (`ACCOUNTS`)
+- [ ] **Step 10.1 — Chart of Accounts (COA) & General Ledger (GL) Subsystem (`/accounts/gl`)**:
+  - [ ] 5-Level Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expense) with multi-company & branch cost centers
+  - [ ] Automated sub-ledger journal voucher posting from operational events (Purchase Invoices, Sales Invoices, Inventory Adjustments, Absorption Costing)
+  - [ ] Financial statements: Trial Balance, Profit & Loss (P&L), Balance Sheet
+- [ ] **Step 10.2 — Accounts Payable (AP) & Accounts Receivable (AR) Cash/Bank Reconciliation (`/accounts/banking`)**:
+  - [ ] Vendor payment disbursement vouchers (Cheque, NEFT, RTGS) with TDS deduction tracking
+  - [ ] Customer payment collection receipts with bank reconciliation statements (BRS)
+- [ ] **Step 10.3 — Direct GST Portal & E-Way Bill API Gateway (`/admin/integrations/gst`)**:
+  - [ ] Machine-to-machine direct API integration with NIC E-Way Bill and E-Invoice portal via GSP for 1-click live IRN and E-Way Bill generation without manual JSON uploads
+
+---
+
+## 🛠️ Phase 11: Plant Maintenance (CMMS) & Shopfloor Mobile PDA App (`OPERATIONS`)
+- [ ] **Step 11.1 — Computerized Maintenance Management System (CMMS) (`/maintenance`)**:
+  - [ ] Preventative maintenance schedules (running hours / calendar-based)
+  - [ ] Breakdown work tickets, machine downtime logs, MTBF & MTTR calculation
+  - [ ] Maintenance spare parts requisition & stock consumption
+- [ ] **Step 11.2 — Shopfloor Mobile Scanner / Handheld Terminal App (Android & iOS)**:
+  - [ ] Native camera-based 1D/2D barcode & QR scanner interface connected to `/api/v1/*`
+  - [ ] Real-time dock receiving GRN scanning, bin put-away confirmation, lineside picking, and cycle count auditing
+- [ ] **Step 11.3 — Advanced Visual Finite Capacity Scheduling & Gantt Board (`/manufacturing/scheduling`)**:
+  - [ ] Interactive drag-and-drop Gantt chart visualizer for Work Orders and Job Cards across machine work centers with live maintenance conflict warnings
