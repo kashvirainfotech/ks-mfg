@@ -7,8 +7,13 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+export const API_BASE_URL = rawBaseUrl.endsWith('/api/v1')
+  ? rawBaseUrl
+  : `${rawBaseUrl.replace(/\/$/, '')}/api/v1`;
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -45,7 +50,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const res = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true },
         );

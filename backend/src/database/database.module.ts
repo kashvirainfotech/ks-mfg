@@ -19,11 +19,18 @@ export type DrizzleDb = NodePgDatabase<typeof schema>;
         const connectionString =
           configService.get<string>('DATABASE_URL') ||
           'postgresql://postgres:postgres@localhost:5432/ks_mfg_erp';
+        const isProduction =
+          configService.get<string>('NODE_ENV') === 'production';
+        const needsSsl =
+          isProduction ||
+          connectionString.includes('render.com') ||
+          connectionString.includes('sslmode=require');
         const pool = new Pool({
           connectionString,
+          ssl: needsSsl ? { rejectUnauthorized: false } : false,
           max: 20,
           idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 5000,
+          connectionTimeoutMillis: 10000,
         });
         pool.on('error', (err) => {
           Logger.error(`Unexpected PostgreSQL Pool Error: ${err.message}`, 'DatabaseModule');

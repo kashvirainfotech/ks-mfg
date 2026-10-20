@@ -30,9 +30,25 @@
 
 ---
 
+## 🌐 Live Demo & Preview
+
+Explore and interact with a live, hosted deployment of **KS-MFG**:
+
+* 🔗 **Live Demo URL**: https://ks-mfg.onrender.com/
+* 🔑 **Demo Login Credentials**:
+  * **Email**: `admin@ksmfg.com` *(or Username: `admin`)*
+  * **Password**: `Admin@123`
+  * *(Pre-seeded with multi-plant manufacturing operations, multi-level warehouses & bin topologies, items & multi-level BOMs, CNC machine centers, production routings, job orders, quality checkpoints, subcontracting challans, and real-time inventory valuations)*
+
+> [!NOTE]
+> **Hosting & Initial Load Notice**: This demo is hosted on a third-party hosting provider using a free plan. Accessing it for the first time (or after inactivity) may take a little bit longer (around 1 to 2 minutes) to spin up and load.
+
+---
+
 ## 📑 Table of Contents
 
 - [⚠️ Beta Version & Database Notice](#️-beta-version-notice--database-installation--upgrade-policy)
+- [🌐 Live Demo & Preview](#-live-demo--preview)
 - [Architectural Overview](#-architectural-overview)
 - [What KS-MFG Does](#-what-ks-mfg-does)
 - [Completed Features & Functional Modules](#-completed-features--functional-modules)

@@ -113,7 +113,12 @@ export class AuthController {
   ) {
     req.__auditLogged = true;
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
-    res.clearCookie(REFRESH_COOKIE_NAME, { path: '/' });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie(REFRESH_COOKIE_NAME, {
+      path: '/',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+    });
     return this.authService.logout(user, refreshToken, {
       ipAddress: req.ip || req.socket?.remoteAddress,
       userAgent: req.headers['user-agent'],
@@ -122,10 +127,11 @@ export class AuthController {
   }
 
   private setRefreshCookie(res: Response, token: string) {
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie(REFRESH_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });

@@ -288,6 +288,11 @@ UPDATE tbl_hr_department SET hod_employee_id = 1002 WHERE dept_id = 1001 AND hod
 UPDATE tbl_hr_department SET hod_employee_id = 1003 WHERE dept_id = 1002 AND hod_employee_id IS NULL;
 UPDATE tbl_hr_department SET hod_employee_id = 1004 WHERE dept_id = 1003 AND hod_employee_id IS NULL;
 
+-- Link Cost Centers to sample departments
+UPDATE tbl_acc_cost_center SET dept_id = 1001 WHERE cost_center_id IN (1001, 1002) AND dept_id IS NULL;
+UPDATE tbl_acc_cost_center SET dept_id = 1002 WHERE cost_center_id = 1003 AND dept_id IS NULL;
+UPDATE tbl_acc_cost_center SET dept_id = 1006 WHERE cost_center_id = 1004 AND dept_id IS NULL;
+
 -- ============================================================================
 -- DATE: 2026-10-17
 -- FEATURE: Step 2.3 - Sample Custom Global Role & Permission Matrix Seeds
@@ -328,13 +333,13 @@ INSERT INTO tbl_sec_user (
     comp_id, branch_id, fyear_id, created_by
 ) VALUES
     (1002, 'arjun.mehta', 'arjun.mehta@ksmfg.com', '+91-9825010001',
-     '$2b$12$BmHc8w3xeoS0Jai/3btss.XgwSnwCX6QjMc2lMCuw0qnGiR44HAbS',
+     '$2b$12$1GmIE0UMnAcqnrgUlDL99.LObf0xWb0pub0Tza7nv6LrwQ6TEFAbm',
      'Arjun Mehta', 'EMPLOYEE', 1001, FALSE, TRUE, 1001, 1001, 1001, 1001),
     (1003, 'kiran.desai', 'kiran.desai@ksmfg.com', '+91-9825010002',
-     '$2b$12$BmHc8w3xeoS0Jai/3btss.XgwSnwCX6QjMc2lMCuw0qnGiR44HAbS',
+     '$2b$12$1GmIE0UMnAcqnrgUlDL99.LObf0xWb0pub0Tza7nv6LrwQ6TEFAbm',
      'Kiran Desai', 'EMPLOYEE', 1002, FALSE, TRUE, 1001, 1001, 1001, 1001),
     (1004, 'priya.nair',  'priya.nair@ksmfg.com',  '+91-9825010003',
-     '$2b$12$BmHc8w3xeoS0Jai/3btss.XgwSnwCX6QjMc2lMCuw0qnGiR44HAbS',
+     '$2b$12$1GmIE0UMnAcqnrgUlDL99.LObf0xWb0pub0Tza7nv6LrwQ6TEFAbm',
      'Priya Nair',  'EMPLOYEE', 1003, FALSE, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (user_id) DO NOTHING;
 

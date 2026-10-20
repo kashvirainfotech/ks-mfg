@@ -1,0 +1,68 @@
+# ==============================================================================
+# KS-MFG ERP Render.com Blueprint Configuration
+# Deploy PostgreSQL Database, NestJS Backend Web Service, and React Static Site
+# ==============================================================================
+
+databases:
+  - name: ks-mfg-db
+    databaseName: ks_mfg_erp
+    user: ksmfg_user
+    plan: free # Change to starter/standard for production workloads
+    region: oregon # Choose your closest region: oregon, frankfurt, ohio, singapore
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. NestJS Backend Web Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: ks-mfg-api
+    runtime: node
+    rootDir: backend
+    plan: free # Change to starter/standard for production workloads
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1/auth/me
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ks-mfg-db
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: ks-mfg-frontend
+          property: url
+
+  # ----------------------------------------------------------------------------
+  # 2. React Vite Frontend Static Site
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: ks-mfg-frontend
+    runtime: static
+    rootDir: frontend
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      # React Router SPA catch-all rewrite rule
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: ks-mfg-api
+          property: url

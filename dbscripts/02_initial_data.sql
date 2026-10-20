@@ -151,7 +151,7 @@ INSERT INTO tbl_sec_user (
     comp_id, branch_id, fyear_id, created_by
 ) VALUES (
     1001, 'admin', 'admin@ksmfg.com', '+91-9876543210',
-    '$2b$12$BmHc8w3xeoS0Jai/3btss.XgwSnwCX6QjMc2lMCuw0qnGiR44HAbS',
+    '$2b$12$1GmIE0UMnAcqnrgUlDL99.LObf0xWb0pub0Tza7nv6LrwQ6TEFAbm',
     'Rajesh Patel (Super Admin)',
     'SYSTEM', NULL, TRUE, TRUE,
     1001, 1001, 1001, 1001
@@ -3007,10 +3007,10 @@ INSERT INTO tbl_acc_cost_center (
     cost_center_id, cost_center_code, cost_center_name, dept_id,
     is_active, comp_id, branch_id, fyear_id, created_by
 ) VALUES
-    (1001, 'CC-PLANT-01', 'CNC Machining Cell 01', 1001, TRUE, 1001, 1001, 1001, 1001),
-    (1002, 'CC-ASSY-01',  'Hydro Testing & Assembly Bay', 1001, TRUE, 1001, 1001, 1001, 1001),
-    (1003, 'CC-QC-01',    'Quality Assurance & Metrology Lab', 1002, TRUE, 1001, 1001, 1001, 1001),
-    (1004, 'CC-ADMIN-01', 'General Plant Administration', 1006, TRUE, 1001, 1001, 1001, 1001)
+    (1001, 'CC-PLANT-01', 'CNC Machining Cell 01', NULL, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 'CC-ASSY-01',  'Hydro Testing & Assembly Bay', NULL, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 'CC-QC-01',    'Quality Assurance & Metrology Lab', NULL, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 'CC-ADMIN-01', 'General Plant Administration', NULL, TRUE, 1001, 1001, 1001, 1001)
 ON CONFLICT (comp_id, cost_center_code) DO NOTHING;
 
 SELECT setval('seq_acc_cost_center_id', GREATEST((SELECT COALESCE(MAX(cost_center_id), 1004) FROM tbl_acc_cost_center), 1004));
