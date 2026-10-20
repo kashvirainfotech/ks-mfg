@@ -3514,3 +3514,471 @@ INSERT INTO tbl_inv_stock_ledger (
 );
 
 
+
+-- ============================================================================
+-- Phase 8: Step 8.1 — Comprehensive Multi-Category Bin Stock & Ledger Seeds
+-- ============================================================================
+INSERT INTO tbl_inv_bin_stock (
+    bin_stock_id, comp_id, branch_id, fyear_id,
+    warehouse_id, bin_id, item_id, uom_id,
+    batch_no, heat_no, on_hand_qty, reserved_qty, available_qty,
+    unit_cost, total_valuation, last_stock_date, is_active,
+    created_by
+) VALUES
+    -- 1. Aluminum Ingot LM24 (Raw Material - Store 1001, Bin 1003)
+    (1005, 1001, 1001, 1001,
+     1001, 1003, 1003, 1001,
+     'HEAT-AL-2026-09', 'HT-AL-902', 1200.000, 0.000, 1200.000,
+     215.0000, 258000.00, '2026-05-15 10:30:00+05:30', TRUE,
+     1001),
+
+    -- 2. Machined Valve Body (WIP Floor - Warehouse 1003, Bin 1006)
+    (1006, 1001, 1001, 1001,
+     1003, 1006, 1005, 1003,
+     'BAT-WIP-VLV-01', 'HT-7821', 40.000, 10.000, 30.000,
+     1850.0000, 74000.00, '2026-05-20 16:00:00+05:30', TRUE,
+     1001),
+
+    -- 3. Synthetic CNC Cutting Fluid (Consumable MRO - Store 1001, Bin 1004)
+    (1007, 1001, 1001, 1001,
+     1001, 1004, 1010, 1007,
+     'LOT-2026-COOL-01', 'HT-SYN-88', 2400.000, 200.000, 2200.000,
+     180.0000, 432000.00, '2026-05-18 11:15:00+05:30', TRUE,
+     1001),
+
+    -- 4. Carbide Inserts (Tooling - Store 1001, Bin 1004)
+    (1008, 1001, 1001, 1001,
+     1001, 1004, 1011, 1003,
+     'LOT-SANDVIK-2026', 'HT-TUNG-41', 85.000, 15.000, 70.000,
+     240.0000, 20400.00, '2026-05-19 09:45:00+05:30', TRUE,
+     1001),
+
+    -- 5. Polypropylene Granules (Low Stock Alert: 250 KG on hand vs 500 KG safety stock)
+    (1009, 1001, 1001, 1001,
+     1001, 1004, 1004, 1001,
+     'LOT-PP-2026-02', 'HT-PP-30', 250.000, 50.000, 200.000,
+     105.0000, 26250.00, '2026-05-12 14:20:00+05:30', TRUE,
+     1001)
+ON CONFLICT (warehouse_id, bin_id, item_id, batch_no) DO UPDATE SET
+    on_hand_qty = EXCLUDED.on_hand_qty,
+    reserved_qty = EXCLUDED.reserved_qty,
+    available_qty = EXCLUDED.available_qty,
+    unit_cost = EXCLUDED.unit_cost,
+    total_valuation = EXCLUDED.total_valuation;
+
+SELECT setval('seq_bin_stock_id', GREATEST((SELECT COALESCE(MAX(bin_stock_id), 1009) FROM tbl_inv_bin_stock), 1009));
+
+-- Inward Stock Ledger Movements for New Seed Stock
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance, remarks, created_by
+) VALUES
+    (1001, 1001, 1001, '2026-05-15 10:30:00+05:30', 'PUTAWAY_INWARD', 'PUTAWAY', 1005, 'PA-AHM-2627-0005',
+     1001, 1003, 1003, 1001, 'HEAT-AL-2026-09', 'HT-AL-902', 1200.000, 0.000, 215.0000, 258000.00, 1200.000,
+     'Inward put-away of HPDC Aluminum Ingot LM24 lot', 1001),
+
+    (1001, 1001, 1001, '2026-05-20 16:00:00+05:30', 'PUTAWAY_INWARD', 'WORK_ORDER', 1001, 'WO-AHM-2627-0001',
+     1003, 1006, 1005, 1003, 'BAT-WIP-VLV-01', 'HT-7821', 40.000, 0.000, 1850.0000, 74000.00, 40.000,
+     'Lineside staging buffer receipt of machined valve bodies', 1001),
+
+    (1001, 1001, 1001, '2026-05-18 11:15:00+05:30', 'PUTAWAY_INWARD', 'PUTAWAY', 1006, 'PA-AHM-2627-0006',
+     1001, 1004, 1010, 1007, 'LOT-2026-COOL-01', 'HT-SYN-88', 2400.000, 0.000, 180.0000, 432000.00, 2400.000,
+     'Central store put-away of high-pressure synthetic cutting coolant drums', 1001),
+
+    (1001, 1001, 1001, '2026-05-19 09:45:00+05:30', 'PUTAWAY_INWARD', 'PUTAWAY', 1007, 'PA-AHM-2627-0007',
+     1001, 1004, 1011, 1003, 'LOT-SANDVIK-2026', 'HT-TUNG-41', 85.000, 0.000, 240.0000, 20400.00, 85.000,
+     'Tool crib inward of tungsten carbide turning inserts', 1001),
+
+    (1001, 1001, 1001, '2026-05-12 14:20:00+05:30', 'PUTAWAY_INWARD', 'PUTAWAY', 1008, 'PA-AHM-2627-0008',
+     1001, 1004, 1004, 1001, 'LOT-PP-2026-02', 'HT-PP-30', 250.000, 0.000, 105.0000, 26250.00, 250.000,
+     'Polypropylene copolymer granule lot (Low stock alert: below 500 safety buffer)', 1001);
+
+
+-- ============================================================================
+-- Phase 8: Step 8.2 — Physical Stock Verification & Stock Adjustments Demo Data
+-- ============================================================================
+
+-- 1. Stock Adjustment Headers
+INSERT INTO tbl_inv_adjustment_header (
+    adjustment_id, adjustment_no, adjustment_date, adjustment_type, warehouse_id,
+    audited_by, audited_at, approved_by, approval_date,
+    total_items, total_book_value, total_physical_value, net_variance_value,
+    status, cancellation_reason, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. Periodic Cycle Count at Central RM Warehouse (Posted)
+    (1001, 'SA-AHM-2627-0001', '2026-05-25', 'CYCLE_COUNT', 1001,
+     1001, '2026-05-25 10:00:00+05:30', 1002, '2026-05-25 14:30:00+05:30',
+     2, 186250.00, 186680.00, 430.00,
+     'POSTED', NULL, 'Monthly physical verification audit for Raw Materials (A-Class Items). Compliant with CARO 2020 Clause 3(ii).', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. Transit Damage / Scrap Write-Off at FG Warehouse (Draft)
+    (1002, 'SA-AHM-2627-0002', '2026-05-26', 'DAMAGE_WRITEOFF', 1004,
+     1001, '2026-05-26 11:00:00+05:30', NULL, NULL,
+     1, 217500.00, 216050.00, -1450.00,
+     'DRAFT', NULL, 'Forklift impact dent damage discovered on 1 finished hydromount assembly during aisle maintenance.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (adjustment_id) DO NOTHING;
+
+SELECT setval('seq_inv_adjustment_id', GREATEST((SELECT COALESCE(MAX(adjustment_id), 1002) FROM tbl_inv_adjustment_header), 1002));
+
+-- 2. Stock Adjustment Line Items
+INSERT INTO tbl_inv_adjustment_item (
+    adjustment_item_id, adjustment_id, item_sequence,
+    item_id, item_code, item_name, bin_id, uom_id,
+    batch_no, heat_no, book_qty, physical_qty, variance_qty,
+    unit_cost, book_value, physical_value, variance_value,
+    variance_direction, discrepancy_reason, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Voucher 1, Line 1: SS-316 Round Bar (+2 KG Surplus Gain)
+    (1001, 1001, 1,
+     1001, 'RM-STL-316-01', 'Stainless Steel 316 Round Bar Dia 50mm', 1001, 1001,
+     'HEAT-JSW-SS316-9812', 'MELT-8821', 500.000, 502.000, 2.000,
+     320.0000, 160000.00, 160640.00, 640.00,
+     'SURPLUS_GAIN', 'Count recount verified - 2 extra cut pieces found in cantilever rack B01.', 'Audited and weighed via digital platform scale', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Voucher 1, Line 2: Polypropylene Granules (-2 KG Deficit Loss)
+    (1002, 1001, 2,
+     1004, 'RM-POLY-PP-01', 'Polypropylene Copolymer Granules Injection Grade', 1004, 1001,
+     'LOT-PP-2026-02', 'HT-PP-30', 250.000, 248.000, -2.000,
+     105.0000, 26250.00, 26040.00, -210.00,
+     'DEFICIT_LOSS', 'Handling spillage and torn bag loss during lineside transit.', 'Bag ruptured on pallet corner; sweepings disposed', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Voucher 2, Line 1: Hydromount Powertrain Assembly (-1 Unit Deficit Loss)
+    (1003, 1002, 1,
+     1009, 'FG-AUTO-MNT-01', 'Automotive Hydromount Powertrain Assembly', 1007, 1003,
+     'BAT-2026-MNT-001', 'HT-MNT-91', 150.000, 149.000, -1.000,
+     1450.0000, 217500.00, 216050.00, -1450.00,
+     'DEFICIT_LOSS', 'Forklift impact dent damage on damper mounting bracket during staging.', 'Quarantined for engineering scrap salvage assessment', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (adjustment_item_id) DO NOTHING;
+
+SELECT setval('seq_inv_adjustment_item_id', GREATEST((SELECT COALESCE(MAX(adjustment_item_id), 1003) FROM tbl_inv_adjustment_item), 1003));
+
+-- Synchronize Bin Stock Balances for Posted Voucher 1001 (SS-316 & PP Granules)
+UPDATE tbl_inv_bin_stock
+SET on_hand_qty = 502.000,
+    available_qty = 502.000,
+    total_valuation = 160640.00,
+    last_stock_date = '2026-05-25 14:30:00+05:30'
+WHERE warehouse_id = 1001 AND bin_id = 1001 AND item_id = 1001 AND batch_no = 'HEAT-JSW-SS316-9812';
+
+UPDATE tbl_inv_bin_stock
+SET on_hand_qty = 248.000,
+    available_qty = 198.000,
+    total_valuation = 26040.00,
+    last_stock_date = '2026-05-25 14:30:00+05:30'
+WHERE warehouse_id = 1001 AND bin_id = 1004 AND item_id = 1004 AND batch_no = 'LOT-PP-2026-02';
+
+-- Post Immutable Stock Ledger Double-Entry Adjustments for Voucher 1001
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance, remarks, created_by
+) VALUES
+    (1001, 1001, 1001, '2026-05-25 14:30:00+05:30', 'ADJUSTMENT',
+     'ADJUSTMENT', 1001, 'SA-AHM-2627-0001',
+     1001, 1001, 1001, 1001,
+     'HEAT-JSW-SS316-9812', 'MELT-8821', 2.000, 0.000, 320.0000, 640.00, 502.000,
+     'Physical stock audit surplus gain adjustment (+2 KG found in rack B01)', 1001);
+
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, from_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance, remarks, created_by
+) VALUES
+    (1001, 1001, 1001, '2026-05-25 14:30:00+05:30', 'ADJUSTMENT',
+     'ADJUSTMENT', 1001, 'SA-AHM-2627-0001',
+     1001, 1004, 1004, 1001,
+     'LOT-PP-2026-02', 'HT-PP-30', 0.000, 2.000, 105.0000, 210.00, 248.000,
+     'Physical stock audit spillage loss adjustment (-2 KG handling deficit)', 1001);
+
+
+-- ============================================================================
+-- Phase 8: Step 8.3 — Warehouse Internal Transfers & Inter-Branch Stock Transfers (STO)
+-- ============================================================================
+
+-- 1. Stock Transfer Headers
+INSERT INTO tbl_inv_transfer_header (
+    transfer_id, transfer_no, transfer_date, transfer_type,
+    from_warehouse_id, to_warehouse_id, to_branch_id,
+    transporter_name, vehicle_no, lr_no, lr_date, eway_bill_no, challan_no, challan_date,
+    total_items, total_transfer_qty, total_transfer_value,
+    status, dispatched_by, dispatched_at, received_by, received_at,
+    cancellation_reason, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1. Inter-Warehouse Transfer: Central RM to WIP Floor (Status: RECEIVED)
+    (1001, 'ST-AHM-2627-0001', '2026-05-27', 'INTER_WAREHOUSE',
+     1001, 1003, 1001,
+     'Internal Shopfloor Tugger', 'INT-TUG-02', NULL, NULL, NULL, NULL, NULL,
+     1, 50.000, 16000.00,
+     'RECEIVED', 1001, '2026-05-27 09:30:00+05:30', 1003, '2026-05-27 10:15:00+05:30',
+     NULL, 'Material staging for CNC machining cell 1 work order staging.', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- 2. Inter-Branch Stock Transfer (STO): Ahmedabad Plant 1 to Rajkot Plant 2 (Status: DISPATCHED / IN_TRANSIT)
+    (1002, 'STO-AHM-2627-0001', '2026-05-28', 'INTER_BRANCH_STO',
+     1001, 1006, 1002,
+     'Saurashtra Freight Carriers', 'GJ-03-TC-5511', 'LR-SFC-2627-091', '2026-05-28', '241908219481', 'DC-STO-2627-0001', '2026-05-28',
+     1, 25.000, 8000.00,
+     'DISPATCHED', 1001, '2026-05-28 11:00:00+05:30', NULL, NULL,
+     NULL, 'Inter-branch raw material transfer under GST Rule 55 Delivery Challan for Rajkot foundry job.', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (transfer_id) DO NOTHING;
+
+SELECT setval('seq_inv_transfer_id', GREATEST((SELECT COALESCE(MAX(transfer_id), 1002) FROM tbl_inv_transfer_header), 1002));
+
+-- 2. Stock Transfer Line Items
+INSERT INTO tbl_inv_transfer_item (
+    transfer_item_id, transfer_id, item_sequence,
+    item_id, item_code, item_name, uom_id,
+    from_bin_id, to_bin_id, batch_no, heat_no,
+    available_qty, transfer_qty, received_qty,
+    unit_cost, line_total, remarks, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Voucher 1: 50 KG SS-316 Round Bar from RM-Z1-R01-S01-B01 to WIP-CNC-L01-S01-B01
+    (1001, 1001, 1,
+     1001, 'RM-SS316-ROUND-50', 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     1001, 1006, 'HEAT-JSW-SS316-9812', 'MELT-8821',
+     502.000, 50.000, 50.000,
+     320.0000, 16000.00, 'Transferred to CNC line-side Kanban buffer', TRUE,
+     1001, 1001, 1001, 1001),
+
+    -- Voucher 2: 25 KG SS-316 Round Bar from RM-Z1-R01-S01-B01 to RJK-Z1-FLR-S01-B01
+    (1002, 1002, 1,
+     1001, 'RM-SS316-ROUND-50', 'Stainless Steel 316 Round Bar Dia 50mm', 1001,
+     1001, 1008, 'HEAT-JSW-SS316-9812', 'MELT-8821',
+     452.000, 25.000, 0.000,
+     320.0000, 8000.00, 'In-transit to Rajkot unit via Saurashtra Freight', TRUE,
+     1001, 1001, 1001, 1001)
+ON CONFLICT (transfer_item_id) DO NOTHING;
+
+SELECT setval('seq_inv_transfer_item_id', GREATEST((SELECT COALESCE(MAX(transfer_item_id), 1002) FROM tbl_inv_transfer_item), 1002));
+
+-- 3. Update Source and Destination Bin Stock Balances for Completed Transfer 1001 and Dispatched Transfer 1002
+-- Source Bin 1001: Decremented by 50kg (Transfer 1001) + 25kg (Transfer 1002) = 75kg total reduction (from 502 to 427)
+UPDATE tbl_inv_bin_stock
+SET on_hand_qty = 427.000,
+    available_qty = 427.000,
+    total_valuation = 136640.00,
+    last_stock_date = '2026-05-28 11:00:00+05:30'
+WHERE warehouse_id = 1001 AND bin_id = 1001 AND item_id = 1001 AND batch_no = 'HEAT-JSW-SS316-9812';
+
+-- Destination Bin 1006 (WIP Warehouse 1003): Incremented by 50kg (Transfer 1001)
+INSERT INTO tbl_inv_bin_stock (
+    comp_id, branch_id, fyear_id,
+    warehouse_id, bin_id, item_id, uom_id,
+    batch_no, heat_no, on_hand_qty, reserved_qty, available_qty,
+    unit_cost, total_valuation, last_stock_date, is_active, created_by
+) VALUES (
+    1001, 1001, 1001,
+    1003, 1006, 1001, 1001,
+    'HEAT-JSW-SS316-9812', 'MELT-8821', 50.000, 0.000, 50.000,
+    320.0000, 16000.00, '2026-05-27 10:15:00+05:30', TRUE, 1001
+) ON CONFLICT (warehouse_id, bin_id, item_id, batch_no)
+DO UPDATE SET
+    on_hand_qty = tbl_inv_bin_stock.on_hand_qty + 50.000,
+    available_qty = tbl_inv_bin_stock.available_qty + 50.000,
+    total_valuation = (tbl_inv_bin_stock.on_hand_qty + 50.000) * tbl_inv_bin_stock.unit_cost,
+    last_stock_date = '2026-05-27 10:15:00+05:30';
+
+-- 4. Post Double-Entry Stock Ledger Transactions
+-- Transfer 1001: Outward from Central Stores (Bin 1001)
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, from_bin_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance, remarks, created_by
+) VALUES
+    (1001, 1001, 1001, '2026-05-27 09:30:00+05:30', 'INTERNAL_TRANSFER',
+     'TRANSFER', 1001, 'ST-AHM-2627-0001',
+     1001, 1001, 1006, 1001, 1001,
+     'HEAT-JSW-SS316-9812', 'MELT-8821', 0.000, 50.000, 320.0000, 16000.00, 452.000,
+     'Outward stock transfer to WIP Shopfloor (ST-AHM-2627-0001)', 1001);
+
+-- Transfer 1001: Inward Receipt at WIP Floor (Bin 1006)
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, from_bin_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance, remarks, created_by
+) VALUES
+    (1001, 1001, 1001, '2026-05-27 10:15:00+05:30', 'INTERNAL_TRANSFER',
+     'TRANSFER', 1001, 'ST-AHM-2627-0001',
+     1003, 1001, 1006, 1001, 1001,
+     'HEAT-JSW-SS316-9812', 'MELT-8821', 50.000, 0.000, 320.0000, 16000.00, 50.000,
+     'Inward stock receipt from Central Stores (ST-AHM-2627-0001)', 1003);
+
+-- Transfer 1002: Outward Dispatch for STO (Bin 1001)
+INSERT INTO tbl_inv_stock_ledger (
+    comp_id, branch_id, fyear_id, transaction_date, transaction_type,
+    reference_doc_type, reference_doc_id, reference_doc_no,
+    warehouse_id, from_bin_id, to_bin_id, item_id, uom_id,
+    batch_no, heat_no, qty_in, qty_out, unit_cost, total_cost, closing_balance, remarks, created_by
+) VALUES
+    (1001, 1001, 1001, '2026-05-28 11:00:00+05:30', 'INTERNAL_TRANSFER',
+     'TRANSFER', 1002, 'STO-AHM-2627-0001',
+     1001, 1001, 1008, 1001, 1001,
+     'HEAT-JSW-SS316-9812', 'MELT-8821', 0.000, 25.000, 320.0000, 8000.00, 427.000,
+     'Outward STO dispatch to Rajkot Plant (STO-AHM-2627-0001)', 1001);
+
+
+
+
+-- ============================================================================
+-- FEATURE: Step 8.4 - Batch Quality Passports, Genealogy Tree & Serial Registry Demo Data
+-- ============================================================================
+
+-- 1. Batch & Heat Master Quality Passports (tbl_inv_batch_master)
+INSERT INTO tbl_inv_batch_master (
+    batch_id, batch_no, heat_no, lot_no,
+    item_id, item_code, item_name,
+    supplier_id, grn_id, work_order_id,
+    manufacture_date, expiry_date, retest_date,
+    initial_qty, current_qty, uom_id, qc_status,
+    mtc_no, mtc_date, mtc_url,
+    chem_c, chem_mn, chem_si, chem_p, chem_s, chem_cr, chem_ni, chem_mo,
+    yield_strength_mpa, tensile_strength_mpa, elongation_pct, hardness_val, hardness_scale, impact_joules,
+    ultrasonic_test_status, radiography_status, remarks,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- 1001: SS-316 Round Bar Raw Heat
+    (1001, 'HEAT-JSW-SS316-9812', 'MELT-8821', 'LOT-9812-A',
+     1001, 'RM-SS316-50MM', 'Stainless Steel 316 Round Bar Dia 50mm',
+     1001, 1001, NULL,
+     '2026-04-10', '2031-04-10', '2028-04-10',
+     500.000, 427.000, 1001, 'APPROVED',
+     'MTC-JSW-2026-9812', '2026-04-12', 'https://docs.ksmfg.internal/mtc/MTC-JSW-2026-9812.pdf',
+     0.0240, 1.4500, 0.4200, 0.0280, 0.0120, 16.8200, 10.1200, 2.0500,
+     295.00, 585.00, 48.00, 162.00, 'BHN', 95.00,
+     'PASSED', 'NOT_APPLICABLE', 'High-purity vacuum induction melted SS-316 heat for pressure valve trims.',
+     1001, 1001, 1001, 1001),
+
+    -- 1002: Aluminum Ingot LM24
+    (1002, 'HEAT-AL-2026-09', 'HT-AL-902', 'LOT-AL-09',
+     1003, 'RM-AL-LM24', 'Aluminum Alloy Ingot LM24 (High-Pressure Die Casting)',
+     1002, 1002, NULL,
+     '2026-05-02', '2036-05-02', NULL,
+     1200.000, 1200.000, 1001, 'APPROVED',
+     'MTC-HND-2026-902', '2026-05-04', 'https://docs.ksmfg.internal/mtc/MTC-HND-2026-902.pdf',
+     0.0000, 0.4500, 8.5000, 0.0100, 0.0080, 0.0000, 0.3500, 0.0000,
+     160.00, 240.00, 2.50, 85.00, 'BHN', 12.00,
+     'PASSED', 'NOT_APPLICABLE', 'Prime virgin LM24 ingot lot for automotive powertrain castings.',
+     1001, 1001, 1001, 1001),
+
+    -- 1003: Polypropylene Granules
+    (1003, 'LOT-PP-2026-02', 'RIL-PP-410', 'LOT-PP-02',
+     1004, 'RM-POLYPROP-INJ', 'Polypropylene Granules Injection Molding Grade',
+     1003, 1003, NULL,
+     '2026-05-10', '2027-11-10', '2027-05-10',
+     250.000, 248.000, 1001, 'APPROVED',
+     'COA-RIL-2026-410', '2026-05-11', 'https://docs.ksmfg.internal/mtc/COA-RIL-2026-410.pdf',
+     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+     34.00, 38.00, 12.00, 92.00, 'HRR', NULL,
+     'NOT_APPLICABLE', 'NOT_APPLICABLE', 'MFI 12 g/10min, Density 0.905 g/cm3, RoHS & REACH compliant.',
+     1001, 1001, 1001, 1001),
+
+    -- 1004: Machined Valve Body (WIP Transformation)
+    (1004, 'BAT-WIP-VLV-01', 'HT-7821', 'LOT-WIP-01',
+     1005, 'WIP-VALVE-BODY', 'Machined Stainless Steel 3-Way Valve Body',
+     NULL, NULL, 1001,
+     '2026-05-18', NULL, NULL,
+     40.000, 40.000, 1003, 'APPROVED',
+     'QC-WIP-2026-0012', '2026-05-20', 'https://docs.ksmfg.internal/mtc/QC-WIP-2026-0012.pdf',
+     0.0240, 1.4500, 0.4200, 0.0280, 0.0120, 16.8200, 10.1200, 2.0500,
+     295.00, 585.00, 48.00, 164.00, 'BHN', 95.00,
+     'PASSED', 'LEVEL_2_PASSED', 'CNC 5-axis machined from parent heat MELT-8821. CMM verified.',
+     1001, 1001, 1001, 1001),
+
+    -- 1005: Flanged Gate Valve 2" (Finished Product)
+    (1005, 'FG-VLV-2026-01', 'MELT-8821', 'FG-RUN-01',
+     1006, 'FG-VALVE-2INCH', 'Flanged Gate Valve 2-inch Class 150 Stainless Steel',
+     NULL, NULL, 1001,
+     '2026-05-22', NULL, NULL,
+     10.000, 9.000, 1003, 'APPROVED',
+     'COC-KSM-2026-0081', '2026-05-24', 'https://docs.ksmfg.internal/mtc/COC-KSM-2026-0081.pdf',
+     0.0240, 1.4500, 0.4200, 0.0280, 0.0120, 16.8200, 10.1200, 2.0500,
+     295.00, 585.00, 48.00, 165.00, 'BHN', 95.00,
+     'PASSED', 'LEVEL_2_PASSED', 'Hydrostatic Shell Test 30 Bar (PASSED), Seat Test 22 Bar (PASSED). Zero leakage.',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, item_id, batch_no) DO NOTHING;
+
+SELECT setval('seq_inv_batch_id', GREATEST((SELECT COALESCE(MAX(batch_id), 1005) FROM tbl_inv_batch_master), 1005));
+
+-- 2. Bi-Directional Batch Genealogy Links (tbl_inv_batch_genealogy)
+INSERT INTO tbl_inv_batch_genealogy (
+    genealogy_id,
+    parent_batch_id, parent_batch_no, parent_item_id,
+    child_batch_id, child_batch_no, child_item_id,
+    work_order_id, job_card_id, consumed_qty, uom_id,
+    transformation_type, link_date, remarks,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SS-316 Raw Bar -> Machined Valve Body WIP
+    (1001, 1001, 'HEAT-JSW-SS316-9812', 1001,
+     1004, 'BAT-WIP-VLV-01', 1005,
+     1001, 1001, 50.000, 1001,
+     'WORK_ORDER_ASSEMBLY', '2026-05-18 11:30:00+05:30',
+     'SS-316 Round Bar Dia 50mm issued & machined for Valve Body stage.',
+     1001, 1001, 1001, 1001),
+
+    -- Machined Valve Body WIP -> Finished Flanged Gate Valve 2"
+    (1002, 1004, 'BAT-WIP-VLV-01', 1005,
+     1005, 'FG-VLV-2026-01', 1006,
+     1001, 1002, 10.000, 1003,
+     'WORK_ORDER_ASSEMBLY', '2026-05-22 15:45:00+05:30',
+     'Machined valve bodies assembled into finished Class 150 valves.',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (genealogy_id) DO NOTHING;
+
+SELECT setval('seq_inv_genealogy_id', GREATEST((SELECT COALESCE(MAX(genealogy_id), 1002) FROM tbl_inv_batch_genealogy), 1002));
+
+-- 3. Serial Number Life-Cycle & Traceability Registry (tbl_inv_serial_master)
+INSERT INTO tbl_inv_serial_master (
+    serial_id, item_id, item_code, item_name,
+    batch_id, batch_no, heat_no, serial_no,
+    barcode, rfid_tag,
+    current_warehouse_id, current_bin_id, status,
+    grn_id, work_order_id, job_card_id, challan_id, invoice_id, customer_id,
+    warranty_start_date, warranty_end_date, remarks,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- Serial 1001: Dispatched & Invoiced to Larsen & Toubro Ltd
+    (1001, 1006, 'FG-VALVE-2INCH', 'Flanged Gate Valve 2-inch Class 150 Stainless Steel',
+     1005, 'FG-VLV-2026-01', 'MELT-8821', 'VLV-2627-0001',
+     'BAR-VLV-2627-0001', 'RFID-8821-0001',
+     1003, 1007, 'DELIVERED',
+     NULL, 1001, 1002, 1001, 1001, 1001,
+     '2026-05-26', '2028-05-25', 'Delivered under DC-AHM-2627-0001 and Invoiced under INV-AHM-2627-0001 to L&T EPC project.',
+     1001, 1001, 1001, 1001),
+
+    -- Serial 1002: Available in FG Store (Warehouse 1003, Bin 1007)
+    (1002, 1006, 'FG-VALVE-2INCH', 'Flanged Gate Valve 2-inch Class 150 Stainless Steel',
+     1005, 'FG-VLV-2026-01', 'MELT-8821', 'VLV-2627-0002',
+     'BAR-VLV-2627-0002', 'RFID-8821-0002',
+     1003, 1007, 'AVAILABLE',
+     NULL, 1001, 1002, NULL, NULL, NULL,
+     NULL, NULL, 'Finished inspection and hydro-test passed. Available for customer dispatch.',
+     1001, 1001, 1001, 1001),
+
+    -- Serial 1003: Available in FG Store (Warehouse 1003, Bin 1007)
+    (1003, 1006, 'FG-VALVE-2INCH', 'Flanged Gate Valve 2-inch Class 150 Stainless Steel',
+     1005, 'FG-VLV-2026-01', 'MELT-8821', 'VLV-2627-0003',
+     'BAR-VLV-2627-0003', 'RFID-8821-0003',
+     1003, 1007, 'AVAILABLE',
+     NULL, 1001, 1002, NULL, NULL, NULL,
+     NULL, NULL, 'Finished inspection and hydro-test passed. Available for customer dispatch.',
+     1001, 1001, 1001, 1001)
+ON CONFLICT (comp_id, item_id, serial_no) DO NOTHING;
+
+SELECT setval('seq_inv_serial_id', GREATEST((SELECT COALESCE(MAX(serial_id), 1003) FROM tbl_inv_serial_master), 1003));

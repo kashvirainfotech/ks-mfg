@@ -26,6 +26,10 @@ import { WarehouseMasterPage } from './pages/inventory/WarehouseMasterPage';
 import { UomMasterPage } from './pages/inventory/UomMasterPage';
 import { ItemMasterPage } from './pages/inventory/ItemMasterPage';
 import { PutAwayMasterPage } from './pages/inventory/PutAwayMasterPage';
+import { StockBalanceMasterPage } from './pages/inventory/StockBalanceMasterPage';
+import { StockAdjustmentMasterPage } from './pages/inventory/StockAdjustmentMasterPage';
+import { StockTransferMasterPage } from './pages/inventory/StockTransferMasterPage';
+import { TraceabilityMasterPage } from './pages/inventory/TraceabilityMasterPage';
 import { RequisitionMasterPage } from './pages/procurement/RequisitionMasterPage';
 import { RfqMasterPage } from './pages/procurement/RfqMasterPage';
 import { PurchaseOrderMasterPage } from './pages/procurement/PurchaseOrderMasterPage';
@@ -203,6 +207,38 @@ export const App: React.FC = () => {
               element={
                 <ProtectedLayout>
                   <PutAwayMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/inventory/balance"
+              element={
+                <ProtectedLayout>
+                  <StockBalanceMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/inventory/adjustments"
+              element={
+                <ProtectedLayout>
+                  <StockAdjustmentMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/inventory/transfers"
+              element={
+                <ProtectedLayout>
+                  <StockTransferMasterPage />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/inventory/traceability"
+              element={
+                <ProtectedLayout>
+                  <TraceabilityMasterPage />
                 </ProtectedLayout>
               }
             />

@@ -420,4 +420,42 @@ CREATE TRIGGER trg_sales_return_item_updated_date
 BEFORE UPDATE ON tbl_sales_return_item
 FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
 
+DROP TRIGGER IF EXISTS trg_inv_adjustment_header_updated_date ON tbl_inv_adjustment_header;
+CREATE TRIGGER trg_inv_adjustment_header_updated_date
+BEFORE UPDATE ON tbl_inv_adjustment_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
 
+DROP TRIGGER IF EXISTS trg_inv_adjustment_item_updated_date ON tbl_inv_adjustment_item;
+CREATE TRIGGER trg_inv_adjustment_item_updated_date
+BEFORE UPDATE ON tbl_inv_adjustment_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+
+DROP TRIGGER IF EXISTS trg_inv_transfer_header_updated_date ON tbl_inv_transfer_header;
+CREATE TRIGGER trg_inv_transfer_header_updated_date
+BEFORE UPDATE ON tbl_inv_transfer_header
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_transfer_item_updated_date ON tbl_inv_transfer_item;
+CREATE TRIGGER trg_inv_transfer_item_updated_date
+BEFORE UPDATE ON tbl_inv_transfer_item
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+
+
+
+
+DROP TRIGGER IF EXISTS trg_inv_batch_master_updated_date ON tbl_inv_batch_master;
+CREATE TRIGGER trg_inv_batch_master_updated_date
+BEFORE UPDATE ON tbl_inv_batch_master
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_batch_genealogy_updated_date ON tbl_inv_batch_genealogy;
+CREATE TRIGGER trg_inv_batch_genealogy_updated_date
+BEFORE UPDATE ON tbl_inv_batch_genealogy
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();
+
+DROP TRIGGER IF EXISTS trg_inv_serial_master_updated_date ON tbl_inv_serial_master;
+CREATE TRIGGER trg_inv_serial_master_updated_date
+BEFORE UPDATE ON tbl_inv_serial_master
+FOR EACH ROW EXECUTE FUNCTION fn_set_updated_timestamp();

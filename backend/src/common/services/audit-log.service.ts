@@ -44,7 +44,9 @@ export type AuditActionType =
   | 'RECORD_PAYMENT'
   | 'INSPECT'
   | 'POST_CREDIT_NOTE'
-  | 'RESTOCK';
+  | 'RESTOCK'
+  | 'LEDGER_DRILLDOWN'
+  | 'REVALUE';
 
 export interface RecordAuditLogParams {
   userId: number;

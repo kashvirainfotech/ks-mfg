@@ -42,6 +42,10 @@ import { OrderModule } from './modules/sales/order/order.module';
 import { DeliveryChallanModule } from './modules/sales/delivery-challan/challan.module';
 import { SalesInvoiceModule } from './modules/sales/invoice/invoice.module';
 import { SalesReturnModule } from './modules/sales/return/return.module';
+import { StockBalanceModule } from './modules/inventory/balance/stock-balance.module';
+import { StockAdjustmentModule } from './modules/inventory/adjustment/adjustment.module';
+import { StockTransferModule } from './modules/inventory/transfer/transfer.module';
+import { StockTraceabilityModule } from './modules/inventory/traceability/traceability.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -94,6 +98,10 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     DeliveryChallanModule,
     SalesInvoiceModule,
     SalesReturnModule,
+    StockBalanceModule,
+    StockAdjustmentModule,
+    StockTransferModule,
+    StockTraceabilityModule,
   ],
   controllers: [AppController],
   providers: [

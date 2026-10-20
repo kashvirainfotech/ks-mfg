@@ -1260,3 +1260,214 @@ Each screen or feature documentation entry must contain:
      * **Statutory E-Invoicing (IRN) Generation Modal (`QrCode`):** Cryptographic IRN generation modal displaying SHA-256 hash preview, statutory Ack issuance, and signed QR code payload.
      * **Warehouse Put-Away & Restock Modal (`Boxes`):** Review accepted quantities and confirm atomic bin put-away and stock ledger accretion.
      * **Printable Statutory Credit Note Modal (`PRINT`):** Formatted statutory layout compliant with Section 34 & Rule 53 of CGST Rules, 2017 with corporate header, CIN, GSTIN, 64-char IRN hash, signed QR code, original invoice references, return item schedule, tax breakdown, and 3-tier signature blocks with native `window.print()` trigger.
+
+### 2.39 Real-Time Stock Balance & Valuation (`/inventory/balance`)
+1. **Database Schema & DDL Objects (`dbscripts/01_schema_objects.sql`):**
+   * Tables:
+     * `tbl_inv_bin_stock`:
+       * Primary Key: `bin_stock_id` BIGINT (`seq_bin_stock_id`, starts at 1001).
+       * Foreign Keys: `warehouse_id` BIGINT REFERENCES `tbl_inv_warehouse(warehouse_id)`, `bin_id` BIGINT REFERENCES `tbl_inv_storage_bin(bin_id)`, `item_id` BIGINT REFERENCES `tbl_inv_item(item_id)`, `uom_id` BIGINT REFERENCES `tbl_inv_uom(uom_id)`.
+       * Unique Invariant: `uq_inv_bin_stock_unique UNIQUE (warehouse_id, bin_id, item_id, batch_no)`.
+       * Stock Quantities: `on_hand_qty` NUMERIC(14, 3) NOT NULL DEFAULT 0.000, `reserved_qty` NUMERIC(14, 3) NOT NULL DEFAULT 0.000, `available_qty` NUMERIC(14, 3) NOT NULL DEFAULT 0.000.
+       * Valuation: `unit_cost` NUMERIC(14, 4) DEFAULT 0.0000, `total_valuation` NUMERIC(14, 2) DEFAULT 0.00, `last_stock_date` TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+     * `tbl_inv_stock_ledger`:
+       * Primary Key: `ledger_id` BIGINT (`seq_stock_ledger_id`, starts at 1001).
+       * Identification & Document Reference: `transaction_type` VARCHAR(50) NOT NULL (`PUTAWAY_INWARD`, `QUARANTINE_HOLD`, `QC_RELEASE`, `INTERNAL_TRANSFER`, `PRODUCTION_ISSUE`, `SCRAP_WRITE_OFF`, `ADJUSTMENT`, `SALES_DISPATCH`, `SALES_RETURN`), `reference_doc_type` VARCHAR(50) NOT NULL (`GRN`, `QC_INSPECTION`, `PUTAWAY`, `TRANSFER`, `WORK_ORDER`, `ADJUSTMENT`, `DELIVERY_CHALLAN`, `SALES_RETURN`), `reference_doc_id` BIGINT NOT NULL, `reference_doc_no` VARCHAR(50) NOT NULL.
+       * Double-Entry Location: `warehouse_id` BIGINT NOT NULL, `from_bin_id` BIGINT, `to_bin_id` BIGINT, `item_id` BIGINT NOT NULL, `uom_id` BIGINT NOT NULL, `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Ledger Values: `qty_in` NUMERIC(14, 3) DEFAULT 0.000, `qty_out` NUMERIC(14, 3) DEFAULT 0.000, `unit_cost` NUMERIC(14, 4) DEFAULT 0.0000, `total_cost` NUMERIC(14, 2) DEFAULT 0.00, `closing_balance` NUMERIC(14, 3) NOT NULL DEFAULT 0.000, `remarks` VARCHAR(350), 7 mandatory audit columns.
+   * Sequences: `seq_bin_stock_id`, `seq_stock_ledger_id` (all starting at 1001).
+   * Indexes: `idx_inv_bin_stock_wh_bin`, `idx_inv_bin_stock_item`, `idx_inv_bin_stock_batch`, `idx_inv_stock_ledger_comp`, `idx_inv_stock_ledger_item_date`, `idx_inv_stock_ledger_wh_bin`, `idx_inv_stock_ledger_ref`.
+   * Triggers: `trg_inv_bin_stock_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1038` (`STOCK_BALANCE`, `/inventory/balance`, `Calculator`, sort order 38) with actions `1130` (`EXPORT`), `1131` (`PRINT`), `1132` (`LEDGER_DRILLDOWN`), and `1133` (`REVALUE`). Full 5-role RBAC permissions across `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `PURCHASE_EXEC`, and `SALES_EXEC`.
+     * `03_sample_demo_data.sql`: Seeded 9 active bin stock records with total inventory valuation of ₹13,71,086.60 across Raw Materials (SS-316 Round Bar, Cold Rolled Coil, Aluminum Ingot LM24, PP Granules), Semi-Finished WIP (Machined Valve Body), Finished Goods (Flanged Gate Valve, Hydromount Powertrain), Consumable MRO (Synthetic CNC Coolant), and Tooling (Tungsten Carbide Inserts).
+2. **Backend Architecture & API Contracts (`backend/src/modules/inventory/balance/`):**
+   * Controller: `StockBalanceController` mapped to `/api/v1/inventory/balance`.
+   * Service: `StockBalanceService` injecting `PG_POOL` and `AuditLogService`.
+   * Endpoints:
+     * `GET /inventory/balance/summary` (`@RequirePermission('STOCK_BALANCE', 'VIEW')`) — returns KPI metrics (`totalValuation`, `totalLines`, `totalOnHandUnits`, `totalAvailableUnits`, `totalReservedUnits`, `lowStockCount`, `outOfStockCount`, `valuationByWarehouse`, `valuationByCategory`).
+     * `GET /inventory/balance/lookups` (`@RequirePermission('STOCK_BALANCE', 'VIEW')`) — returns active warehouses, storage bins, item categories, and UOMs.
+     * `GET /inventory/balance` (`@RequirePermission('STOCK_BALANCE', 'VIEW')`) — paginated listing with filtering by `warehouseId`, `binId`, `itemType`, `stockStatus` (`ALL`, `IN_STOCK`, `LOW_STOCK`, `OUT_OF_STOCK`, `RESERVED`), and free-text search across item code, name, batch, heat, bin code, and warehouse name.
+     * `GET /inventory/balance/:id/ledger` (`@RequirePermission('STOCK_BALANCE', 'LEDGER_DRILLDOWN')`) — retrieves complete chronological inward/outward movement history from `tbl_inv_stock_ledger` for the selected item and bin with running balances.
+     * `POST /inventory/balance/:id/revalue` (`@RequirePermission('STOCK_BALANCE', 'REVALUE')`) — adjusts unit standard cost and recalculates line valuation, optionally synchronizing `tbl_inv_item.standard_cost` with audit log capture in `tbl_sys_audit_log`.
+3. **Frontend Architecture (`frontend/src/pages/inventory/StockBalanceMasterPage.tsx`):**
+   * Accessible at route `/inventory/balance` under `INVENTORY & WMS` with `Calculator` icon and `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<PermissionGate screen="STOCK_BALANCE">`.
+   * 5 KPI summary cards (`Total Valuation`, `Stock Lines`, `Available Units`, `Reserved Units`, `Low Stock Warnings`).
+   * Category and Warehouse Valuation breakdown visual cards.
+   * Filter controls (`warehouseFilter`, `categoryFilter`, `stockStatusFilter`, instant search).
+   * Group-by options: Warehouse, Item Category, Storage Bin.
+   * Modals & Drawers:
+     * **Stock Item Specification Drawer (`Eye`):** Slideout displaying item master attributes, warehouse coordinates, bin type, batch/heat numbers, safety stock buffer, and Ind AS 2 valuation.
+     * **Movement History & Stock Ledger Modal (`History`):** Interactive drill-down table querying `GET /inventory/balance/:id/ledger` showing chronological inward/outward movements, reference documents, and running closing balances.
+     * **Recalculate Valuation & Cost Modal (`Calculator`):** Adjusts unit cost with real-time valuation delta calculation and justification text.
+     * **Official Ind AS 2 / AS-2 Printable Stock Valuation Certificate (`PRINT`):** Formatted statutory layout with corporate letterhead, CIN, GSTIN, category valuation summary table, itemized inventory schedule, valuation in Indian Rupee words, and 3-tier authorized signatory blocks with native `window.print()` trigger.
+
+
+### 2.40 Physical Stock Reconciliation, Periodic Stock Audit & Stock Adjustments / Write-Offs (`/inventory/adjustments`)
+1. **Database Schema & DDL Objects (`dbscripts/01_schema_objects.sql`):**
+   * Tables:
+     * `tbl_inv_adjustment_header`:
+       * Primary Key: `adjustment_id` BIGINT (`seq_inv_adjustment_id`, starts at 1001).
+       * Multi-tenant: `company_id` BIGINT NOT NULL REFERENCES `tbl_sec_company(company_id)`, `branch_id` BIGINT NOT NULL REFERENCES `tbl_sec_branch(branch_id)`.
+       * Voucher Metadata: `adjustment_no` VARCHAR(50) NOT NULL UNIQUE (formatted as `SA-{BRANCH}-{FYEAR}-XXXX`), `adjustment_date` DATE NOT NULL DEFAULT CURRENT_DATE, `adjustment_type` VARCHAR(30) NOT NULL DEFAULT `'PERIODIC_AUDIT'` (`CYCLE_COUNT`, `PERIODIC_AUDIT`, `DAMAGE_WRITEOFF`, `EXPIRY_WRITEOFF`, `SPILLAGE_LOSS`, `FOUND_SURPLUS`, `REVALUATION_VARIANCE`).
+       * Target Warehouse: `warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`.
+       * Verification & Sign-off: `audited_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `audited_at` TIMESTAMPTZ, `approved_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `approval_date` TIMESTAMPTZ.
+       * Aggregated Totals: `total_items` INT NOT NULL DEFAULT 0, `total_book_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `total_physical_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `net_variance_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00.
+       * Lifecycle & Multi-tenant: `status` VARCHAR(20) NOT NULL DEFAULT `'DRAFT'` (`DRAFT`, `SUBMITTED`, `POSTED`, `CANCELLED`), `cancellation_reason` VARCHAR(500), `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+     * `tbl_inv_adjustment_item`:
+       * Primary Key: `adjustment_item_id` BIGINT (`seq_inv_adjustment_item_id`, starts at 1001).
+       * Foreign Keys: `adjustment_id` BIGINT NOT NULL REFERENCES `tbl_inv_adjustment_header(adjustment_id)` ON DELETE CASCADE, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `bin_id` BIGINT NOT NULL REFERENCES `tbl_inv_storage_bin(bin_id)`, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`.
+       * Item & Lot Identification: `item_sequence` INT NOT NULL DEFAULT 1, `item_code` VARCHAR(50) NOT NULL, `item_name` VARCHAR(200) NOT NULL, `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Quantities: `book_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `physical_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `variance_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000.
+       * Rates & Values: `unit_cost` NUMERIC(14,4) NOT NULL DEFAULT 0.0000, `book_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `physical_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `variance_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00, `variance_direction` VARCHAR(20) NOT NULL DEFAULT `'NONE'` (`SURPLUS_GAIN`, `DEFICIT_LOSS`, `NONE`).
+       * Audit Justification: `discrepancy_reason` VARCHAR(250), `remarks` VARCHAR(250), 7 mandatory audit columns.
+   * Sequences: `seq_inv_adjustment_id`, `seq_inv_adjustment_item_id` (all starting at 1001).
+   * Indexes: `idx_inv_adjustment_header_comp_branch`, `idx_inv_adjustment_header_wh`, `idx_inv_adjustment_header_status`, `idx_inv_adjustment_header_date`, `idx_inv_adjustment_item_adj`, `idx_inv_adjustment_item_item`, `idx_inv_adjustment_item_bin`.
+   * Triggers: `trg_inv_adjustment_header_updated_date` and `trg_inv_adjustment_item_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1039` (`STOCK_ADJUSTMENT`, `/inventory/adjustments`, `ClipboardCheck`, sort order 39) with actions `1134` (`EXPORT`), `1135` (`PRINT`), `1136` (`SUBMIT`), `1137` (`APPROVE`), and `1138` (`CANCEL`). Full 5-role RBAC permissions across `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `PURCHASE_EXEC`, and `SALES_EXEC`.
+     * `03_sample_demo_data.sql`: Seeded `SA-AHM-2627-0001` (Cycle count for SS-316 Round Bar with +2.000 KG surplus gain and PP Granules with -2.000 KG spillage loss, status `POSTED`, bin balances updated and stock ledger double-entry adjustments posted) and `SA-AHM-2627-0002` (Damaged finished goods write-off for 1 Hydromount Powertrain unit, status `DRAFT`, pending review).
+2. **Backend Architecture & API Contracts (`backend/src/modules/inventory/adjustment/`):**
+   * Controller: `StockAdjustmentController` mapped to `/api/v1/inventory/adjustments`.
+   * Service: `StockAdjustmentService` injecting `PG_POOL`, `DrizzleDb`, and `AuditLogService`.
+   * Endpoints:
+     * `GET /inventory/adjustments/summary` (`@RequirePermission('STOCK_ADJUSTMENT', 'VIEW')`) — returns KPI metrics (`totalVouchers`, `totalBookValue`, `totalPhysicalValue`, `netVarianceValue`, `draftCount`, `submittedCount`, `postedCount`).
+     * `GET /inventory/adjustments/lookups` (`@RequirePermission('STOCK_ADJUSTMENT', 'VIEW')`) — returns active warehouses, storage bins, items, and UOMs.
+     * `GET /inventory/adjustments/book-stock` (`@RequirePermission('STOCK_ADJUSTMENT', 'VIEW')`) — returns live bin stock rows (`tbl_inv_bin_stock`) filtered by warehouse and optional bin for 1-Click loading.
+     * `GET /inventory/adjustments` (`@RequirePermission('STOCK_ADJUSTMENT', 'VIEW')`) — paginated listing with filtering by `status`, `adjustmentType`, `warehouseId`, and free-text search across voucher number, remarks, and user names.
+     * `GET /inventory/adjustments/:id` (`@RequirePermission('STOCK_ADJUSTMENT', 'VIEW')`) — retrieves single adjustment voucher with line items, variance calculations, and audit log stamps.
+     * `POST /inventory/adjustments` (`@RequirePermission('STOCK_ADJUSTMENT', 'ADD')`) — creates adjustment voucher with automatic sequential numbering (`SA-{BRANCH}-{FYEAR}-XXXX`), line-level variance value computations, and audit logging.
+     * `PUT /inventory/adjustments/:id` (`@RequirePermission('STOCK_ADJUSTMENT', 'EDIT')`) — updates draft adjustment voucher parameters and line items.
+     * `POST /inventory/adjustments/:id/submit` (`@RequirePermission('STOCK_ADJUSTMENT', 'SUBMIT')`) — freezes physical counts, stamps verifier details, and transitions voucher status from `DRAFT` to `SUBMITTED`.
+     * `POST /inventory/adjustments/:id/approve` (`@RequirePermission('STOCK_ADJUSTMENT', 'APPROVE')`) — approves voucher, updates on-hand/available quantities in `tbl_inv_bin_stock`, and posts double-entry adjustment transactions in `tbl_inv_stock_ledger` (`transaction_type = 'ADJUSTMENT'`, `reference_doc_type = 'ADJUSTMENT'`).
+     * `POST /inventory/adjustments/:id/cancel` (`@RequirePermission('STOCK_ADJUSTMENT', 'CANCEL')`) — cancels voucher with mandatory reason; if previously `POSTED`, safely reverts bin stock quantities and posts offsetting ledger adjustments.
+3. **Frontend Architecture (`frontend/src/pages/inventory/StockAdjustmentMasterPage.tsx`):**
+   * Accessible at route `/inventory/adjustments` under `INVENTORY & WMS` with `ClipboardCheck` icon and `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<PermissionGate screen="STOCK_ADJUSTMENT">`.
+   * 4 KPI summary cards (`Total Audits`, `Audited Book Value`, `Physical Value`, `Net Variance Value`).
+   * Filter controls (`statusFilter`, `typeFilter`, `warehouseFilter`, instant search).
+   * Modals & Drawers:
+     * **Adjustment Details Drawer (`Eye`):** Slideout displaying voucher metadata, warehouse coordinates, audit sign-offs, full schedule of audited items with book vs physical quantities and financial variances.
+     * **Create / Edit Adjustment Modal:** 1-Click "Load Book Stock by Warehouse" querying active inventory, dynamic real-time variance calculation ($\text{Physical} - \text{Book}$), automatic variance direction assignment, and line-level discrepancy reason inputs.
+     * **Submit for Sign-Off Modal (`FileCheck`):** Confirmation dialog freezing counts and transferring voucher to Plant Manager.
+     * **Approve & Post to Ledger Modal (`CheckCircle`):** Executive approval confirming atomic bin stock updates and double-entry stock ledger postings.
+     * **Cancel Voucher Modal (`XCircle`):** Reason capture dialog reversing ledger entries and bin balances if previously posted.
+     * **Official CARO 2020 Clause 3(ii) Physical Stock Verification Certificate (`PRINT`):** Formatted statutory audit certificate with corporate header, CIN, GSTIN, schedule of goods, net variance in Rupee words, and 3-tier authorized signatory blocks (Store Officer, Plant Manager, Statutory Auditor) with native `window.print()` trigger.
+
+
+
+### 2.41 Warehouse Internal Transfers & Inter-Branch Stock Transfers (STO) (`/inventory/transfers`)
+1. **Database Schema & DDL Objects (`dbscripts/01_schema_objects.sql`):**
+   * Tables:
+     * `tbl_inv_transfer_header`:
+       * Primary Key: `transfer_id` BIGINT (`seq_inv_transfer_id`, starts at 1001).
+       * Multi-tenant: `company_id` BIGINT NOT NULL REFERENCES `tbl_sec_company(company_id)`, `branch_id` BIGINT NOT NULL REFERENCES `tbl_sec_branch(branch_id)`.
+       * Voucher Identification: `transfer_no` VARCHAR(50) NOT NULL UNIQUE (formatted as `ST-{BRANCH}-{FYEAR}-XXXX` or `STO-{BRANCH}-{FYEAR}-XXXX`), `transfer_date` DATE NOT NULL DEFAULT CURRENT_DATE.
+       * Movement Classification: `transfer_type` VARCHAR(30) NOT NULL DEFAULT `'BIN_TO_BIN'` (`BIN_TO_BIN`, `INTER_WAREHOUSE`, `INTER_BRANCH_STO`).
+       * Origin & Destination: `from_warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`, `to_warehouse_id` BIGINT NOT NULL REFERENCES `tbl_inv_warehouse(warehouse_id)`, `to_branch_id` BIGINT REFERENCES `tbl_sec_branch(branch_id)`.
+       * Transport & Logistics: `transporter_name` VARCHAR(150), `vehicle_no` VARCHAR(50), `lr_no` VARCHAR(50), `lr_date` DATE, `eway_bill_no` VARCHAR(50), `challan_no` VARCHAR(50), `challan_date` DATE.
+       * Totals: `total_items` INT NOT NULL DEFAULT 0, `total_transfer_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `total_transfer_value` NUMERIC(14,2) NOT NULL DEFAULT 0.00.
+       * Lifecycle & Sign-Offs: `status` VARCHAR(20) NOT NULL DEFAULT `'DRAFT'` (`DRAFT`, `DISPATCHED`, `RECEIVED`, `CANCELLED`), `dispatched_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `dispatched_at` TIMESTAMPTZ, `received_by` BIGINT REFERENCES `tbl_sec_user(user_id)`, `received_at` TIMESTAMPTZ, `cancellation_reason` VARCHAR(500), `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+     * `tbl_inv_transfer_item`:
+       * Primary Key: `transfer_item_id` BIGINT (`seq_inv_transfer_item_id`, starts at 1001).
+       * Foreign Keys: `transfer_id` BIGINT NOT NULL REFERENCES `tbl_inv_transfer_header(transfer_id)` ON DELETE CASCADE, `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`, `from_bin_id` BIGINT NOT NULL REFERENCES `tbl_inv_storage_bin(bin_id)`, `to_bin_id` BIGINT NOT NULL REFERENCES `tbl_inv_storage_bin(bin_id)`.
+       * Item & Lot Data: `item_sequence` INT NOT NULL DEFAULT 1, `item_code` VARCHAR(50) NOT NULL, `item_name` VARCHAR(200) NOT NULL, `batch_no` VARCHAR(100), `heat_no` VARCHAR(100).
+       * Quantities & Valuations: `available_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `transfer_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `received_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `unit_cost` NUMERIC(14,4) NOT NULL DEFAULT 0.0000, `line_total` NUMERIC(14,2) NOT NULL DEFAULT 0.00.
+       * Audit Tracking: `remarks` VARCHAR(250), 7 mandatory audit columns.
+   * Sequences: `seq_inv_transfer_id`, `seq_inv_transfer_item_id` (all starting at 1001).
+   * Indexes: `idx_inv_transfer_header_comp_branch`, `idx_inv_transfer_header_from_wh`, `idx_inv_transfer_header_to_wh`, `idx_inv_transfer_header_status`, `idx_inv_transfer_header_date`, `idx_inv_transfer_item_transfer`, `idx_inv_transfer_item_item`, `idx_inv_transfer_item_from_bin`, `idx_inv_transfer_item_to_bin`.
+   * Triggers: `trg_inv_transfer_header_updated_date` and `trg_inv_transfer_item_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1040` (`STOCK_TRANSFER`, `/inventory/transfers`, `ArrowLeftRight`, sort order 40) with actions `1139` (`EXPORT`), `1140` (`PRINT`), `1141` (`DISPATCH`), `1142` (`RECEIVE`), and `1143` (`CANCEL`). Full 5-role RBAC permissions configured across `SUPER_ADMIN`, `PLANT_MANAGER`, `STORE_OFFICER`, `PURCHASE_EXEC`, and `SALES_EXEC`.
+     * `03_sample_demo_data.sql`: Seeded `ST-AHM-2627-0001` (Internal relocation of 50 KG SS-316 Round Bar from Central Stores Bin 1001 to Machine Shop Infeed Bin 1006, status `RECEIVED`, dual-entry ledger postings confirmed) and `STO-AHM-2627-0002` (Inter-branch STO dispatch of 25 KG SS-316 to Rajkot Plant under Rule 55 Challan `DC-STO-2627-0001` with E-Way Bill `241908219481`, status `DISPATCHED`, in-transit stock ledger outward posting confirmed).
+2. **Backend Architecture & API Contracts (`backend/src/modules/inventory/transfer/`):**
+   * Controller: `StockTransferController` mapped to `/api/v1/inventory/transfers`.
+   * Service: `StockTransferService` injecting `PG_POOL`, `DrizzleDb`, and `AuditLogService`.
+   * Endpoints:
+     * `GET /inventory/transfers/summary` (`@RequirePermission('STOCK_TRANSFER', 'VIEW')`) — returns KPI metrics (`totalTransfers`, `draftCount`, `dispatchedCount`, `receivedCount`, `cancelledCount`, `totalTransferQty`, `totalTransferValue`).
+     * `GET /inventory/transfers/lookups` (`@RequirePermission('STOCK_TRANSFER', 'VIEW')`) — returns active warehouses, storage bins, branches, items, and UOMs.
+     * `GET /inventory/transfers/available-stock` (`@RequirePermission('STOCK_TRANSFER', 'VIEW')`) — returns available bin stock balances from `tbl_inv_bin_stock` filtered by warehouse for the 1-Click interactive stock picker.
+     * `GET /inventory/transfers` (`@RequirePermission('STOCK_TRANSFER', 'VIEW')`) — paginated listing with filtering by `status`, `transferType`, `fromWarehouseId`, `toWarehouseId`, and free-text search across transfer number, vehicle, LR, challan, and remarks.
+     * `GET /inventory/transfers/:id` (`@RequirePermission('STOCK_TRANSFER', 'VIEW')`) — retrieves single transfer voucher with complete item schedule, bin details, transport data, and audit stamps.
+     * `POST /inventory/transfers` (`@RequirePermission('STOCK_TRANSFER', 'ADD')`) — creates transfer voucher with financial year sequential numbering (`ST-` or `STO-`), line valuation computations, and audit logging.
+     * `PUT /inventory/transfers/:id` (`@RequirePermission('STOCK_TRANSFER', 'EDIT')`) — updates draft transfer voucher metadata and items.
+     * `POST /inventory/transfers/:id/dispatch` (`@RequirePermission('STOCK_TRANSFER', 'DISPATCH')`) — records outward dispatch gate details (vehicle, transporter, LR, E-way bill), deducts on-hand quantities in `tbl_inv_bin_stock`, and posts outward double-entry stock ledger entries (`transaction_type = 'INTERNAL_TRANSFER'`, `qty_out = transfer_qty`).
+     * `POST /inventory/transfers/:id/direct-transfer` (`@RequirePermission('STOCK_TRANSFER', 'DISPATCH')`) — 1-Click atomic bin transfer executing source bin decrement, destination bin accretion, and dual stock ledger postings simultaneously.
+     * `POST /inventory/transfers/:id/receive` (`@RequirePermission('STOCK_TRANSFER', 'RECEIVE')`) — records destination receipt, accretions destination on-hand bin stock, and posts inward double-entry stock ledger entries (`transaction_type = 'INTERNAL_TRANSFER'`, `qty_in = received_qty`).
+     * `POST /inventory/transfers/:id/cancel` (`@RequirePermission('STOCK_TRANSFER', 'CANCEL')`) — safely cancels transfer vouchers; automatically reverses deducted source bin stock and destination inward stock with compensating ledger entries.
+3. **Frontend Architecture (`frontend/src/pages/inventory/StockTransferMasterPage.tsx`):**
+   * Accessible at route `/inventory/transfers` under `INVENTORY & WMS` with `ArrowLeftRight` icon and `'Live'` badge.
+   * Built with `<MasterDataTable>`, `<PermissionGate screen="STOCK_TRANSFER">`.
+   * 4 KPI summary cards (`Total Transfers`, `In-Transit`, `Completed Receipts`, `Transferred Valuation`).
+   * Filter controls (`statusFilter`, `typeFilter`, `fromWarehouseFilter`, `toWarehouseFilter`, instant search).
+   * Modals & Drawers:
+     * **Transfer Details Drawer (`Eye`):** Slideout displaying voucher metadata, origin & destination locations, logistics metadata, item schedules with source/destination bins, and audit timestamps.
+     * **Create / Edit Transfer Modal:** 1-Click "Available Stock Picker" querying real-time on-hand inventory, automatic item sequence and valuation calculation, dynamic bin dropdowns filtered by origin/destination warehouses.
+     * **Physical Dispatch Modal (`Truck`):** Captures transporter name, vehicle registration number, LR/RR number & date, and E-Way Bill number with outward ledger deduction.
+     * **Destination Receive Modal (`PackageCheck`):** Captures physical received quantity per line item and updates destination storage bins.
+     * **Cancel Transfer Modal (`XCircle`):** Reason capture dialog with full automatic restitution of bin stock balances and compensating ledger entries.
+     * **Statutory GST Rule 55 Delivery Challan & Transfer Note (`PRINT`):** Formatted printable layout conforming to CGST Rule 55 with corporate letterhead, CIN, GSTIN, movement coordinates, schedule of goods, and 3-tier authorized signatory blocks (Stores Keeper, Gate Security, Receiving Store).
+
+
+### 2.42 End-to-End Batch & Serial Number 360-Degree Genealogy & Traceability Explorer (`/inventory/traceability`)
+1. **Database Schema & DDL Objects (`dbscripts/01_schema_objects.sql`):**
+   * Tables:
+     * `tbl_inv_batch_master`:
+       * Primary Key: `batch_id` BIGINT (`seq_inv_batch_id`, starts at 1001).
+       * Multi-tenant: `company_id` BIGINT NOT NULL REFERENCES `tbl_sec_company(company_id)`, `branch_id` BIGINT NOT NULL REFERENCES `tbl_sec_branch(branch_id)`.
+       * Heat & Identification: `batch_no` VARCHAR(100) NOT NULL, `heat_no` VARCHAR(100), `lot_no` VARCHAR(100).
+       * Item & Partner Links: `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `item_code` VARCHAR(50) NOT NULL, `item_name` VARCHAR(200) NOT NULL, `supplier_id` BIGINT REFERENCES `tbl_crm_party(party_id)`, `grn_id` BIGINT, `work_order_id` BIGINT REFERENCES `tbl_mfg_wo_header(wo_id)`.
+       * Lifecycle Dates & Quantities: `manufacture_date` DATE, `expiry_date` DATE, `retest_date` DATE, `initial_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `current_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `uom_id` BIGINT NOT NULL REFERENCES `tbl_inv_uom(uom_id)`.
+       * Quality Passport & MTC Metadata: `qc_status` VARCHAR(20) NOT NULL DEFAULT `'APPROVED'` (`APPROVED`, `RELEASED`, `QUARANTINE`, `REJECTED`), `mtc_no` VARCHAR(100), `mtc_date` DATE, `mtc_url` VARCHAR(255).
+       * Spectrometry Chemical Composition (% by weight): `carbon_pct` NUMERIC(6,4), `manganese_pct` NUMERIC(6,4), `silicon_pct` NUMERIC(6,4), `phosphorus_pct` NUMERIC(6,4), `sulphur_pct` NUMERIC(6,4), `chromium_pct` NUMERIC(6,4), `nickel_pct` NUMERIC(6,4), `molybdenum_pct` NUMERIC(6,4).
+       * Mechanical Properties & NDT: `yield_strength_mpa` NUMERIC(8,2), `tensile_strength_mpa` NUMERIC(8,2), `elongation_pct` NUMERIC(5,2), `hardness_value` VARCHAR(30), `impact_joules` NUMERIC(6,2), `ultrasonic_test_status` VARCHAR(50) DEFAULT `'ACCEPTABLE_LEVEL_1'`, `radiography_status` VARCHAR(50) DEFAULT `'COMPLIANT_ASME'`, `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraints: Unique constraint on `(company_id, batch_no)`.
+     * `tbl_inv_batch_genealogy`:
+       * Primary Key: `genealogy_id` BIGINT (`seq_inv_genealogy_id`, starts at 1001).
+       * Multi-tenant: `company_id` BIGINT NOT NULL REFERENCES `tbl_sec_company(company_id)`, `branch_id` BIGINT NOT NULL REFERENCES `tbl_sec_branch(branch_id)`.
+       * Parent Material Link: `parent_batch_id` BIGINT REFERENCES `tbl_inv_batch_master(batch_id)`, `parent_batch_no` VARCHAR(100) NOT NULL, `parent_item_id` BIGINT REFERENCES `tbl_inv_item(item_id)`.
+       * Child Assembly Link: `child_batch_id` BIGINT REFERENCES `tbl_inv_batch_master(batch_id)`, `child_batch_no` VARCHAR(100) NOT NULL, `child_item_id` BIGINT REFERENCES `tbl_inv_item(item_id)`.
+       * Manufacturing Context: `work_order_id` BIGINT REFERENCES `tbl_mfg_wo_header(wo_id)`, `job_card_id` BIGINT, `consumed_qty` NUMERIC(14,3) NOT NULL DEFAULT 0.000, `uom_id` BIGINT REFERENCES `tbl_inv_uom(uom_id)`.
+       * Transformation Classification: `transformation_type` VARCHAR(30) NOT NULL DEFAULT `'RAW_TO_WIP'` (`RAW_TO_WIP`, `WIP_TO_FG`, `BLENDING`, `REWORK`, `SPLIT`, `MERGE`), `link_date` DATE NOT NULL DEFAULT CURRENT_DATE, `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+     * `tbl_inv_serial_master`:
+       * Primary Key: `serial_id` BIGINT (`seq_inv_serial_id`, starts at 1001).
+       * Multi-tenant: `company_id` BIGINT NOT NULL REFERENCES `tbl_sec_company(company_id)`, `branch_id` BIGINT NOT NULL REFERENCES `tbl_sec_branch(branch_id)`.
+       * Asset Identification: `item_id` BIGINT NOT NULL REFERENCES `tbl_inv_item(item_id)`, `item_code` VARCHAR(50) NOT NULL, `item_name` VARCHAR(200) NOT NULL, `batch_id` BIGINT REFERENCES `tbl_inv_batch_master(batch_id)`, `batch_no` VARCHAR(100) NOT NULL, `heat_no` VARCHAR(100), `serial_no` VARCHAR(100) NOT NULL, `barcode` VARCHAR(100), `rfid_tag` VARCHAR(100).
+       * Warehouse & Bin: `current_warehouse_id` BIGINT REFERENCES `tbl_inv_warehouse(warehouse_id)`, `current_bin_id` BIGINT REFERENCES `tbl_inv_storage_bin(bin_id)`.
+       * Lifecycle & Commercial Links: `status` VARCHAR(30) NOT NULL DEFAULT `'AVAILABLE'` (`AVAILABLE`, `ISSUED`, `DELIVERED`, `UNDER_MAINTENANCE`, `SCRAPPED`), `grn_id` BIGINT, `work_order_id` BIGINT REFERENCES `tbl_mfg_wo_header(wo_id)`, `job_card_id` BIGINT, `challan_id` BIGINT REFERENCES `tbl_sales_delivery_challan_header(challan_id)`, `invoice_id` BIGINT REFERENCES `tbl_sales_invoice_header(invoice_id)`, `customer_id` BIGINT REFERENCES `tbl_crm_party(party_id)`.
+       * Warranty: `warranty_start_date` DATE, `warranty_end_date` DATE, `remarks` VARCHAR(500), `is_active` BOOLEAN NOT NULL DEFAULT TRUE, 7 mandatory audit columns.
+       * Constraints: Unique constraint on `(company_id, serial_no)`.
+   * Sequences: `seq_inv_batch_id`, `seq_inv_genealogy_id`, `seq_inv_serial_id` (all starting at 1001).
+   * Indexes: `idx_inv_batch_master_comp_batch`, `idx_inv_batch_master_heat`, `idx_inv_batch_master_item`, `idx_inv_batch_master_qc`, `idx_inv_genealogy_parent`, `idx_inv_genealogy_child`, `idx_inv_genealogy_wo`, `idx_inv_serial_master_comp_serial`, `idx_inv_serial_master_batch`, `idx_inv_serial_master_status`, `idx_inv_serial_master_item`.
+   * Triggers: `trg_inv_batch_master_updated_date`, `trg_inv_batch_genealogy_updated_date`, `trg_inv_serial_master_updated_date` calling `fn_set_updated_timestamp()` in `dbscripts/triggers/trg_set_updated_timestamp.sql`.
+   * Seeds:
+     * `02_initial_data.sql`: Registered Screen `1041` (`STOCK_TRACEABILITY`, `/inventory/traceability`, `Network`, sort order 41) with actions `1144` (`EXPORT`), `1145` (`PRINT`), `1146` (`DRILLDOWN`), `1147` (`REGISTER_BATCH`), and `1148` (`REGISTER_SERIAL`). Full 5-role RBAC permissions configured.
+     * `03_sample_demo_data.sql`: Seeded 5 certified Batches (`HEAT-JSW-SS316-9812`, `HEAT-AL-2026-09`, `LOT-PP-2026-02`, `BAT-WIP-VLV-01`, `FG-VLV-2026-01`), 2 multi-tier genealogy links, and 3 Serial Numbers (`VLV-2627-0001` dispatched to Larsen & Toubro, `VLV-2627-0002` & `VLV-2627-0003` available in FG Stores).
+2. **Backend Architecture & API Contracts (`backend/src/modules/inventory/traceability/`):**
+   * Controller: `StockTraceabilityController` mapped to `/api/v1/inventory/traceability`.
+   * Service: `StockTraceabilityService` injecting `PG_POOL`, `DrizzleDb`, and `AuditLogService`.
+   * Endpoints:
+     * `GET /inventory/traceability/summary` (`@RequirePermission('STOCK_TRACEABILITY', 'VIEW')`) — returns KPI metrics (`totalBatches`, `activeHeats`, `totalSerials`, `deliveredSerials`, `availableSerials`, `totalGenealogyLinks`, `quarantinedBatches`, `approvedBatches`).
+     * `GET /inventory/traceability/lookups` (`@RequirePermission('STOCK_TRACEABILITY', 'VIEW')`) — returns active items, warehouses, bins, UOMs, suppliers, customers, and work orders.
+     * `GET /inventory/traceability/batches` (`@RequirePermission('STOCK_TRACEABILITY', 'VIEW')`) — paginated listing with filtering by `qcStatus`, `itemId`, `supplierId`, and free-text search across batch number, heat number, item, and MTC.
+     * `GET /inventory/traceability/serials` (`@RequirePermission('STOCK_TRACEABILITY', 'VIEW')`) — paginated listing of serialized units with status, batch, and customer linkages.
+     * `GET /inventory/traceability/genealogy` (`@RequirePermission('STOCK_TRACEABILITY', 'VIEW')`) — listing of parent-child transformations.
+     * `GET /inventory/traceability/explore` (`@RequirePermission('STOCK_TRACEABILITY', 'DRILLDOWN')`) — master 360-degree multi-tier explorer assembling target batch, matching serial, upstream parents, downstream children, physical stock movement ledger audit trail, and DAG graph nodes & edges.
+     * `POST /inventory/traceability/batches` (`@RequirePermission('STOCK_TRACEABILITY', 'REGISTER_BATCH')`) — registers batch quality passport with spectrometry chemical elements and mechanical test results.
+     * `POST /inventory/traceability/serials` (`@RequirePermission('STOCK_TRACEABILITY', 'REGISTER_SERIAL')`) — registers serialized unit with barcode and RFID tag.
+     * `POST /inventory/traceability/genealogy` (`@RequirePermission('STOCK_TRACEABILITY', 'REGISTER_BATCH')`) — creates parent-child transformation link between batches.
+3. **Frontend Architecture (`frontend/src/pages/inventory/TraceabilityMasterPage.tsx`):**
+   * Accessible at route `/inventory/traceability` under `INVENTORY & WMS` with `Network` icon and `'Live'` badge.
+   * Built with `<PermissionGate screen="STOCK_TRACEABILITY">`.
+   * 4 KPI summary cards (`Tracked Batches & Lots`, `Certified Melt Heats`, `Serialized Units Registry`, `Genealogy Transformations`).
+   * 360° Quick-Search Bar with 1-click sample query pills (`MELT-8821`, `HEAT-JSW-SS316-9812`, `BAT-WIP-VLV-01`, `FG-VLV-2026-01`, `VLV-2627-0001`).
+   * 3 Primary Tab Views:
+     * **Tab 1: 360° Traceability Explorer:** Interactive Visual DAG flowchart (Supplier -> Melt Heat -> Machining WIP -> Serialized Delivery), MTC Quality Passport (EN 10204 3.1) with 8-element chemical composition matrix, mechanical tensile/hardness tests, NDE certifications, and chronological physical stock movement ledger audit trail.
+     * **Tab 2: Batches & MTC Quality Register:** Master table with QC status filters, current stock quantities, MTC numbers, and 1-click exploration.
+     * **Tab 3: Serialized Units Register:** Unit registry tracking serial numbers, barcodes, RFIDs, warehouse/bins, delivery challans, invoices, and client warranties.
+   * Modals:
+     * **Register Batch Quality Passport Modal (`Plus`):** Full chemical spectrometry (% C, Mn, Si, P, S, Cr, Ni, Mo) and mechanical property entry.
+     * **Register Serial Unit Modal (`Barcode`):** Serial number, barcode, and RFID registration.
+     * **Link Genealogy Modal (`Link`):** Parent-child transformation mapping with transformation types (`RAW_TO_WIP`, `WIP_TO_FG`, `BLENDING`, `REWORK`, `SPLIT`).
+     * **Statutory EN 10204 Type 3.1 & ISO 9001:2015 Material Inspection Certificate (`PRINT`):** Formatted printable sheet with company letterhead, CIN, GSTIN, chemical spectrometry table against specified limits, mechanical test results, ASTM/ASME standards citations, compliance statements, and 3-tier authorized signatory blocks (Metallurgical QA Engineer, Head of QA, Plant Manager / Director).

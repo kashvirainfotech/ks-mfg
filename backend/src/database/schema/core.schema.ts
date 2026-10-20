@@ -4495,4 +4495,408 @@ export const tblSalesReturnItem = pgTable('tbl_sales_return_item', {
   ...standardAuditColumns,
 });
 
+// ============================================================================
+// 77. Physical Stock Verification & Adjustment Header (tbl_inv_adjustment_header)
+// ============================================================================
+export const tblInvAdjustmentHeader = pgTable(
+  'tbl_inv_adjustment_header',
+  {
+    adjustmentId: bigint('adjustment_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_inv_adjustment_id')`),
+    adjustmentNo: varchar('adjustment_no', { length: 50 }).notNull(),
+    adjustmentDate: date('adjustment_date').notNull().default(sql`CURRENT_DATE`),
+    adjustmentType: varchar('adjustment_type', { length: 40 })
+      .notNull()
+      .default('CYCLE_COUNT'),
+    warehouseId: bigint('warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    auditedBy: bigint('audited_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    auditedAt: timestamp('audited_at', { withTimezone: true }),
+    approvedBy: bigint('approved_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    approvalDate: timestamp('approval_date', { withTimezone: true }),
+    totalItems: integer('total_items').notNull().default(0),
+    totalBookValue: numeric('total_book_value', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    totalPhysicalValue: numeric('total_physical_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    netVarianceValue: numeric('net_variance_value', { precision: 14, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'),
+    cancellationReason: varchar('cancellation_reason', { length: 350 }),
+    remarks: varchar('remarks', { length: 500 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvAdjustmentNo: unique('uq_inv_adjustment_no').on(
+      table.compId,
+      table.branchId,
+      table.adjustmentNo,
+    ),
+  }),
+);
 
+// ============================================================================
+// 78. Physical Stock Verification & Adjustment Item (tbl_inv_adjustment_item)
+// ============================================================================
+export const tblInvAdjustmentItem = pgTable('tbl_inv_adjustment_item', {
+  adjustmentItemId: bigint('adjustment_item_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_inv_adjustment_item_id')`),
+  adjustmentId: bigint('adjustment_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvAdjustmentHeader.adjustmentId, {
+      onDelete: 'cascade',
+    }),
+  itemSequence: integer('item_sequence').notNull().default(1),
+  itemId: bigint('item_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvItem.itemId),
+  itemCode: varchar('item_code', { length: 50 }).notNull(),
+  itemName: varchar('item_name', { length: 150 }).notNull(),
+  binId: bigint('bin_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvStorageBin.binId),
+  uomId: bigint('uom_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvUom.uomId),
+  batchNo: varchar('batch_no', { length: 100 }),
+  heatNo: varchar('heat_no', { length: 100 }),
+  bookQty: numeric('book_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('0.000'),
+  physicalQty: numeric('physical_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('0.000'),
+  varianceQty: numeric('variance_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('0.000'),
+  unitCost: numeric('unit_cost', { precision: 14, scale: 4 })
+    .notNull()
+    .default('0.0000'),
+  bookValue: numeric('book_value', { precision: 14, scale: 2 })
+    .notNull()
+    .default('0.00'),
+  physicalValue: numeric('physical_value', { precision: 14, scale: 2 })
+    .notNull()
+    .default('0.00'),
+  varianceValue: numeric('variance_value', { precision: 14, scale: 2 })
+    .notNull()
+    .default('0.00'),
+  varianceDirection: varchar('variance_direction', { length: 20 })
+    .notNull()
+    .default('NONE'),
+  discrepancyReason: varchar('discrepancy_reason', { length: 300 }),
+  remarks: varchar('remarks', { length: 250 }),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+// ============================================================================
+// 79. Warehouse Stock Transfer Order & Movement Header (tbl_inv_transfer_header)
+// ============================================================================
+export const tblInvTransferHeader = pgTable(
+  'tbl_inv_transfer_header',
+  {
+    transferId: bigint('transfer_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_inv_transfer_id')`),
+    transferNo: varchar('transfer_no', { length: 50 }).notNull(),
+    transferDate: date('transfer_date').notNull().default(sql`CURRENT_DATE`),
+    transferType: varchar('transfer_type', { length: 30 })
+      .notNull()
+      .default('BIN_TO_BIN'), // 'BIN_TO_BIN', 'INTER_WAREHOUSE', 'INTER_BRANCH_STO'
+    fromWarehouseId: bigint('from_warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    toWarehouseId: bigint('to_warehouse_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvWarehouse.warehouseId),
+    toBranchId: bigint('to_branch_id', { mode: 'number' })
+      .notNull()
+      .default(1001)
+      .references(() => tblOrgBranch.branchId),
+    transporterName: varchar('transporter_name', { length: 150 }),
+    vehicleNo: varchar('vehicle_no', { length: 50 }),
+    lrNo: varchar('lr_no', { length: 50 }),
+    lrDate: date('lr_date'),
+    ewayBillNo: varchar('eway_bill_no', { length: 60 }),
+    challanNo: varchar('challan_no', { length: 50 }),
+    challanDate: date('challan_date'),
+    totalItems: integer('total_items').notNull().default(0),
+    totalTransferQty: numeric('total_transfer_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    totalTransferValue: numeric('total_transfer_value', {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default('0.00'),
+    status: varchar('status', { length: 25 }).notNull().default('DRAFT'), // 'DRAFT', 'DISPATCHED', 'RECEIVED', 'CANCELLED'
+    dispatchedBy: bigint('dispatched_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+    receivedBy: bigint('received_by', { mode: 'number' }).references(
+      () => tblSecUser.userId,
+    ),
+    receivedAt: timestamp('received_at', { withTimezone: true }),
+    cancellationReason: varchar('cancellation_reason', { length: 350 }),
+    remarks: varchar('remarks', { length: 500 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvTransferNo: unique('uq_inv_transfer_no').on(
+      table.compId,
+      table.branchId,
+      table.transferNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 80. Warehouse Stock Transfer Order & Movement Item (tbl_inv_transfer_item)
+// ============================================================================
+export const tblInvTransferItem = pgTable('tbl_inv_transfer_item', {
+  transferItemId: bigint('transfer_item_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_inv_transfer_item_id')`),
+  transferId: bigint('transfer_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvTransferHeader.transferId, {
+      onDelete: 'cascade',
+    }),
+  itemSequence: integer('item_sequence').notNull().default(1),
+  itemId: bigint('item_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvItem.itemId),
+  itemCode: varchar('item_code', { length: 50 }).notNull(),
+  itemName: varchar('item_name', { length: 150 }).notNull(),
+  uomId: bigint('uom_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvUom.uomId),
+  fromBinId: bigint('from_bin_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvStorageBin.binId),
+  toBinId: bigint('to_bin_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvStorageBin.binId),
+  batchNo: varchar('batch_no', { length: 100 }),
+  heatNo: varchar('heat_no', { length: 100 }),
+  availableQty: numeric('available_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('0.000'),
+  transferQty: numeric('transfer_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('1.000'),
+  receivedQty: numeric('received_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('0.000'),
+  unitCost: numeric('unit_cost', { precision: 14, scale: 4 })
+    .notNull()
+    .default('0.0000'),
+  lineTotal: numeric('line_total', { precision: 14, scale: 2 })
+    .notNull()
+    .default('0.00'),
+  remarks: varchar('remarks', { length: 250 }),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+
+
+
+
+
+// ============================================================================
+// 81. Batch, Heat & Metallurgical Quality Passport (tbl_inv_batch_master)
+// ============================================================================
+export const tblInvBatchMaster = pgTable(
+  'tbl_inv_batch_master',
+  {
+    batchId: bigint('batch_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_inv_batch_id')`),
+    batchNo: varchar('batch_no', { length: 100 }).notNull(),
+    heatNo: varchar('heat_no', { length: 100 }),
+    lotNo: varchar('lot_no', { length: 100 }),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemCode: varchar('item_code', { length: 50 }).notNull(),
+    itemName: varchar('item_name', { length: 200 }).notNull(),
+    supplierId: bigint('supplier_id', { mode: 'number' }).references(
+      () => tblCrmParty.partyId,
+    ),
+    grnId: bigint('grn_id', { mode: 'number' }).references(
+      () => tblInvGrnHeader.grnId,
+    ),
+    workOrderId: bigint('work_order_id', { mode: 'number' }).references(
+      () => tblMfgWoHeader.woId,
+    ),
+    manufactureDate: date('manufacture_date'),
+    expiryDate: date('expiry_date'),
+    retestDate: date('retest_date'),
+    initialQty: numeric('initial_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    currentQty: numeric('current_qty', { precision: 14, scale: 3 })
+      .notNull()
+      .default('0.000'),
+    uomId: bigint('uom_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvUom.uomId),
+    qcStatus: varchar('qc_status', { length: 30 }).notNull().default('APPROVED'),
+    mtcNo: varchar('mtc_no', { length: 100 }),
+    mtcDate: date('mtc_date'),
+    mtcUrl: varchar('mtc_url', { length: 255 }),
+    chemC: numeric('chem_c', { precision: 6, scale: 4 }),
+    chemMn: numeric('chem_mn', { precision: 6, scale: 4 }),
+    chemSi: numeric('chem_si', { precision: 6, scale: 4 }),
+    chemP: numeric('chem_p', { precision: 6, scale: 4 }),
+    chemS: numeric('chem_s', { precision: 6, scale: 4 }),
+    chemCr: numeric('chem_cr', { precision: 6, scale: 4 }),
+    chemNi: numeric('chem_ni', { precision: 6, scale: 4 }),
+    chemMo: numeric('chem_mo', { precision: 6, scale: 4 }),
+    yieldStrengthMpa: numeric('yield_strength_mpa', { precision: 8, scale: 2 }),
+    tensileStrengthMpa: numeric('tensile_strength_mpa', { precision: 8, scale: 2 }),
+    elongationPct: numeric('elongation_pct', { precision: 5, scale: 2 }),
+    hardnessVal: numeric('hardness_val', { precision: 6, scale: 2 }),
+    hardnessScale: varchar('hardness_scale', { length: 20 }).default('BHN'),
+    impactJoules: numeric('impact_joules', { precision: 6, scale: 2 }),
+    ultrasonicTestStatus: varchar('ultrasonic_test_status', { length: 50 }).default('PASSED'),
+    radiographyStatus: varchar('radiography_status', { length: 50 }).default('NOT_APPLICABLE'),
+    remarks: varchar('remarks', { length: 500 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvBatchCompItemBatch: unique('uq_inv_batch_comp_item_batch').on(
+      table.compId,
+      table.itemId,
+      table.batchNo,
+    ),
+  }),
+);
+
+// ============================================================================
+// 82. Bi-directional Batch Genealogy Linkage (tbl_inv_batch_genealogy)
+// ============================================================================
+export const tblInvBatchGenealogy = pgTable('tbl_inv_batch_genealogy', {
+  genealogyId: bigint('genealogy_id', { mode: 'number' })
+    .primaryKey()
+    .default(sql`nextval('seq_inv_genealogy_id')`),
+  parentBatchId: bigint('parent_batch_id', { mode: 'number' }).references(
+    () => tblInvBatchMaster.batchId,
+    { onDelete: 'cascade' },
+  ),
+  parentBatchNo: varchar('parent_batch_no', { length: 100 }).notNull(),
+  parentItemId: bigint('parent_item_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvItem.itemId),
+  childBatchId: bigint('child_batch_id', { mode: 'number' }).references(
+    () => tblInvBatchMaster.batchId,
+    { onDelete: 'cascade' },
+  ),
+  childBatchNo: varchar('child_batch_no', { length: 100 }).notNull(),
+  childItemId: bigint('child_item_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvItem.itemId),
+  workOrderId: bigint('work_order_id', { mode: 'number' }).references(
+    () => tblMfgWoHeader.woId,
+  ),
+  jobCardId: bigint('job_card_id', { mode: 'number' }).references(
+    () => tblMfgJobCard.jobCardId,
+  ),
+  consumedQty: numeric('consumed_qty', { precision: 14, scale: 3 })
+    .notNull()
+    .default('1.000'),
+  uomId: bigint('uom_id', { mode: 'number' })
+    .notNull()
+    .references(() => tblInvUom.uomId),
+  transformationType: varchar('transformation_type', { length: 50 })
+    .notNull()
+    .default('WORK_ORDER_ASSEMBLY'),
+  linkDate: timestamp('link_date', { withTimezone: true })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  remarks: varchar('remarks', { length: 250 }),
+  isActive: boolean('is_active').notNull().default(true),
+  ...standardAuditColumns,
+});
+
+// ============================================================================
+// 83. Unit Serial Number Lifecycle & Asset Registry (tbl_inv_serial_master)
+// ============================================================================
+export const tblInvSerialMaster = pgTable(
+  'tbl_inv_serial_master',
+  {
+    serialId: bigint('serial_id', { mode: 'number' })
+      .primaryKey()
+      .default(sql`nextval('seq_inv_serial_id')`),
+    itemId: bigint('item_id', { mode: 'number' })
+      .notNull()
+      .references(() => tblInvItem.itemId),
+    itemCode: varchar('item_code', { length: 50 }).notNull(),
+    itemName: varchar('item_name', { length: 200 }).notNull(),
+    batchId: bigint('batch_id', { mode: 'number' }).references(
+      () => tblInvBatchMaster.batchId,
+    ),
+    batchNo: varchar('batch_no', { length: 100 }),
+    heatNo: varchar('heat_no', { length: 100 }),
+    serialNo: varchar('serial_no', { length: 100 }).notNull(),
+    barcode: varchar('barcode', { length: 100 }),
+    rfidTag: varchar('rfid_tag', { length: 100 }),
+    currentWarehouseId: bigint('current_warehouse_id', { mode: 'number' }).references(
+      () => tblInvWarehouse.warehouseId,
+    ),
+    currentBinId: bigint('current_bin_id', { mode: 'number' }).references(
+      () => tblInvStorageBin.binId,
+    ),
+    status: varchar('status', { length: 30 }).notNull().default('AVAILABLE'),
+    grnId: bigint('grn_id', { mode: 'number' }).references(
+      () => tblInvGrnHeader.grnId,
+    ),
+    workOrderId: bigint('work_order_id', { mode: 'number' }).references(
+      () => tblMfgWoHeader.woId,
+    ),
+    jobCardId: bigint('job_card_id', { mode: 'number' }).references(
+      () => tblMfgJobCard.jobCardId,
+    ),
+    challanId: bigint('challan_id', { mode: 'number' }).references(
+      () => tblSalesDeliveryChallanHeader.challanId,
+    ),
+    invoiceId: bigint('invoice_id', { mode: 'number' }).references(
+      () => tblSalesInvoiceHeader.invoiceId,
+    ),
+    customerId: bigint('customer_id', { mode: 'number' }).references(
+      () => tblCrmParty.partyId,
+    ),
+    warrantyStartDate: date('warranty_start_date'),
+    warrantyEndDate: date('warranty_end_date'),
+    remarks: varchar('remarks', { length: 250 }),
+    isActive: boolean('is_active').notNull().default(true),
+    ...standardAuditColumns,
+  },
+  (table) => ({
+    uqInvSerialCompItemSerial: unique('uq_inv_serial_comp_item_serial').on(
+      table.compId,
+      table.itemId,
+      table.serialNo,
+    ),
+  }),
+);

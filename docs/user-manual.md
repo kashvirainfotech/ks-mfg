@@ -1437,3 +1437,169 @@ When a new screen is released, this manual provides:
 * **Action Buttons:** `New Sales Return` (`SALES_RETURN -> ADD`), `Edit Return` (`SALES_RETURN -> EDIT`), `Quarantine QC Inspection` (`SALES_RETURN -> INSPECT`), `Issue Statutory Credit Note` (`SALES_RETURN -> POST_CREDIT_NOTE`), `Warehouse Restock` (`SALES_RETURN -> RESTOCK`), `Generate IRN / E-Invoice` (`SALES_RETURN -> GENERATE_IRN`), `Print Credit Note` (`SALES_RETURN -> PRINT`), `Export Register` (`SALES_RETURN -> EXPORT`), `View Details` (`SALES_RETURN -> VIEW`), and `Cancel Return` (`SALES_RETURN -> DELETE`).
 
 
+
+### 2.39 Real-Time Stock Balance & Valuation (`/inventory/balance`)
+* **Module Code & Title:** `STOCK_BALANCE` — Stock Balance & Valuation
+* **Target Audience:** Inventory Managers, Store Officers, Cost Accountants, Plant Heads, and Statutory Auditors.
+* **Core Business Purpose:** Provides real-time perpetual inventory visibility across plants, warehouses, racks, and storage bins (`tbl_inv_bin_stock`), tracking on-hand, reserved, and available quantities, batch/heat lot traceability, safety stock thresholds, and statutory valuation strictly compliant with **Indian Accounting Standard (Ind AS) 2 & Accounting Standard (AS) 2 (Valuation of Inventories)**.
+* **Key Functional Capabilities:**
+  1. **Executive Inventory Valuation & Health KPI Dashboard:**
+     * **Total Inventory Valuation (₹):** Real-time cumulative valuation of inventory on-hand ($\sum \text{on\_hand\_qty} \times \text{unit\_cost}$) across all active company branches and warehouses.
+     * **Active Stock Lines:** Total unique item-bin-batch inventory lines currently stocked.
+     * **Available Stock Units:** Total unreserved inventory free for consumption, production staging, or customer dispatch.
+     * **Reserved Allocation:** Total stock units locked for confirmed customer Sales Orders and released manufacturing Work Orders.
+     * **Low Stock / Reorder Warnings:** Count of items currently stocking below their minimum safety stock buffer ($\text{on\_hand\_qty} \le \text{safety\_stock}$).
+  2. **Warehouse & Category Valuation Breakdown Strips:**
+     * Visual breakdown cards displaying aggregate valuation and stock line counts by physical warehouse (Raw Material Stores, WIP Shopfloor, Finished Goods, Scrap Yard) and by item commodity category (`RAW_MATERIAL`, `WIP_SEMI_FINISHED`, `FINISHED_GOODS`, `CONSUMABLE_MRO`, `TOOLING_DIE`).
+  3. **Multi-Bin Inventory Ledger & Lot Traceability:**
+     * Displays exact storage location coordinates: Warehouse Name, Storage Bin Code, Bin Type (`PALLET_RACK`, `CANTILEVER_BAR`, `SMALL_PARTS_TOTE`, `LINESIDE_KANBAN`).
+     * Real-time batch and melt heat traceability linking items to supplier cast numbers and production heat numbers.
+  4. **Perpetual Movement Ledger Audit Drilldown (`LEDGER_DRILLDOWN`):**
+     * 1-Click modal drill-down querying immutable double-entry records directly from `tbl_inv_stock_ledger`.
+     * Displays complete chronological inward and outward movements: Transaction Date, Transaction Type (`PUTAWAY_INWARD`, `PRODUCTION_ISSUE`, `SALES_DISPATCH`, `SALES_RETURN`, `SCRAP_WRITE_OFF`, `ADJUSTMENT`), Reference Document (`GRN`, `WORK_ORDER`, `DELIVERY_CHALLAN`, `SALES_RETURN`), Document Number, Inward (+), Outward (-), Running Closing Balance, Unit Cost, and recording User.
+  5. **Ind AS 2 Inventory Revaluation & Standard Cost Alignment (`REVALUE`):**
+     * Periodic revaluation engine allowing authorized Store Officers and Cost Accountants to adjust unit cost or realign standard absorption costs per lower of cost or net realizable value (NRV).
+     * Live valuation delta preview displaying old valuation, new valuation, and variance amount.
+     * Optional synchronization updating `tbl_inv_item.standard_cost`.
+     * Mandatory revaluation justification text and automatic audit trail logging in `tbl_sys_audit_log`.
+  6. **Official Ind AS 2 / AS-2 Printable Stock Valuation Certificate (`PRINT`):**
+     * Production-grade statutory certificate for bank drawing power, working capital audits, and tax declarations:
+       * Corporate letterhead with CIN, GSTIN, PAN, and manufacturing plant address.
+       * Document Title: "OFFICIAL INVENTORY VALUATION & PHYSICAL STOCK CERTIFICATE".
+       * Inventory Category Valuation Summary Table with line counts, valuation sub-totals, and percentage shares.
+       * Detailed Inventory Schedule: Item code, description, HSN code, warehouse, bin, batch/heat number, UOM, on-hand quantity, unit cost, and total value.
+       * Grand Total Valuation in Figures and Indian Rupee Words (e.g., "Rupees Thirteen Lakh Seventy-One Thousand Eighty-Six and Sixty Paise Only").
+       * Statutory basis of valuation declaration (lower of cost and net realizable value on FIFO basis).
+       * 3-tier authorized signatory blocks: Store Officer (Physical Stock Verification), Cost Accountant (Valuation & FIFO Audit Review), and Plant Head (Corporate Seal & Approval).
+* **Action Buttons:** `Export Register` (`STOCK_BALANCE -> EXPORT`), `Print Valuation Certificate` (`STOCK_BALANCE -> PRINT`), `Movement Ledger Drilldown` (`STOCK_BALANCE -> LEDGER_DRILLDOWN`), `Recalculate Valuation` (`STOCK_BALANCE -> REVALUE`), and `View Details` (`STOCK_BALANCE -> VIEW`).
+
+
+### 2.40 Physical Stock Reconciliation, Periodic Stock Audit & Stock Adjustments / Write-Offs (`/inventory/adjustments`)
+* **Module Code & Title:** `STOCK_ADJUSTMENT` — Physical Stock Verification & Adjustments
+* **Target Audience:** Store Officers, Inventory Auditors, Quality Managers, Plant Heads, and Statutory Auditors.
+* **Core Business Purpose:** Manages formal periodic physical stock verification audits, perpetual cycle counts, damaged/expired write-offs, spillage/evaporation losses, and unrecorded surplus reconciliations, ensuring strict regulatory compliance with **Clause 3(ii) of Companies (Auditor's Report) Order, 2020 (CARO 2020)** and **Ind AS 2 / AS-2 (Valuation of Inventories)**.
+* **Key Functional Capabilities:**
+  1. **Executive Physical Stock Audit Dashboard:**
+     * **Total Audit Vouchers:** Total verification audits recorded across company branches with status breakdown (`DRAFT`, `SUBMITTED`, `POSTED`).
+     * **Audited Book Valuation (₹):** Total ledger inventory on-hand value subject to verification count.
+     * **Physical Count Valuation (₹):** Actual physical inventory value physically verified on the shopfloor.
+     * **Net Audit Variance (₹):** Net financial variance ($\text{Physical Valuation} - \text{Book Valuation}$) with instant surplus gain (emerald) vs. deficit loss (rose) color coding.
+  2. **1-Click "Load Book Stock by Warehouse":**
+     * Automatically queries active bin stock rows (`tbl_inv_bin_stock`) for the selected warehouse, pre-populating item codes, descriptions, storage bins, batch/heat numbers, book quantities, and current unit costs.
+     * Eliminates manual data entry errors and accelerates physical verification cycle counts by up to 80%.
+  3. **Real-Time Dynamic Variance Calculation:**
+     * As physical counts are entered, the system dynamically calculates $\text{Variance Qty} = \text{Physical Qty} - \text{Book Qty}$, $\text{Physical Value} = \text{Physical Qty} \times \text{Unit Cost}$, and $\text{Variance Value} = \text{Variance Qty} \times \text{Unit Cost}$.
+     * Automatic variance direction categorization: `SURPLUS_GAIN` (unrecorded found stock), `DEFICIT_LOSS` (spillage, shrinkage, damage), or `NONE` (balanced).
+     * Line-level discrepancy justification notes (e.g., "Handling spillage", "Unrecorded cut pieces found in rack B01", "Transit damage").
+  4. **Multi-Audit Classification:**
+     * Supports granular audit categories: `CYCLE_COUNT` (ABC perpetual cycle verification), `PERIODIC_AUDIT` (quarterly/annual physical audit), `DAMAGE_WRITEOFF` (damaged materials scrapped), `EXPIRY_WRITEOFF` (shelf-life expired items), `SPILLAGE_LOSS` (fluid evaporation or bag rupture), `FOUND_SURPLUS` (unrecorded stock gain), and `REVALUATION_VARIANCE`.
+  5. **Two-Tier Managerial Sign-Off & Approval Workflow:**
+     * **Draft Formulation (`DRAFT`):** Store Officers record physical counts and variance notes.
+     * **Submission (`SUBMITTED`):** Audit sheet is frozen and forwarded to Plant Manager with verifier timestamp.
+     * **Approval & Immediate Ledger Posting (`POSTED`):** Authorized managers approve adjustments. The system atomically synchronizes `tbl_inv_bin_stock` on-hand/available quantities and posts immutable double-entry records in `tbl_inv_stock_ledger` (`transaction_type = 'ADJUSTMENT'`).
+  6. **Reversible Voucher Cancellation (`CANCEL`):**
+     * Allows cancellation of vouchers with mandatory reason justification.
+     * If the voucher was previously `POSTED`, the system automatically reverts bin stock quantities and posts compensating offset ledger entries to restore previous balances.
+  7. **Statutory CARO 2020 & Ind AS 2 Physical Stock Verification Certificate (`PRINT`):**
+     * Generates a formal, audit-ready physical verification certificate:
+       * Official corporate letterhead with CIN, PAN, GSTIN, and manufacturing plant details.
+       * Document Title: "PHYSICAL INVENTORY VERIFICATION & VARIANCE RECONCILIATION CERTIFICATE".
+       * Statutory citation referencing CARO 2020 Clause 3(ii) and Section 143 of Companies Act, 2013.
+       * Complete schedule of verified goods with book stock, physical count, variance quantities, unit rate, and variance financial value.
+       * Net Variance Financial Value in Figures and Indian Rupee Words (e.g., "Rupees Four Hundred and Thirty Only").
+       * 3-tier authorized signatory blocks: Store Officer / Stock Verifier, Plant Manager / HOD Operations, and Statutory / Internal Auditor.
+* **Action Buttons:** `New Stock Verification` (`STOCK_ADJUSTMENT -> ADD`), `Edit Verification` (`STOCK_ADJUSTMENT -> EDIT`), `Submit for Sign-off` (`STOCK_ADJUSTMENT -> SUBMIT`), `Approve & Post to Ledger` (`STOCK_ADJUSTMENT -> APPROVE`), `Cancel Voucher` (`STOCK_ADJUSTMENT -> CANCEL`), `Print Audit Certificate` (`STOCK_ADJUSTMENT -> PRINT`), `Export Register` (`STOCK_ADJUSTMENT -> EXPORT`), and `View Details` (`STOCK_ADJUSTMENT -> VIEW`).
+
+
+### 2.41 Warehouse Internal Transfers & Inter-Branch Stock Transfers (STO) (`/inventory/transfers`)
+* **Module Code & Title:** `STOCK_TRANSFER` — Stock Transfers & STO
+* **Target Audience:** Store Officers, Inventory Controllers, Dispatch Supervisors, Logistics Coordinators, Plant Heads, and Statutory Auditors.
+* **Core Business Purpose:** Manages multi-tier internal inventory relocations across storage bins, inter-warehouse transfers within a plant, and inter-branch Stock Transfer Orders (STO) across distinct factory plants and GSTIN entities. Integrates double-entry stock ledger accounting with dispatch/receipt lifecycles, 1-click atomic bin relocations, reversible voucher cancellations, and statutory Delivery Challans strictly compliant with **Rule 55 of the CGST Rules, 2017 & Section 25 of the CGST Act, 2017**.
+* **Key Functional Capabilities:**
+  1. **Executive Transfer & Logistics KPI Dashboard:**
+     * **Total Transfers:** Aggregate volume of transfer vouchers created across branches with status distribution (`DRAFT`, `DISPATCHED`, `RECEIVED`, `CANCELLED`).
+     * **In-Transit / Dispatched Consignments:** Number of consignments currently in transit between warehouses or plant locations awaiting physical arrival and store acceptance.
+     * **Completed Receipts:** Total transfers successfully verified and inward-posted into destination storage bins.
+     * **Transferred Valuation (₹):** Real-time financial valuation of materials moved or currently in transit.
+  2. **Three Distinct Movement Classification Modes:**
+     * **Bin-to-Bin Transfer (`BIN_TO_BIN`):** Internal relocation within the same physical warehouse (e.g., from Cantilever Rack to CNC Infeed Pallet). Supports 1-Click atomic "Direct Transfer" (dispatch and inward receipt executed simultaneously in a single atomic transaction).
+     * **Inter-Warehouse Transfer (`INTER_WAREHOUSE`):** Material transfer between distinct warehouses located within the same plant/branch premises (e.g., Central Raw Materials Store to WIP Machine Shop staging).
+     * **Inter-Branch Stock Transfer Order (`INTER_BRANCH_STO`):** Cross-plant transfer between distinct physical manufacturing locations (e.g., Ahmedabad Main Plant to Rajkot Unit) or distinct business entities, capturing comprehensive GST transport metadata.
+  3. **1-Click "Available Stock Picker by Warehouse":**
+     * Interactive stock picker modal displaying live on-hand, reserved, and unallocated available quantities from `tbl_inv_bin_stock` for the source warehouse.
+     * Allows store personnel to select items, bins, batches, and heat numbers with 1-click quantity insertion, automatically enforcing that transfer quantities do not exceed available balances.
+  4. **Multi-Stage Physical Dispatch & Logistics Tracking (`DISPATCH`):**
+     * Formal outward gate clearance capturing Transporter Name, Vehicle Registration Number, Lorry Receipt (LR) / Consignment Note Number & Date, and Indian GST E-Way Bill Number.
+     * Atomically locks source bin inventory by deducting on-hand quantities (`tbl_inv_bin_stock`) and posts an immutable outward transaction in `tbl_inv_stock_ledger` (`transaction_type = 'INTERNAL_TRANSFER'`, `reference_doc_type = 'TRANSFER'`, `qty_out = transfer_qty`).
+     * Advances transfer voucher status to `DISPATCHED`.
+  5. **Destination Material Receipt & Bin Put-Away (`RECEIVE`):**
+     * Receiving store personnel inspect arriving goods and record physical `received_qty` per line item into designated destination storage bins.
+     * Atomically accretions on-hand balance in `tbl_inv_bin_stock` at the destination warehouse and bin, and posts an immutable inward transaction in `tbl_inv_stock_ledger` (`transaction_type = 'INTERNAL_TRANSFER'`, `reference_doc_type = 'TRANSFER'`, `qty_in = received_qty`).
+     * Marks transfer status as `RECEIVED` with receiver employee timestamp.
+  6. **Reversible Voucher Cancellation Engine (`CANCEL`):**
+     * Allows authorized supervisors to cancel transfer vouchers with mandatory reason capture.
+     * If already `DISPATCHED`, the engine restores deducted source bin balances and posts compensating ledger entries.
+     * If already `RECEIVED`, the engine reverses both destination bin accretions and source deductions, restoring exact historical stock state.
+  7. **Statutory GST Rule 55 Delivery Challan & Transfer Note (`PRINT`):**
+     * Official printable layout strictly conforming to CGST Rule 55:
+       * Corporate letterhead with Company Legal Name, CIN, PAN, and Origin Plant GSTIN.
+       * Document Title: "DELIVERY CHALLAN & MATERIAL TRANSFER NOTE" referencing CGST Rule 55.
+       * Movement Details: Nature of movement, Origin Warehouse, Destination Warehouse, Destination Branch/Plant.
+       * Logistics declarations: Transporter Name, Vehicle Number, LR/RR Consignment Note & Date, E-Way Bill Number.
+       * Itemized Schedule of Goods: Item Code, Description, Source & Destination Bins, Batch / Heat Numbers, Transfer Quantity, UOM, Declared Unit Rate, and Total Line Value.
+       * Grand Total Transfer Valuation with standard statutory non-supply transport declaration.
+       * 3-tier authorized signatory blocks: Dispatched / Prepared By (Store Keeper), Transport / Gate Security Inward-Outward Sign-off, and Received By (Destination Store Executive) with native `window.print()` trigger.
+* **Action Buttons:** `New Stock Transfer` (`STOCK_TRANSFER -> ADD`), `Edit Transfer` (`STOCK_TRANSFER -> EDIT`), `Dispatch Material` (`STOCK_TRANSFER -> DISPATCH`), `Receive at Destination` (`STOCK_TRANSFER -> RECEIVE`), `Cancel Voucher` (`STOCK_TRANSFER -> CANCEL`), `Print Delivery Challan` (`STOCK_TRANSFER -> PRINT`), `Export Register` (`STOCK_TRANSFER -> EXPORT`), and `View Details` (`STOCK_TRANSFER -> VIEW`).
+
+
+### 2.42 End-to-End Batch & Serial Number 360-Degree Genealogy & Traceability Explorer (`/inventory/traceability`)
+* **Module Code & Title:** `STOCK_TRACEABILITY` — Batch & Serial 360° Genealogy Explorer
+* **Target Audience:** Quality Assurance (QA/QC) Managers, Metallurgical Engineers, Store Officers, Production Supervisors, Compliance & Regulatory Auditors, Plant Heads, and Customer Support Teams.
+* **Core Business Purpose:** Delivers complete bi-directional 360-degree traceability linking upstream raw material melt heats, vendor Mill Test Certificates (MTC), inward GRN inspections, storage bin put-aways, production job cards, finished goods batches, and serialized units down to dispatch delivery challans, tax invoices, and end-customer installations. Strictly complies with **EN 10204:2004 Type 3.1 Inspection Certificates & ISO 9001:2015 Clause 8.5.2 (Identification and Traceability)**.
+* **Key Functional Capabilities:**
+  1. **Executive Traceability & Quality KPI Dashboard:**
+     * **Tracked Batches & Lots:** Real-time tally of all tracked inventory batches with QC status segregation (`APPROVED`, `RELEASED`, `QUARANTINE`, `REJECTED`).
+     * **Certified Melt Heats:** Active count of certified raw material melt heats with verified Mill Test Certificates (e.g. `MELT-8821`, `HT-AL-902`).
+     * **Serialized Units Registry:** Total serialized inventory units tracked across factory warehouses, active job cards, and client customer sites (`AVAILABLE`, `ISSUED`, `DELIVERED`, `UNDER_MAINTENANCE`).
+     * **Genealogy Transformations:** Cumulative count of parent-child bill-of-materials conversion linkages mapped across manufacturing operations.
+  2. **Omnipresent 360° Quick-Search & 1-Click Sample Pills:**
+     * High-speed universal search supporting Melt Heat Numbers, Inward Batch Numbers, Finished Serial Numbers, Job Card Numbers, or Vendor MTC Numbers.
+     * 1-Click preset exploration pills:
+       * `MELT-8821` (Raw Material Melt Heat)
+       * `HEAT-JSW-SS316-9812` (Inward Stainless Steel 316 Batch)
+       * `BAT-WIP-VLV-01` (WIP Machined Valve Body Batch)
+       * `FG-VLV-2026-01` (Finished Gate Valve Production Batch)
+       * `VLV-2627-0001` (Serialized Unit Delivered to Larsen & Toubro)
+  3. **Visual Interactive Multi-Tier Genealogy Tree (Directed Acyclic Graph):**
+     * Interactive visual DAG rendering all upstream supplier nodes, inward heat batches, work order transformations, and downstream customer serial units.
+     * Direction Filter: Toggle between **Bi-Directional 360°**, **Forward Traceability (Impact Analysis)** (tracing a defective raw heat forward to all affected work orders, finished batches, and dispatched customer serials for immediate quarantine or product recall), and **Backward Traceability (Root Cause Analysis)** (tracing customer warranty failures or field defects backward through job cards and work orders to find the origin raw material supplier heat number and spectrometry chemistry).
+  4. **Mill Test Certificate (MTC) Quality Passport (EN 10204 Type 3.1):**
+     * **Optical Emission Spectrometry (OES) Chemical Matrix:** Captures and displays verified chemical composition (% by weight) for 8 core alloying elements: Carbon (C), Manganese (Mn), Silicon (Si), Phosphorus (P), Sulphur (S), Chromium (Cr), Nickel (Ni), and Molybdenum (Mo), with automatic standard threshold checking.
+     * **Mechanical Tensile & Hardness Test Results:** Displays Proof Stress / Yield Strength (Rp 0.2% MPa), Ultimate Tensile Strength (Rm MPa), Percentage Elongation (% A5), Hardness (HRB / HRC / HBW), and Charpy V-Notch Impact Test Energy (Joules at -20°C).
+     * **Nondestructive Evaluation (NDE) Certifications:** Verifies Ultrasonic Flaw Detection (UT per ASTM A388 / EN 10228-3), Radiography Testing (RT per ASME Sec VIII Div 1), and Intergranular Corrosion (IGC per ASTM A262 Practice E).
+     * Direct Mill PDF document link and MTC metadata storage.
+  5. **Physical Movement & Storage Bin Audit Trail:**
+     * Chronological ledger movements (`tbl_inv_stock_ledger`) linked to the active batch or heat number.
+     * Tracks initial GRN inward receipt, bin put-away, warehouse transfers, production issue to work order, finished goods receipt, and delivery challan dispatch.
+  6. **Batch & MTC Quality Register (`BATCHES` Tab):**
+     * Comprehensive master list of all raw material, WIP, and finished goods batches with live current stock balances, QC status, supplier MTC numbers, retest/expiry dates, and 1-click exploration.
+     * Built-in modal for registering new raw material heats or production batch quality passports with full chemical and mechanical data capture.
+  7. **Serialized Finished Units & Asset Registry (`SERIALS` Tab):**
+     * Dedicated unit tracking register capturing individual serial numbers, Barcode / RFID tags, storage warehouse/bin, lifecycle status, work order, delivery challan, tax invoice, client name, and warranty start/end dates.
+     * Built-in modal for registering new serial units and barcode associations.
+  8. **Genealogy Linkage Modal (`LINK`):**
+     * Allows shop floor operators and quality engineers to record manual or automated parent-child transformations (`RAW_TO_WIP`, `WIP_TO_FG`, `BLENDING`, `REWORK`, `SPLIT`, `MERGE`), linking consumed raw material batches to output child batches.
+  9. **Statutory EN 10204 Type 3.1 & ISO 9001:2015 360° Material Traceability & MTC Inspection Certificate (`PRINT`):**
+     * Audit-ready, professional inspection certificate formatted for client submission and regulatory compliance:
+       * Official corporate letterhead with CIN, PAN, GSTIN, and manufacturing plant details.
+       * Header referencing EN 10204 Type 3.1 & ISO 9001:2015 Clause 8.5.2.
+       * Complete Item identification with Melt / Heat Number, Batch / Lot Number, and Original Manufacturer / Mill details.
+       * Chemical Spectrometer Test Analysis table (% C, Mn, Si, P, S, Cr, Ni, Mo) comparing actual measured results against standard specified limits.
+       * Mechanical Tensile, Hardness, Charpy Impact, Ultrasonic, and Radiography Test results with ASTM/ASME standards citations.
+       * Upstream vendor GRN reference and downstream serialized delivery challan linkage.
+       * Statutory Manufacturer Compliance Certification statement.
+       * 3-tier authorized signatory blocks: Metallurgical QA Engineer, Head of Quality Assurance (HOD), and Plant Manager / Director (ISO 9001:2015 Management Representative).
+* **Action Buttons:** `Register Heat / Batch` (`STOCK_TRACEABILITY -> REGISTER_BATCH`), `Register Serial` (`STOCK_TRACEABILITY -> REGISTER_SERIAL`), `Link Transformation` (`STOCK_TRACEABILITY -> REGISTER_BATCH`), `Explore 360° Traceability` (`STOCK_TRACEABILITY -> DRILLDOWN`), `Print Inspection Certificate` (`STOCK_TRACEABILITY -> PRINT`), `Export Data` (`STOCK_TRACEABILITY -> EXPORT`), and `View Details` (`STOCK_TRACEABILITY -> VIEW`).
+
+
+

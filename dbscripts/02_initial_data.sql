@@ -2285,3 +2285,309 @@ INSERT INTO tbl_sec_role_action_permission (
 ON CONFLICT (role_id, action_id) DO NOTHING;
 
 
+
+-- ============================================================================
+-- Phase 8: Step 8.1 — Real-Time Stock Balance & Valuation (Screen 1038, Actions 1130-1133)
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1038, 'STOCK_BALANCE', 'Stock Balance & Valuation', 'INVENTORY', '/inventory/balance', 'Calculator', 38, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1038) FROM tbl_sec_screen), 1038));
+
+-- Screen-specific Actions
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1130, 1038, 'EXPORT',           'Export Stock Balance & Valuation Register',     TRUE, 1001, 1001, 1001, 1001),
+    (1131, 1038, 'PRINT',            'Print Stock Valuation Certificate (Ind AS 2)',  TRUE, 1001, 1001, 1001, 1001),
+    (1132, 1038, 'LEDGER_DRILLDOWN', 'View Movement Ledger Audit Drilldown',          TRUE, 1001, 1001, 1001, 1001),
+    (1133, 1038, 'REVALUE',          'Recalculate Valuation / Standard Cost',         TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1133) FROM tbl_sec_action), 1133));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1038, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1038, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1038, TRUE, FALSE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (View, Drilldown, Revalue)
+    (1004, 1038, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC (View only)
+    (1005, 1038, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- SALES_EXEC (View only)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN (All Allowed)
+    (1001, 1038, 1130, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1038, 1131, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1038, 1132, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1038, 1133, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All Allowed)
+    (1002, 1038, 1130, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1038, 1131, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1038, 1132, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1038, 1133, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Export, Print, Drilldown, Revalue)
+    (1003, 1038, 1130, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1038, 1131, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1038, 1132, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1038, 1133, TRUE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Export, Print, Drilldown)
+    (1004, 1038, 1130, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1038, 1131, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1038, 1132, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1038, 1133, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (View, Export, Print, Drilldown)
+    (1005, 1038, 1130, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1038, 1131, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1038, 1132, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1038, 1133, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- Phase 8: Step 8.2 — Physical Stock Reconciliation, Periodic Stock Audit & Stock Adjustments / Write-Offs
+--          (Screen 1039, Actions 1134-1138)
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1039, 'STOCK_ADJUSTMENT', 'Physical Stock Verification & Adjustments', 'INVENTORY', '/inventory/adjustments', 'ClipboardCheck', 39, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1039) FROM tbl_sec_screen), 1039));
+
+-- Screen-specific Actions
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1134, 1039, 'EXPORT',  'Export Stock Adjustments & Reconciliations Register',     TRUE, 1001, 1001, 1001, 1001),
+    (1135, 1039, 'PRINT',   'Print Physical Stock Audit & Variance Certificate',       TRUE, 1001, 1001, 1001, 1001),
+    (1136, 1039, 'SUBMIT',  'Submit Stock Verification Audit for Managerial Approval', TRUE, 1001, 1001, 1001, 1001),
+    (1137, 1039, 'APPROVE', 'Approve & Post Physical Adjustment to Inventory & Ledger',TRUE, 1001, 1001, 1001, 1001),
+    (1138, 1039, 'CANCEL',  'Cancel Stock Adjustment Voucher & Revert Adjustments',     TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1138) FROM tbl_sec_action), 1138));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1039, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1039, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1039, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (Can conduct counts & submit)
+    (1004, 1039, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC (View only)
+    (1005, 1039, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- SALES_EXEC (View only)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN (All Allowed)
+    (1001, 1039, 1134, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1039, 1135, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1039, 1136, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1039, 1137, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1039, 1138, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All Allowed)
+    (1002, 1039, 1134, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1039, 1135, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1039, 1136, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1039, 1137, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1039, 1138, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Export, Print, Submit)
+    (1003, 1039, 1134, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1039, 1135, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1039, 1136, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1039, 1137, FALSE, 1001, 1001, 1001, 1001),
+    (1003, 1039, 1138, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Export, Print)
+    (1004, 1039, 1134, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1039, 1135, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1039, 1136, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1039, 1137, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1039, 1138, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (View, Export, Print)
+    (1005, 1039, 1134, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1039, 1135, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1039, 1136, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1039, 1137, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1039, 1138, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+-- ============================================================================
+-- Phase 8: Step 8.3 — Warehouse Internal Transfers & Inter-Branch Stock Transfers (STO)
+--          (Screen 1040, Actions 1139-1143)
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1040, 'STOCK_TRANSFER', 'Warehouse Stock Transfers & Inter-Branch STO', 'INVENTORY', '/inventory/transfers', 'ArrowLeftRight', 40, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1040) FROM tbl_sec_screen), 1040));
+
+-- Screen-specific Actions
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1139, 1040, 'EXPORT',   'Export Stock Transfers & STO Register',              TRUE, 1001, 1001, 1001, 1001),
+    (1140, 1040, 'PRINT',    'Print Transfer Note & Delivery Challan',             TRUE, 1001, 1001, 1001, 1001),
+    (1141, 1040, 'DISPATCH', 'Dispatch Material & Post Outward Deduction',         TRUE, 1001, 1001, 1001, 1001),
+    (1142, 1040, 'RECEIVE',  'Receive Material & Post Inward Accretion',           TRUE, 1001, 1001, 1001, 1001),
+    (1143, 1040, 'CANCEL',   'Cancel Transfer Voucher & Restore Stock',            TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1143) FROM tbl_sec_action), 1143));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1040, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1040, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1040, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (Can prepare transfers)
+    (1004, 1040, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC (View only)
+    (1005, 1040, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- SALES_EXEC (View only)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN (All Allowed)
+    (1001, 1040, 1139, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1040, 1140, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1040, 1141, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1040, 1142, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1040, 1143, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All Allowed)
+    (1002, 1040, 1139, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1040, 1140, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1040, 1141, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1040, 1142, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1040, 1143, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Export, Print, Dispatch, Receive)
+    (1003, 1040, 1139, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1040, 1140, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1040, 1141, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1040, 1142, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1040, 1143, FALSE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (View, Export, Print)
+    (1004, 1040, 1139, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1040, 1140, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1040, 1141, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1040, 1142, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1040, 1143, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (View, Export, Print)
+    (1005, 1040, 1139, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1040, 1140, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1040, 1141, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1040, 1142, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1040, 1143, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;
+
+
+
+
+-- ============================================================================
+-- DATE: 2026-10-19
+-- FEATURE: Step 8.4 - End-to-End Batch & Serial Number 360-Degree Genealogy & Traceability Explorer
+-- ============================================================================
+INSERT INTO tbl_sec_screen (
+    screen_id, screen_code, screen_name, module_name, route_path, icon_name, display_order, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES (
+    1041, 'STOCK_TRACEABILITY', 'Batch & Serial Genealogy Explorer', 'INVENTORY', '/inventory/traceability', 'Network', 41, TRUE,
+    1001, 1001, 1001, 1001
+) ON CONFLICT (screen_id) DO NOTHING;
+
+SELECT setval('seq_screen_id', GREATEST((SELECT COALESCE(MAX(screen_id), 1041) FROM tbl_sec_screen), 1041));
+
+-- Screen-specific Actions
+INSERT INTO tbl_sec_action (
+    action_id, screen_id, action_code, action_name, is_active,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1144, 1041, 'EXPORT',          'Export Traceability & Genealogy Report',             TRUE, 1001, 1001, 1001, 1001),
+    (1145, 1041, 'PRINT',           'Print Statutory MTC & 360° Quality Dossier',         TRUE, 1001, 1001, 1001, 1001),
+    (1146, 1041, 'DRILLDOWN',       'Trace Forward & Backward Impact Analysis',           TRUE, 1001, 1001, 1001, 1001),
+    (1147, 1041, 'REGISTER_BATCH',  'Register / Update Batch Quality Passport & MTC',     TRUE, 1001, 1001, 1001, 1001),
+    (1148, 1041, 'REGISTER_SERIAL', 'Register / Link Serialized Units',                   TRUE, 1001, 1001, 1001, 1001)
+ON CONFLICT (screen_id, action_code) DO NOTHING;
+
+SELECT setval('seq_action_id', GREATEST((SELECT COALESCE(MAX(action_id), 1148) FROM tbl_sec_action), 1148));
+
+-- Grant screen permissions
+INSERT INTO tbl_sec_role_permission (
+    role_id, screen_id, can_view, can_add, can_edit, can_delete,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    (1001, 1041, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- SUPER_ADMIN
+    (1002, 1041, TRUE, TRUE, TRUE, TRUE, 1001, 1001, 1001, 1001), -- PLANT_MANAGER
+    (1003, 1041, TRUE, TRUE, TRUE, FALSE, 1001, 1001, 1001, 1001), -- STORE_OFFICER (Can view, register batches/serials)
+    (1004, 1041, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001), -- PURCHASE_EXEC (View only)
+    (1005, 1041, TRUE, FALSE, FALSE, FALSE, 1001, 1001, 1001, 1001)  -- SALES_EXEC (View only)
+ON CONFLICT (role_id, screen_id) DO NOTHING;
+
+-- Grant action permissions
+INSERT INTO tbl_sec_role_action_permission (
+    role_id, screen_id, action_id, is_allowed,
+    comp_id, branch_id, fyear_id, created_by
+) VALUES
+    -- SUPER_ADMIN (All Allowed)
+    (1001, 1041, 1144, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1041, 1145, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1041, 1146, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1041, 1147, TRUE, 1001, 1001, 1001, 1001),
+    (1001, 1041, 1148, TRUE, 1001, 1001, 1001, 1001),
+    -- PLANT_MANAGER (All Allowed)
+    (1002, 1041, 1144, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1041, 1145, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1041, 1146, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1041, 1147, TRUE, 1001, 1001, 1001, 1001),
+    (1002, 1041, 1148, TRUE, 1001, 1001, 1001, 1001),
+    -- STORE_OFFICER (Export, Print, Drilldown, Register Batch, Register Serial)
+    (1003, 1041, 1144, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1041, 1145, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1041, 1146, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1041, 1147, TRUE, 1001, 1001, 1001, 1001),
+    (1003, 1041, 1148, TRUE, 1001, 1001, 1001, 1001),
+    -- PURCHASE_EXEC (Export, Print, Drilldown)
+    (1004, 1041, 1144, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1041, 1145, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1041, 1146, TRUE, 1001, 1001, 1001, 1001),
+    (1004, 1041, 1147, FALSE, 1001, 1001, 1001, 1001),
+    (1004, 1041, 1148, FALSE, 1001, 1001, 1001, 1001),
+    -- SALES_EXEC (Export, Print, Drilldown)
+    (1005, 1041, 1144, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1041, 1145, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1041, 1146, TRUE, 1001, 1001, 1001, 1001),
+    (1005, 1041, 1147, FALSE, 1001, 1001, 1001, 1001),
+    (1005, 1041, 1148, FALSE, 1001, 1001, 1001, 1001)
+ON CONFLICT (role_id, action_id) DO NOTHING;

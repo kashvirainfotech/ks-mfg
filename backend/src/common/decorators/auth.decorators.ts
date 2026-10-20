@@ -51,7 +51,12 @@ export type PermissionAction =
   | 'RECORD_PAYMENT'
   | 'INSPECT'
   | 'POST_CREDIT_NOTE'
-  | 'RESTOCK';
+  | 'RESTOCK'
+  | 'LEDGER_DRILLDOWN'
+  | 'REVALUE'
+  | 'DRILLDOWN'
+  | 'REGISTER_BATCH'
+  | 'REGISTER_SERIAL';
 
 export interface RequiredPermissionMeta {
   screenCode: string;

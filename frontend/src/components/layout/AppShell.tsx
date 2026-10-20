@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  ArrowLeftRight,
   Bell,
   Boxes,
   Building2,
@@ -8,6 +9,7 @@ import {
   CalendarRange,
   CheckSquare,
   ChevronDown,
+  ClipboardCheck,
   Cpu,
   Factory,
   FileCheck2,
@@ -119,6 +121,34 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Bin Put-Away & Stock',
         path: '/inventory/put-away',
         icon: Layers,
+        badge: 'Live',
+      },
+      {
+        code: 'STOCK_BALANCE',
+        label: 'Stock Balance & Valuation',
+        path: '/inventory/balance',
+        icon: Calculator,
+        badge: 'Live',
+      },
+      {
+        code: 'STOCK_ADJUSTMENT',
+        label: 'Stock Reconciliation & Audit',
+        path: '/inventory/adjustments',
+        icon: ClipboardCheck,
+        badge: 'Live',
+      },
+      {
+        code: 'STOCK_TRANSFER',
+        label: 'Stock Transfers & STO',
+        path: '/inventory/transfers',
+        icon: ArrowLeftRight,
+        badge: 'Live',
+      },
+      {
+        code: 'STOCK_TRACEABILITY',
+        label: 'Traceability & Genealogy',
+        path: '/inventory/traceability',
+        icon: Network,
         badge: 'Live',
       },
     ],

@@ -3515,3 +3515,344 @@ CREATE INDEX IF NOT EXISTS idx_sales_ret_item_inv_item ON tbl_sales_return_item 
 CREATE INDEX IF NOT EXISTS idx_sales_ret_item_target_bin ON tbl_sales_return_item (target_bin_id);
 
 
+-- ============================================================================
+-- 77. PHYSICAL STOCK RECONCILIATION & ADJUSTMENT HEADER (tbl_inv_adjustment_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_adjustment_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_adjustment_header (
+    adjustment_id               BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_adjustment_id'),
+    adjustment_no               VARCHAR(50)     NOT NULL,
+    adjustment_date             DATE            NOT NULL DEFAULT CURRENT_DATE,
+    adjustment_type             VARCHAR(40)     NOT NULL DEFAULT 'CYCLE_COUNT'
+                                                CHECK (adjustment_type IN ('CYCLE_COUNT', 'PERIODIC_AUDIT', 'DAMAGE_WRITEOFF', 'EXPIRY_WRITEOFF', 'SPILLAGE_LOSS', 'FOUND_SURPLUS', 'REVALUATION_VARIANCE')),
+    warehouse_id                BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    audited_by                  BIGINT          REFERENCES tbl_sec_user(user_id),
+    audited_at                  TIMESTAMPTZ,
+    approved_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    approval_date               TIMESTAMPTZ,
+    total_items                 INTEGER         NOT NULL DEFAULT 0,
+    total_book_value            NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    total_physical_value        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    net_variance_value          NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'CANCELLED')),
+    cancellation_reason         VARCHAR(350),
+    remarks                     VARCHAR(500),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_adjustment_no UNIQUE (comp_id, branch_id, adjustment_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_adj_comp_branch ON tbl_inv_adjustment_header (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_inv_adj_warehouse ON tbl_inv_adjustment_header (warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_inv_adj_status ON tbl_inv_adjustment_header (status);
+CREATE INDEX IF NOT EXISTS idx_inv_adj_date ON tbl_inv_adjustment_header (adjustment_date);
+
+
+-- ============================================================================
+-- 78. PHYSICAL STOCK RECONCILIATION & ADJUSTMENT ITEM (tbl_inv_adjustment_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_adjustment_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_adjustment_item (
+    adjustment_item_id          BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_adjustment_item_id'),
+    adjustment_id               BIGINT          NOT NULL REFERENCES tbl_inv_adjustment_header(adjustment_id) ON DELETE CASCADE,
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    bin_id                      BIGINT          NOT NULL REFERENCES tbl_inv_storage_bin(bin_id),
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    book_qty                    NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    physical_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    variance_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    book_value                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    physical_value              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    variance_value              NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    variance_direction          VARCHAR(20)     NOT NULL DEFAULT 'NONE'
+                                                CHECK (variance_direction IN ('SURPLUS_GAIN', 'DEFICIT_LOSS', 'NONE')),
+    discrepancy_reason          VARCHAR(300),
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_adj_item_adj ON tbl_inv_adjustment_item (adjustment_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_adj_item_item ON tbl_inv_adjustment_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_adj_item_bin ON tbl_inv_adjustment_item (bin_id);
+
+
+-- ============================================================================
+-- 79. WAREHOUSE STOCK TRANSFER ORDER & MOVEMENT HEADER (tbl_inv_transfer_header)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_transfer_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_transfer_header (
+    transfer_id                 BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_transfer_id'),
+    transfer_no                 VARCHAR(50)     NOT NULL,
+    transfer_date               DATE            NOT NULL DEFAULT CURRENT_DATE,
+    transfer_type               VARCHAR(30)     NOT NULL DEFAULT 'BIN_TO_BIN'
+                                                CHECK (transfer_type IN ('BIN_TO_BIN', 'INTER_WAREHOUSE', 'INTER_BRANCH_STO')),
+    from_warehouse_id           BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    to_warehouse_id             BIGINT          NOT NULL REFERENCES tbl_inv_warehouse(warehouse_id),
+    to_branch_id                BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    transporter_name            VARCHAR(150),
+    vehicle_no                  VARCHAR(50),
+    lr_no                       VARCHAR(50),
+    lr_date                     DATE,
+    eway_bill_no                VARCHAR(60),
+    challan_no                  VARCHAR(50),
+    challan_date                DATE,
+    total_items                 INTEGER         NOT NULL DEFAULT 0,
+    total_transfer_qty          NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    total_transfer_value        NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    status                      VARCHAR(25)     NOT NULL DEFAULT 'DRAFT'
+                                                CHECK (status IN ('DRAFT', 'DISPATCHED', 'RECEIVED', 'CANCELLED')),
+    dispatched_by               BIGINT          REFERENCES tbl_sec_user(user_id),
+    dispatched_at               TIMESTAMPTZ,
+    received_by                 BIGINT          REFERENCES tbl_sec_user(user_id),
+    received_at                 TIMESTAMPTZ,
+    cancellation_reason         VARCHAR(350),
+    remarks                     VARCHAR(500),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_transfer_no UNIQUE (comp_id, branch_id, transfer_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_comp_branch ON tbl_inv_transfer_header (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_warehouses ON tbl_inv_transfer_header (from_warehouse_id, to_warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_status ON tbl_inv_transfer_header (status);
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_date ON tbl_inv_transfer_header (transfer_date);
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_type ON tbl_inv_transfer_header (transfer_type);
+
+
+-- ============================================================================
+-- 80. WAREHOUSE STOCK TRANSFER ORDER & MOVEMENT ITEM (tbl_inv_transfer_item)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_transfer_item_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_transfer_item (
+    transfer_item_id            BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_transfer_item_id'),
+    transfer_id                 BIGINT          NOT NULL REFERENCES tbl_inv_transfer_header(transfer_id) ON DELETE CASCADE,
+    item_sequence               INTEGER         NOT NULL DEFAULT 1,
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(150)    NOT NULL,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    from_bin_id                 BIGINT          NOT NULL REFERENCES tbl_inv_storage_bin(bin_id),
+    to_bin_id                   BIGINT          NOT NULL REFERENCES tbl_inv_storage_bin(bin_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    available_qty               NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    transfer_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    received_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    unit_cost                   NUMERIC(14, 4)  NOT NULL DEFAULT 0.0000,
+    line_total                  NUMERIC(14, 2)  NOT NULL DEFAULT 0.00,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_item_trans ON tbl_inv_transfer_item (transfer_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_item_item ON tbl_inv_transfer_item (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_transfer_item_bins ON tbl_inv_transfer_item (from_bin_id, to_bin_id);
+
+
+
+
+
+
+-- ============================================================================
+-- SECTION 81: tbl_inv_batch_master
+-- DATE: 2026-10-19
+-- FEATURE: Step 8.4 - Batch, Heat & Metallurgical Quality Passport Registry
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_batch_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_batch_master (
+    batch_id                    BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_batch_id'),
+    batch_no                    VARCHAR(100)    NOT NULL,
+    heat_no                     VARCHAR(100),
+    lot_no                      VARCHAR(100),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(200)    NOT NULL,
+    supplier_id                 BIGINT          REFERENCES tbl_crm_party(party_id),
+    grn_id                      BIGINT          REFERENCES tbl_inv_grn_header(grn_id),
+    work_order_id               BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    manufacture_date            DATE,
+    expiry_date                 DATE,
+    retest_date                 DATE,
+    initial_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    current_qty                 NUMERIC(14, 3)  NOT NULL DEFAULT 0.000,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    qc_status                   VARCHAR(30)     NOT NULL DEFAULT 'APPROVED'
+                                                CHECK (qc_status IN ('APPROVED', 'QUARANTINE', 'REJECTED', 'EXPIRED', 'CONDITIONAL')),
+    mtc_no                      VARCHAR(100),
+    mtc_date                    DATE,
+    mtc_url                     VARCHAR(255),
+    -- Chemical Composition (wt %)
+    chem_c                      NUMERIC(6, 4),
+    chem_mn                     NUMERIC(6, 4),
+    chem_si                     NUMERIC(6, 4),
+    chem_p                      NUMERIC(6, 4),
+    chem_s                      NUMERIC(6, 4),
+    chem_cr                     NUMERIC(6, 4),
+    chem_ni                     NUMERIC(6, 4),
+    chem_mo                     NUMERIC(6, 4),
+    -- Mechanical & Physical Properties
+    yield_strength_mpa          NUMERIC(8, 2),
+    tensile_strength_mpa        NUMERIC(8, 2),
+    elongation_pct              NUMERIC(5, 2),
+    hardness_val                NUMERIC(6, 2),
+    hardness_scale              VARCHAR(20)     DEFAULT 'BHN',
+    impact_joules               NUMERIC(6, 2),
+    ultrasonic_test_status      VARCHAR(50)     DEFAULT 'PASSED',
+    radiography_status          VARCHAR(50)     DEFAULT 'NOT_APPLICABLE',
+    remarks                     VARCHAR(500),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_batch_comp_item_batch UNIQUE (comp_id, item_id, batch_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_batch_comp_branch ON tbl_inv_batch_master (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_inv_batch_item ON tbl_inv_batch_master (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_batch_no ON tbl_inv_batch_master (batch_no);
+CREATE INDEX IF NOT EXISTS idx_inv_batch_heat ON tbl_inv_batch_master (heat_no);
+CREATE INDEX IF NOT EXISTS idx_inv_batch_qc_status ON tbl_inv_batch_master (qc_status);
+CREATE INDEX IF NOT EXISTS idx_inv_batch_supplier ON tbl_inv_batch_master (supplier_id);
+CREATE INDEX IF NOT EXISTS idx_inv_batch_wo ON tbl_inv_batch_master (work_order_id);
+
+
+-- ============================================================================
+-- SECTION 82: tbl_inv_batch_genealogy
+-- DATE: 2026-10-19
+-- FEATURE: Step 8.4 - Bi-directional Parent-Child Transformation Linkage
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_genealogy_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_batch_genealogy (
+    genealogy_id                BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_genealogy_id'),
+    parent_batch_id             BIGINT          REFERENCES tbl_inv_batch_master(batch_id) ON DELETE CASCADE,
+    parent_batch_no             VARCHAR(100)    NOT NULL,
+    parent_item_id              BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    child_batch_id              BIGINT          REFERENCES tbl_inv_batch_master(batch_id) ON DELETE CASCADE,
+    child_batch_no              VARCHAR(100)    NOT NULL,
+    child_item_id               BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    work_order_id               BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    job_card_id                 BIGINT          REFERENCES tbl_mfg_job_card(job_card_id),
+    consumed_qty                NUMERIC(14, 3)  NOT NULL DEFAULT 1.000,
+    uom_id                      BIGINT          NOT NULL REFERENCES tbl_inv_uom(uom_id),
+    transformation_type         VARCHAR(50)     NOT NULL DEFAULT 'WORK_ORDER_ASSEMBLY'
+                                                CHECK (transformation_type IN ('WORK_ORDER_ASSEMBLY', 'JOB_WORK_PROCESSING', 'BLENDING', 'SPLIT_LOT', 'REWORK')),
+    link_date                   TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_genealogy_parent ON tbl_inv_batch_genealogy (parent_batch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_genealogy_child ON tbl_inv_batch_genealogy (child_batch_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_inv_genealogy_wo ON tbl_inv_batch_genealogy (work_order_id);
+CREATE INDEX IF NOT EXISTS idx_inv_genealogy_parent_no ON tbl_inv_batch_genealogy (parent_batch_no);
+CREATE INDEX IF NOT EXISTS idx_inv_genealogy_child_no ON tbl_inv_batch_genealogy (child_batch_no);
+
+
+-- ============================================================================
+-- SECTION 83: tbl_inv_serial_master
+-- DATE: 2026-10-19
+-- FEATURE: Step 8.4 - Unit Serial Number Lifecycle & Asset Registry
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS seq_inv_serial_id START WITH 1001 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS tbl_inv_serial_master (
+    serial_id                   BIGINT          PRIMARY KEY DEFAULT nextval('seq_inv_serial_id'),
+    item_id                     BIGINT          NOT NULL REFERENCES tbl_inv_item(item_id),
+    item_code                   VARCHAR(50)     NOT NULL,
+    item_name                   VARCHAR(200)    NOT NULL,
+    batch_id                    BIGINT          REFERENCES tbl_inv_batch_master(batch_id),
+    batch_no                    VARCHAR(100),
+    heat_no                     VARCHAR(100),
+    serial_no                   VARCHAR(100)    NOT NULL,
+    barcode                     VARCHAR(100),
+    rfid_tag                    VARCHAR(100),
+    current_warehouse_id        BIGINT          REFERENCES tbl_inv_warehouse(warehouse_id),
+    current_bin_id              BIGINT          REFERENCES tbl_inv_storage_bin(bin_id),
+    status                      VARCHAR(30)     NOT NULL DEFAULT 'AVAILABLE'
+                                                CHECK (status IN ('AVAILABLE', 'ALLOCATED', 'ISSUED_TO_PROD', 'IN_TRANSIT', 'DELIVERED', 'RETURNED_RMA', 'SCRAPPED')),
+    grn_id                      BIGINT          REFERENCES tbl_inv_grn_header(grn_id),
+    work_order_id               BIGINT          REFERENCES tbl_mfg_wo_header(wo_id),
+    job_card_id                 BIGINT          REFERENCES tbl_mfg_job_card(job_card_id),
+    challan_id                  BIGINT          REFERENCES tbl_sales_delivery_challan_header(challan_id),
+    invoice_id                  BIGINT          REFERENCES tbl_sales_invoice_header(invoice_id),
+    customer_id                 BIGINT          REFERENCES tbl_crm_party(party_id),
+    warranty_start_date         DATE,
+    warranty_end_date           DATE,
+    remarks                     VARCHAR(250),
+    is_active                   BOOLEAN         NOT NULL DEFAULT TRUE,
+    -- Mandatory 7 Audit & Context Columns
+    comp_id                     BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_company(comp_id),
+    branch_id                   BIGINT          NOT NULL DEFAULT 1001 REFERENCES tbl_org_branch(branch_id),
+    fyear_id                    BIGINT          REFERENCES tbl_org_financial_year(fyear_id),
+    created_by                  BIGINT          NOT NULL,
+    created_date                TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by                  BIGINT,
+    updated_date                TIMESTAMPTZ,
+    CONSTRAINT uq_inv_serial_comp_item_serial UNIQUE (comp_id, item_id, serial_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_serial_comp_branch ON tbl_inv_serial_master (comp_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_item ON tbl_inv_serial_master (item_id);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_no ON tbl_inv_serial_master (serial_no);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_batch ON tbl_inv_serial_master (batch_id);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_status ON tbl_inv_serial_master (status);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_customer ON tbl_inv_serial_master (customer_id);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_invoice ON tbl_inv_serial_master (invoice_id);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_challan ON tbl_inv_serial_master (challan_id);
+CREATE INDEX IF NOT EXISTS idx_inv_serial_wh_bin ON tbl_inv_serial_master (current_warehouse_id, current_bin_id);
